@@ -22,7 +22,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
         }
 
         // Perform the actual connection
-        match tor_manager.connect().await {
+        match tor_manager.connect_with_backoff(5).await {
             Ok(_) => {
                 if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "CONNECTED", "bootstrapProgress": 100 })) {
                     log::error!("Failed to emit status update: {}", e);
@@ -66,6 +66,16 @@ pub async fn get_status(state: State<'_, AppState>) -> Result<String> {
 #[tauri::command]
 pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayInfo>> {
     state.tor_manager.get_active_circuit().await
+}
+
+#[tauri::command]
+pub async fn get_isolated_circuit(state: State<'_, AppState>, domain: String) -> Result<Vec<RelayInfo>> {
+    state.tor_manager.get_isolated_circuit(domain).await
+}
+
+#[tauri::command]
+pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String>) -> Result<()> {
+    state.tor_manager.set_exit_country(country).await
 }
 
 #[tauri::command]
