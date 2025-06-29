@@ -3,6 +3,9 @@ use crate::state::AppState;
 use serde::Serialize;
 use tauri::{Manager, State};
 
+/// Information about a single relay in the active circuit.
+///
+/// `country` is an ISO 3166-1 alpha-2 code derived from the relay's IP address.
 #[derive(Serialize, Clone)]
 pub struct RelayInfo {
     pub nickname: String,
@@ -17,19 +20,28 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
     // Fire and forget
     tokio::spawn(async move {
         // Inform the frontend that we are connecting
-        if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "CONNECTING", "bootstrapProgress": 0 })) {
+        if let Err(e) = app_handle.emit_all(
+            "tor-status-update",
+            serde_json::json!({ "status": "CONNECTING", "bootstrapProgress": 0 }),
+        ) {
             log::error!("Failed to emit status update: {}", e);
         }
 
         // Perform the actual connection
         match tor_manager.connect_with_backoff(5).await {
             Ok(_) => {
-                if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "CONNECTED", "bootstrapProgress": 100 })) {
+                if let Err(e) = app_handle.emit_all(
+                    "tor-status-update",
+                    serde_json::json!({ "status": "CONNECTED", "bootstrapProgress": 100 }),
+                ) {
                     log::error!("Failed to emit status update: {}", e);
                 }
             }
             Err(e) => {
-                if let Err(e_emit) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "ERROR", "errorMessage": e.to_string() })) {
+                if let Err(e_emit) = app_handle.emit_all(
+                    "tor-status-update",
+                    serde_json::json!({ "status": "ERROR", "errorMessage": e.to_string() }),
+                ) {
                     log::error!("Failed to emit error status update: {}", e_emit);
                 }
             }
@@ -41,13 +53,19 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
-    if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "DISCONNECTING" })) {
+    if let Err(e) = app_handle.emit_all(
+        "tor-status-update",
+        serde_json::json!({ "status": "DISCONNECTING" }),
+    ) {
         log::error!("Failed to emit status update: {}", e);
     }
-    
+
     state.tor_manager.disconnect().await?;
 
-    if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0 })) {
+    if let Err(e) = app_handle.emit_all(
+        "tor-status-update",
+        serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0 }),
+    ) {
         log::error!("Failed to emit status update: {}", e);
     }
 
@@ -69,7 +87,10 @@ pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayI
 }
 
 #[tauri::command]
-pub async fn get_isolated_circuit(state: State<'_, AppState>, domain: String) -> Result<Vec<RelayInfo>> {
+pub async fn get_isolated_circuit(
+    state: State<'_, AppState>,
+    domain: String,
+) -> Result<Vec<RelayInfo>> {
     state.tor_manager.get_isolated_circuit(domain).await
 }
 
@@ -82,7 +103,10 @@ pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     state.tor_manager.new_identity().await?;
     // Emit event to update frontend
-    app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "NEW_IDENTITY" }))?;
+    app_handle.emit_all(
+        "tor-status-update",
+        serde_json::json!({ "status": "NEW_IDENTITY" }),
+    )?;
     Ok(())
 }
 #[tauri::command]

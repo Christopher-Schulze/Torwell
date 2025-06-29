@@ -1,12 +1,14 @@
 use crate::commands::RelayInfo;
 use crate::error::{Error, Result};
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
+use reqwest::Client;
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tor_circmgr::isolation::{IsolationToken, StreamIsolation};
-use tor_geoip::CountryCode;
 use tor_dirmgr::Timeliness;
+use tor_geoip::CountryCode;
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
 
@@ -68,6 +70,28 @@ impl TorManager {
         Ok(())
     }
 
+    async fn lookup_country_code(client: &Client, ip: &str) -> Option<String> {
+        if ip.contains('?') {
+            return None;
+        }
+        let addr = ip
+            .parse::<SocketAddr>()
+            .map(|sa| sa.ip().to_string())
+            .unwrap_or_else(|_| ip.split(':').next().unwrap_or(ip).to_string());
+        let url = format!("https://ipapi.co/{}/country/", addr);
+        if let Ok(resp) = client.get(url).send().await {
+            if resp.status().is_success() {
+                if let Ok(text) = resp.text().await {
+                    let code = text.trim();
+                    if code.len() == 2 {
+                        return Some(code.to_uppercase());
+                    }
+                }
+            }
+        }
+        None
+    }
+
     pub async fn set_exit_country(&self, country: Option<String>) -> Result<()> {
         let mut guard = self.exit_country.lock().await;
         if let Some(cc) = country {
@@ -104,38 +128,42 @@ impl TorManager {
             .await
             .map_err(|e| Error::Circuit(e.to_string()))?;
 
-        let relays = circuit
+        let hops: Vec<_> = circuit
             .path_ref()
             .map_err(|e| Error::Circuit(e.to_string()))?
             .hops()
             .iter()
-            .map(|hop| {
-                if let Some(relay) = hop.as_chan_target() {
-                    // Use relay ID as identifier since nickname is no longer available
-                    let nickname = relay
-                        .rsa_identity()
-                        .map(|id| {
-                            format!("${}", id.to_string().chars().take(8).collect::<String>())
-                        })
-                        .unwrap_or_else(|| "$unknown".to_string());
-                    let ip_address = relay
-                        .addrs()
-                        .get(0)
-                        .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
-                    RelayInfo {
-                        nickname,
-                        ip_address,
-                        country: "XX".to_string(), // Placeholder
-                    }
-                } else {
-                    RelayInfo {
-                        nickname: "<virtual>".to_string(),
-                        ip_address: "?.?.?.?".to_string(),
-                        country: "XX".to_string(),
-                    }
-                }
-            })
+            .cloned()
             .collect();
+
+        let http = Client::new();
+        let mut relays = Vec::new();
+        for hop in hops {
+            if let Some(relay) = hop.as_chan_target() {
+                let nickname = relay
+                    .rsa_identity()
+                    .map(|id| format!("${}", id.to_string().chars().take(8).collect::<String>()))
+                    .unwrap_or_else(|| "$unknown".to_string());
+                let ip_address = relay
+                    .addrs()
+                    .get(0)
+                    .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
+                let country = Self::lookup_country_code(&http, &ip_address)
+                    .await
+                    .unwrap_or_else(|| "??".to_string());
+                relays.push(RelayInfo {
+                    nickname,
+                    ip_address,
+                    country,
+                });
+            } else {
+                relays.push(RelayInfo {
+                    nickname: "<virtual>".to_string(),
+                    ip_address: "?.?.?.?".to_string(),
+                    country: "??".to_string(),
+                });
+            }
+        }
 
         Ok(relays)
     }
@@ -172,27 +200,42 @@ impl TorManager {
             .await
             .map_err(|e| Error::Circuit(e.to_string()))?;
 
-        let relays = circuit
+        let hops: Vec<_> = circuit
             .path_ref()
             .map_err(|e| Error::Circuit(e.to_string()))?
             .hops()
             .iter()
-            .map(|hop| {
-                if let Some(relay) = hop.as_chan_target() {
-                    let nickname = relay
-                        .rsa_identity()
-                        .map(|id| format!("${}", id.to_string().chars().take(8).collect::<String>()))
-                        .unwrap_or_else(|| "$unknown".to_string());
-                    let ip_address = relay
-                        .addrs()
-                        .get(0)
-                        .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
-                    RelayInfo { nickname, ip_address, country: "XX".to_string() }
-                } else {
-                    RelayInfo { nickname: "<virtual>".to_string(), ip_address: "?.?.?.?".to_string(), country: "XX".to_string() }
-                }
-            })
+            .cloned()
             .collect();
+
+        let http = Client::new();
+        let mut relays = Vec::new();
+        for hop in hops {
+            if let Some(relay) = hop.as_chan_target() {
+                let nickname = relay
+                    .rsa_identity()
+                    .map(|id| format!("${}", id.to_string().chars().take(8).collect::<String>()))
+                    .unwrap_or_else(|| "$unknown".to_string());
+                let ip_address = relay
+                    .addrs()
+                    .get(0)
+                    .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
+                let country = Self::lookup_country_code(&http, &ip_address)
+                    .await
+                    .unwrap_or_else(|| "??".to_string());
+                relays.push(RelayInfo {
+                    nickname,
+                    ip_address,
+                    country,
+                });
+            } else {
+                relays.push(RelayInfo {
+                    nickname: "<virtual>".to_string(),
+                    ip_address: "?.?.?.?".to_string(),
+                    country: "??".to_string(),
+                });
+            }
+        }
 
         Ok(relays)
     }

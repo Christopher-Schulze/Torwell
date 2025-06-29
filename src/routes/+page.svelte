@@ -67,11 +67,10 @@
 			on:openSettings={() => uiStore.actions.openSettingsModal()}
 		/>
 
-		<IdlePanel
-			isConnected={$torStore.status === 'CONNECTED'}
-			connectionProgress={$torStore.bootstrapProgress}
-			currentStatus={$torStore.status}
-		/>
+                <IdlePanel
+                        connectionProgress={$torStore.bootstrapProgress}
+                        currentStatus={$torStore.status}
+                />
 	</div>
 </div>
 
