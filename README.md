@@ -106,17 +106,17 @@ git clone https://github.com/Christopher-Schulze/Torwell.git
 cd Torwell
 
 # Install dependencies
-pnpm install  # Install Node.js dependencies
+bun install  # Install Node.js dependencies
 
 # Start development server
-pnpm tauri dev
+bun tauri dev
 
 # Build the application
-pnpm tauri build
+bun tauri build
 ```
 
 ### Prerequisites
-- Node.js 18+ and pnpm
+- Node.js 18+ and bun
 - Rust and Cargo (via rustup)
 - System dependencies for Tauri (see [Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites))
 
