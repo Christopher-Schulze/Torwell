@@ -53,7 +53,7 @@ async fn connect_with_backoff_success() {
     MockTorClient::push_result(Err("fail".into()));
     MockTorClient::push_result(Ok(MockTorClient::default()));
     let manager: TorManager<MockTorClient> = TorManager::new();
-    let res = manager.connect_with_backoff(5).await;
+    let res = manager.connect_with_backoff(5, |_a, _e| {}).await;
     assert!(res.is_ok());
 }
 
@@ -62,7 +62,7 @@ async fn connect_with_backoff_error() {
     MockTorClient::push_result(Err("e1".into()));
     MockTorClient::push_result(Err("e2".into()));
     let manager: TorManager<MockTorClient> = TorManager::new();
-    let res = manager.connect_with_backoff(1).await;
+    let res = manager.connect_with_backoff(1, |_a, _e| {}).await;
     assert!(matches!(res, Err(Error::Bootstrap(_))));
 }
 
@@ -72,7 +72,7 @@ async fn connect_when_already_connected() {
     MockTorClient::push_result(Ok(MockTorClient::default()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
-    let res = manager.connect_with_backoff(0).await;
+    let res = manager.connect_with_backoff(0, |_a, _e| {}).await;
     assert!(matches!(res, Err(Error::AlreadyConnected)));
 }
 
