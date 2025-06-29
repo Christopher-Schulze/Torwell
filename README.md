@@ -94,6 +94,7 @@ Torwell84/
 └── docs/                       # Project documentation
     ├── Changelog.md
     ├── DOCUMENTATION.md
+    ├── CertificateManagement.md
     └── TODO123.md
 ```
 

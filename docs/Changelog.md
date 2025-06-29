@@ -19,6 +19,11 @@
 ### Fixed
 - None
 
+## [2.2.0] - 2025-07-01
+### Added
+- Certificate pinning with `rustls` and hardened TLS configuration
+- Documentation for certificate management
+
 ## [2.0.0] - 2025-06-15
 ### Initial Release
 - Rewritten architecture with Rust backend and Svelte frontend

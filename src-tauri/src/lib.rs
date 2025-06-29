@@ -1,5 +1,6 @@
 mod commands;
 mod error;
+mod secure_http;
 mod state;
 mod tor_manager;
 
