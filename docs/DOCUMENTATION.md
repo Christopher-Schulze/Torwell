@@ -20,7 +20,7 @@ The backend is structured into several logical modules:
 -   **`state.rs`:** Defines the shared `AppState`, which holds the `TorManager` instance and log storage, ensuring a single, consistent state for the Tor client across the application.
 -   **`tor_manager.rs`:** A dedicated, robust module that encapsulates all interactions with the `arti-client` library. It handles the lifecycle of the Tor client, including connection, disconnection, circuit management (`get_active_circuit`), and requesting a new identity (`new_identity`).
 -   **`commands.rs`:** Implements all Tauri commands that are exposed to the Svelte frontend. These functions act as thin, clean wrappers, delegating all business logic to the `TorManager`. This ensures a clear separation of concerns.
--   **`error.rs`:** Defines a custom, serializable `Error` enum for the entire backend, including specific, descriptive errors like `NotConnected` or `AlreadyConnected`. This ensures that all errors are handled gracefully and can be sent to the frontend in a structured way.
+-   **`error.rs`:** Defines a custom, serializable `Error` enum for the entire backend. In addition to `NotConnected` and `AlreadyConnected`, it exposes variants for bootstrap failures, directory lookups, circuit building issues and identity refresh problems. These descriptive errors are serialized and sent to the frontend for user-friendly reporting.
 
 ### 2.2. Svelte Frontend (`/src`)
 
@@ -54,3 +54,16 @@ The application is built as a standard Tauri project:
 1.  The SvelteKit frontend is built into a set of static assets (HTML, CSS, JS).
 2.  The Rust backend is compiled into a binary.
 3.  The Tauri bundler packages the frontend assets and the Rust binary into a single, native executable for the target platform (e.g., `.app` for macOS, `.exe` for Windows).
+
+## 5. Error States
+
+Errors from the backend are emitted through the `tor-status-update` event. The main variants are:
+
+- `NotConnected` – a command requiring an active Tor connection was invoked while disconnected.
+- `AlreadyConnected` – a connection was attempted when one already exists.
+- `Bootstrap` – the Tor client failed to bootstrap.
+- `NetDir` – the network directory could not be retrieved.
+- `Circuit` – building or retrieving a circuit failed.
+- `Identity` – refreshing the Tor identity was unsuccessful.
+
+The serialized error message is provided in the event's `errorMessage` field so the frontend can display user-friendly feedback.

@@ -24,7 +24,9 @@ impl TorManager {
             return Err(Error::AlreadyConnected);
         }
         let config = TorClientConfig::default();
-        let tor_client = TorClient::create_bootstrapped(config).await?;
+        let tor_client = TorClient::create_bootstrapped(config)
+            .await
+            .map_err(|e| Error::Bootstrap(e.to_string()))?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -47,27 +49,40 @@ impl TorManager {
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
 
         // We need a netdir to get an exit circuit.
-        let netdir = client.dirmgr().netdir(Timeliness::Timely)?;
+        let netdir = client
+            .dirmgr()
+            .netdir(Timeliness::Timely)
+            .map_err(|e| Error::NetDir(e.to_string()))?;
         // We get a circuit by requesting one for a generic exit.
         let circuit = client
             .circmgr()
-            .get_or_launch_exit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None)
-            .await?;
+            .get_or_launch_exit(
+                (&*netdir).into(),
+                &[],
+                StreamIsolation::no_isolation(),
+                None,
+            )
+            .await
+            .map_err(|e| Error::Circuit(e.to_string()))?;
 
         let relays = circuit
-            .path_ref()?
+            .path_ref()
+            .map_err(|e| Error::Circuit(e.to_string()))?
             .hops()
             .iter()
             .map(|hop| {
                 if let Some(relay) = hop.as_chan_target() {
                     // Use relay ID as identifier since nickname is no longer available
-                    let nickname = relay.rsa_identity()
-                        .map(|id| format!("${}", id.to_string().chars().take(8).collect::<String>()))
+                    let nickname = relay
+                        .rsa_identity()
+                        .map(|id| {
+                            format!("${}", id.to_string().chars().take(8).collect::<String>())
+                        })
                         .unwrap_or_else(|| "$unknown".to_string());
-                    let ip_address = relay.addrs().get(0).map_or_else(
-                        || "?.?.?.?".to_string(),
-                        |addr| addr.to_string(),
-                    );
+                    let ip_address = relay
+                        .addrs()
+                        .get(0)
+                        .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
                     RelayInfo {
                         nickname,
                         ip_address,
@@ -91,13 +106,27 @@ impl TorManager {
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
 
         // Force new configuration and circuits
-        client.reconfigure(&TorClientConfig::default())?;
+        client
+            .reconfigure(&TorClientConfig::default())
+            .map_err(|e| Error::Identity(e.to_string()))?;
         client.circmgr().retire_all_circs();
-        
+
         // Build fresh circuit
-        let netdir = client.dirmgr().netdir(Timeliness::Timely)?;
-        client.circmgr().build_circuit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None).await?;
-        
+        let netdir = client
+            .dirmgr()
+            .netdir(Timeliness::Timely)
+            .map_err(|e| Error::NetDir(e.to_string()))?;
+        client
+            .circmgr()
+            .build_circuit(
+                (&*netdir).into(),
+                &[],
+                StreamIsolation::no_isolation(),
+                None,
+            )
+            .await
+            .map_err(|e| Error::Circuit(e.to_string()))?;
+
         Ok(())
     }
 }
