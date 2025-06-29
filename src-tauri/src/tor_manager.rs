@@ -1,5 +1,7 @@
 use crate::commands::RelayInfo;
 use crate::error::{Error, Result};
+use std::sync::atomic::{AtomicU64, Ordering};
+use sysinfo::{NetworksExt, NetworkExt, RefreshKind, System};
 use arti_client::{TorClient, TorClientConfig};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -10,12 +12,16 @@ use tor_rtcompat::PreferredRuntime;
 
 pub struct TorManager {
     client: Arc<Mutex<Option<TorClient<PreferredRuntime>>>>,
+    start_sent: AtomicU64,
+    start_received: AtomicU64,
 }
 
 impl TorManager {
     pub fn new() -> Self {
         Self {
             client: Arc::new(Mutex::new(None)),
+            start_sent: AtomicU64::new(0),
+            start_received: AtomicU64::new(0),
         }
     }
 
@@ -28,6 +34,7 @@ impl TorManager {
             .await
             .map_err(|e| Error::Bootstrap(e.to_string()))?;
         *self.client.lock().await = Some(tor_client);
+        self.capture_baseline();
         Ok(())
     }
 
@@ -128,5 +135,33 @@ impl TorManager {
             .map_err(|e| Error::Circuit(e.to_string()))?;
 
         Ok(())
+    }
+
+    fn capture_baseline(&self) {
+        let mut sys = System::new_with_specifics(RefreshKind::new().with_networks());
+        sys.refresh_networks();
+        let (sent, received) = sys
+            .networks()
+            .iter()
+            .fold((0u64, 0u64), |acc, (_, data)| {
+                (acc.0 + data.total_transmitted(), acc.1 + data.total_received())
+            });
+        self.start_sent.store(sent, Ordering::SeqCst);
+        self.start_received.store(received, Ordering::SeqCst);
+    }
+
+    pub fn traffic_metrics(&self) -> (u64, u64) {
+        let mut sys = System::new_with_specifics(RefreshKind::new().with_networks());
+        sys.refresh_networks();
+        let (sent, received) = sys
+            .networks()
+            .iter()
+            .fold((0u64, 0u64), |acc, (_, data)| {
+                (acc.0 + data.total_transmitted(), acc.1 + data.total_received())
+            });
+        (
+            sent.saturating_sub(self.start_sent.load(Ordering::SeqCst)),
+            received.saturating_sub(self.start_received.load(Ordering::SeqCst)),
+        )
     }
 }

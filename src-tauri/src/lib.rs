@@ -26,6 +26,7 @@ pub fn run() {
             commands::disconnect,
             commands::get_status,
             commands::get_active_circuit,
+            commands::get_traffic_metrics,
             commands::get_logs,
             commands::clear_logs
         ])

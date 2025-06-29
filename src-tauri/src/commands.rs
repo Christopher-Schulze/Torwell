@@ -10,6 +10,12 @@ pub struct RelayInfo {
     pub country: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct TrafficMetrics {
+    pub bytes_sent: u64,
+    pub bytes_received: u64,
+}
+
 #[tauri::command]
 pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     let tor_manager = state.tor_manager.clone();
@@ -75,6 +81,12 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
     app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "NEW_IDENTITY" }))?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn get_traffic_metrics(state: State<'_, AppState>) -> Result<TrafficMetrics> {
+    let (sent, received) = state.tor_manager.traffic_metrics();
+    Ok(TrafficMetrics { bytes_sent: sent, bytes_received: received })
+}
 #[tauri::command]
 pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<String>> {
     state.read_logs().await
@@ -84,3 +96,4 @@ pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<String>> {
 pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
     state.clear_log_file().await
 }
+
