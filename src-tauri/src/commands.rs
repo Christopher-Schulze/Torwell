@@ -69,6 +69,17 @@ pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayI
 }
 
 #[tauri::command]
+pub async fn get_isolated_circuit(state: State<'_, AppState>, domain: String) -> Result<Vec<RelayInfo>> {
+    state.tor_manager.get_circuit(Some(domain)).await
+}
+
+#[tauri::command]
+pub async fn set_exit_policy(state: State<'_, AppState>, ports: Vec<u16>) -> Result<()> {
+    state.tor_manager.set_exit_policy(ports).await;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     state.tor_manager.new_identity().await?;
     // Emit event to update frontend

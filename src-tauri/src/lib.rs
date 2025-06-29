@@ -25,6 +25,8 @@ pub fn run() {
             commands::disconnect,
             commands::get_status,
             commands::get_active_circuit,
+            commands::get_isolated_circuit,
+            commands::set_exit_policy,
             commands::get_logs,
             commands::clear_logs
         ])
