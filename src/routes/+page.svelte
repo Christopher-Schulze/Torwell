@@ -70,6 +70,8 @@
                 <IdlePanel
                         connectionProgress={$torStore.bootstrapProgress}
                         currentStatus={$torStore.status}
+                        retryCount={$torStore.retryCount}
+                        retryDelay={$torStore.retryDelay}
                 />
 	</div>
 </div>
