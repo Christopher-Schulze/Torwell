@@ -27,7 +27,8 @@ pub fn run() {
             commands::get_status,
             commands::get_active_circuit,
             commands::get_logs,
-            commands::clear_logs
+            commands::clear_logs,
+            commands::update_geoip_database
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

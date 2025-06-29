@@ -84,3 +84,8 @@ pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<String>> {
 pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
     state.clear_log_file().await
 }
+
+#[tauri::command]
+pub async fn update_geoip_database(state: State<'_, AppState>, url: String) -> Result<()> {
+    state.tor_manager.update_geoip_database(&url).await
+}
