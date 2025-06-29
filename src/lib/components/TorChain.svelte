@@ -1,7 +1,7 @@
 <script lang="ts">
 
-	// Props
-	export let isConnected = false;
+        // Props
+        export let isConnected = false;
 	export let entryCountry = 'Germany';
 	export let middleCountry = 'Germany';
 	export let exitCountry = 'Germany';
@@ -20,7 +20,39 @@
                 return String.fromCodePoint(...codePoints);
 	};
 
-	const countries = ['Germany','France','Belgium','Switzerland','Liechtenstein','Luxembourg','Austria','Spain','Italy','Portugal','Russia','Romania','Turkey','UK','USA','Canada','Mexico','Brazil','Argentina','Japan','China','Antarctica'];
+        const countries = ['Germany','France','Belgium','Switzerland','Liechtenstein','Luxembourg','Austria','Spain','Italy','Portugal','Russia','Romania','Turkey','UK','USA','Canada','Mexico','Brazil','Argentina','Japan','China','Antarctica'];
+
+        import { uiStore } from '$lib/stores/uiStore';
+
+        const exitCountryOptions = [
+                { code: 'DE', name: 'Germany' },
+                { code: 'FR', name: 'France' },
+                { code: 'BE', name: 'Belgium' },
+                { code: 'CH', name: 'Switzerland' },
+                { code: 'AT', name: 'Austria' },
+                { code: 'ES', name: 'Spain' },
+                { code: 'IT', name: 'Italy' },
+                { code: 'PT', name: 'Portugal' },
+                { code: 'RU', name: 'Russia' },
+                { code: 'RO', name: 'Romania' },
+                { code: 'TR', name: 'Turkey' },
+                { code: 'GB', name: 'UK' },
+                { code: 'US', name: 'USA' },
+                { code: 'CA', name: 'Canada' },
+                { code: 'MX', name: 'Mexico' },
+                { code: 'BR', name: 'Brazil' },
+                { code: 'AR', name: 'Argentina' },
+                { code: 'JP', name: 'Japan' },
+                { code: 'CN', name: 'China' },
+        ];
+
+        let selectedExitCountry: string | null = null;
+        $: selectedExitCountry = $uiStore.settings.exitCountry;
+
+        function changeExitCountry(event: Event) {
+                const value = (event.target as HTMLSelectElement).value;
+                uiStore.actions.setExitCountry(value || null);
+        }
 
 	function handleCountryChange(nodeType: string, event: Event) {
 		const target = event.target as HTMLSelectElement;
@@ -42,7 +74,8 @@
 		<!-- Tor Chain Title -->
 		<div class="flex items-center h-8">
 			<h3 class="text-sm font-semibold text-white">Chain of Nodes</h3>
-		</div>
+        </div>
+
 		
 		<!-- Entry Node Dropdown -->
 		<div class="flex items-center h-8">
@@ -128,9 +161,31 @@
 				</div>
 			</div>
 		</div>
-	</div>
-	
-	<!-- Node Cards Row -->
+        </div>
+
+        <!-- Exit Country Selection -->
+        <div class="flex items-center mb-4">
+                <label class="text-xs text-white mr-2">Exit Country:</label>
+                <div class="relative w-48 h-8">
+                        <select
+                                class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
+                                bind:value={selectedExitCountry}
+                                on:change={changeExitCountry}
+                        >
+                                <option value="">Auto</option>
+                                {#each exitCountryOptions as opt}
+                                        <option value={opt.code}>{getCountryFlag(opt.code)} {opt.name}</option>
+                                {/each}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                        </div>
+                </div>
+        </div>
+
+        <!-- Node Cards Row -->
 	<div class="grid grid-cols-5 gap-4 mt-8">
 
 		<!-- You Card -->

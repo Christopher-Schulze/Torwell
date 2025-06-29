@@ -5,6 +5,7 @@ export interface Settings {
   id?: number;
   workerList: string[];
   torrcConfig: string;
+  exitCountry?: string | null;
 }
 
 export class AppDatabase extends Dexie {
