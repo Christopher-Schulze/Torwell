@@ -1,13 +1,15 @@
 use crate::error::Result;
-use crate::tor_manager::TorManager;
+use crate::tor_manager::{TorClientBehavior, TorManager};
+use arti_client::TorClient;
+use tor_rtcompat::PreferredRuntime;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 
-pub struct AppState {
-    pub tor_manager: Arc<TorManager>,
+pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
+    pub tor_manager: Arc<TorManager<C>>,
     /// Path to the persistent log file
     pub log_file: PathBuf,
     /// Mutex used to serialize file writes
@@ -16,7 +18,7 @@ pub struct AppState {
     pub max_log_lines: usize,
 }
 
-impl Default for AppState {
+impl<C: TorClientBehavior> Default for AppState<C> {
     fn default() -> Self {
         let log_file = std::env::current_dir()
             .unwrap_or_else(|_| PathBuf::from("."))

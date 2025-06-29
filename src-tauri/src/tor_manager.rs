@@ -1,6 +1,7 @@
 use crate::commands::RelayInfo;
 use crate::error::{Error, Result};
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
+use async_trait::async_trait;
 use reqwest::Client;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -12,13 +13,48 @@ use tor_geoip::CountryCode;
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
 
-pub struct TorManager {
-    client: Arc<Mutex<Option<TorClient<PreferredRuntime>>>>,
+#[async_trait]
+pub trait TorClientBehavior: Send + Sync + Sized + 'static {
+    async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String>;
+    fn reconfigure(&self, config: &TorClientConfig) -> std::result::Result<(), String>;
+    fn retire_all_circs(&self);
+    async fn build_new_circuit(&self) -> std::result::Result<(), String>;
+}
+
+#[async_trait]
+impl TorClientBehavior for TorClient<PreferredRuntime> {
+    async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String> {
+        TorClient::create_bootstrapped(config)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    fn reconfigure(&self, config: &TorClientConfig) -> std::result::Result<(), String> {
+        self.reconfigure(config).map_err(|e| e.to_string())
+    }
+
+    fn retire_all_circs(&self) {
+        self.circmgr().retire_all_circs();
+    }
+
+    async fn build_new_circuit(&self) -> std::result::Result<(), String> {
+        let netdir = self
+            .dirmgr()
+            .netdir(Timeliness::Timely)
+            .map_err(|e| e.to_string())?;
+        self.circmgr()
+            .build_circuit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None)
+            .await
+            .map_err(|e| e.to_string())
+    }
+}
+pub struct TorManager<C = TorClient<PreferredRuntime>> {
+    client: Arc<Mutex<Option<C>>>,
     isolation_tokens: Arc<Mutex<HashMap<String, IsolationToken>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
 }
 
-impl TorManager {
+impl<C: TorClientBehavior> TorManager<C> {
     pub fn new() -> Self {
         Self {
             client: Arc::new(Mutex::new(None)),
@@ -32,9 +68,9 @@ impl TorManager {
             return Err(Error::AlreadyConnected);
         }
         let config = TorClientConfig::default();
-        let tor_client = TorClient::create_bootstrapped(config)
+        let tor_client = C::create_bootstrapped(config)
             .await
-            .map_err(|e| Error::Bootstrap(e.to_string()))?;
+            .map_err(|e| Error::Bootstrap(e))?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -107,24 +143,39 @@ impl TorManager {
         self.client.lock().await.is_some()
     }
 
+
+    pub async fn new_identity(&self) -> Result<()> {
+        let client_guard = self.client.lock().await;
+        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+
+        // Force new configuration and circuits
+        client
+            .reconfigure(&TorClientConfig::default())
+            .map_err(|e| Error::Identity(e))?;
+        client.retire_all_circs();
+
+        // Build fresh circuit
+        client
+            .build_new_circuit()
+            .await
+            .map_err(|e| Error::Circuit(e))?;
+
+        Ok(())
+    }
+}
+
+impl TorManager {
     pub async fn get_active_circuit(&self) -> Result<Vec<RelayInfo>> {
         let client_guard = self.client.lock().await;
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
 
-        // We need a netdir to get an exit circuit.
         let netdir = client
             .dirmgr()
             .netdir(Timeliness::Timely)
             .map_err(|e| Error::NetDir(e.to_string()))?;
-        // We get a circuit by requesting one for a generic exit.
         let circuit = client
             .circmgr()
-            .get_or_launch_exit(
-                (&*netdir).into(),
-                &[],
-                StreamIsolation::no_isolation(),
-                None,
-            )
+            .get_or_launch_exit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None)
             .await
             .map_err(|e| Error::Circuit(e.to_string()))?;
 
@@ -238,34 +289,5 @@ impl TorManager {
         }
 
         Ok(relays)
-    }
-
-    pub async fn new_identity(&self) -> Result<()> {
-        let client_guard = self.client.lock().await;
-        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
-
-        // Force new configuration and circuits
-        client
-            .reconfigure(&TorClientConfig::default())
-            .map_err(|e| Error::Identity(e.to_string()))?;
-        client.circmgr().retire_all_circs();
-
-        // Build fresh circuit
-        let netdir = client
-            .dirmgr()
-            .netdir(Timeliness::Timely)
-            .map_err(|e| Error::NetDir(e.to_string()))?;
-        client
-            .circmgr()
-            .build_circuit(
-                (&*netdir).into(),
-                &[],
-                StreamIsolation::no_isolation(),
-                None,
-            )
-            .await
-            .map_err(|e| Error::Circuit(e.to_string()))?;
-
-        Ok(())
     }
 }
