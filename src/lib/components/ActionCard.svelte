@@ -63,7 +63,7 @@
                         <span>
                                 {$torStore.errorMessage}
                                 {#if isRetrying}
-                                        (retry {$torStore.retryCount})
+                                        (retry {$torStore.retryCount} in {$torStore.retryDelay}s)
                                 {/if}
                         </span>
                 </div>
@@ -86,7 +86,7 @@
 			>
                                 <div class="animate-spin"><RefreshCw size={16} /></div>
                                 {#if isRetrying}
-                                        Retrying...
+                                        Retrying in {$torStore.retryDelay}s (attempt {$torStore.retryCount})
                                 {:else}
                                         Connecting...
                                 {/if}

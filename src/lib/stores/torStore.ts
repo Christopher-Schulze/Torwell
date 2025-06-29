@@ -14,6 +14,7 @@ export interface TorState {
     bootstrapProgress: number;
     errorMessage: string | null;
     retryCount: number;
+    retryDelay: number;
 }
 
 function createTorStore() {
@@ -22,6 +23,7 @@ function createTorStore() {
             bootstrapProgress: 0,
             errorMessage: null,
             retryCount: 0,
+            retryDelay: 0,
         };
 
     const { subscribe, update, set } = writable<TorState>(initialState);
@@ -31,7 +33,8 @@ function createTorStore() {
         update(state => ({
             ...state,
             ...event.payload,
-            retryCount: event.payload.retryCount ?? (event.payload.status === 'CONNECTED' ? 0 : state.retryCount)
+            retryCount: event.payload.retryCount ?? ([ 'CONNECTED', 'DISCONNECTED', 'ERROR' ].includes(event.payload.status as string) ? 0 : state.retryCount),
+            retryDelay: event.payload.retryDelay ?? ([ 'CONNECTED', 'DISCONNECTED', 'ERROR' ].includes(event.payload.status as string) ? 0 : state.retryDelay)
         }));
     });
 
