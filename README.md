@@ -127,6 +127,9 @@ pnpm tauri build
 - **Desktop**: Tauri 1.5+
 - **Tor Version**: arti-client 0.31.0
 
+### Error States
+The backend emits detailed error messages via the `tor-status-update` event. Possible values include `NotConnected`, `AlreadyConnected`, `Bootstrap`, `NetDir`, `Circuit`, and `Identity`.
+
 ## 📈 Roadmap
 
 ### In Progress

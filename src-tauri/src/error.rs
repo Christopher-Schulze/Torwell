@@ -20,6 +20,18 @@ pub enum Error {
 
     #[error("No circuit available")]
     NoCircuit,
+
+    #[error("Failed to bootstrap Tor: {0}")]
+    Bootstrap(String),
+
+    #[error("Failed to obtain network directory: {0}")]
+    NetDir(String),
+
+    #[error("Circuit operation failed: {0}")]
+    Circuit(String),
+
+    #[error("Identity change failed: {0}")]
+    Identity(String),
 }
 
 impl From<arti_client::Error> for Error {
