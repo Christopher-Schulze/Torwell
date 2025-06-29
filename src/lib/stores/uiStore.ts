@@ -1,10 +1,12 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { db } from '$lib/database';
 import type { Settings } from '$lib/database';
+import { invoke } from '@tauri-apps/api/tauri';
 
 type AppSettings = {
     workerList: string[];
     torrcConfig: string;
+    exitCountry: string | null;
 };
 
 type UIState = {
@@ -21,6 +23,7 @@ function createUIStore() {
         settings: {
             workerList: ['worker1.example.com', 'worker2.example.com'], // Default values
             torrcConfig: '# Default torrc config\n',
+            exitCountry: null,
         },
         error: null,
     });
@@ -42,6 +45,7 @@ function createUIStore() {
                         settings: {
                             workerList: storedSettings.workerList,
                             torrcConfig: storedSettings.torrcConfig,
+                            exitCountry: storedSettings.exitCountry ?? null,
                         }
                     }));
                 }
@@ -58,6 +62,22 @@ function createUIStore() {
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
                 update(state => ({ ...state, error: `Failed to save settings: ${message}` }));
+            }
+        },
+
+        setExitCountry: async (country: string | null) => {
+            try {
+                await invoke('set_exit_country', { country });
+                const current = get({ subscribe });
+                const newSettings: AppSettings = {
+                    ...current.settings,
+                    exitCountry: country,
+                };
+                await db.settings.put({ id: 1, ...newSettings });
+                update(state => ({ ...state, settings: newSettings, error: null }));
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to set exit country: ${message}` }));
             }
         },
     };

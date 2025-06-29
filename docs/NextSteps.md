@@ -217,6 +217,7 @@
   - Custom bridge configuration
   - Traffic shaping
   - Detailed statistics
+  - Exit node country selection
 
 ## 8. Performance Benchmarks
 
