@@ -67,3 +67,10 @@ Errors from the backend are emitted through the `tor-status-update` event. The m
 - `Identity` – refreshing the Tor identity was unsuccessful.
 
 The serialized error message is provided in the event's `errorMessage` field so the frontend can display user-friendly feedback.
+
+## 6. Traffic Statistics
+
+Version 2.2 introduces live traffic counters. `TorManager` exposes the total bytes
+sent and received via `traffic_stats()`, and the `get_traffic_stats` Tauri command
+passes these values to the frontend. The main status card now periodically
+displays the aggregate traffic in megabytes.

@@ -16,6 +16,15 @@ use tor_rtcompat::PreferredRuntime;
 const INITIAL_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
 const MAX_BACKOFF: std::time::Duration = std::time::Duration::from_secs(30);
 
+/// Simple traffic statistics returned from [`TorManager::traffic_stats`].
+#[derive(Debug, Clone)]
+pub struct TrafficStats {
+    /// Total bytes sent through the Tor client.
+    pub bytes_sent: u64,
+    /// Total bytes received through the Tor client.
+    pub bytes_received: u64,
+}
+
 #[async_trait]
 pub trait TorClientBehavior: Send + Sync + Sized + 'static {
     async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String>;
@@ -296,5 +305,17 @@ impl TorManager {
         }
 
         Ok(relays)
+    }
+
+    /// Return the total number of bytes sent and received through the Tor client.
+    pub async fn traffic_stats(&self) -> Result<TrafficStats> {
+        let client_guard = self.client.lock().await;
+        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+
+        let stats = client.traffic_stats();
+        Ok(TrafficStats {
+            bytes_sent: stats.bytes_written(),
+            bytes_received: stats.bytes_read(),
+        })
     }
 }
