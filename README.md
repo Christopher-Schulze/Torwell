@@ -140,6 +140,14 @@ pnpm tauri build
 - [ ] Network monitoring tools
 - [ ] Bridge configuration options
 
+## 🤝 Contributing
+
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on code style, testing, and opening pull requests.
+
+## 🐞 Troubleshooting
+
+Common issues and log analysis tips are documented in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
