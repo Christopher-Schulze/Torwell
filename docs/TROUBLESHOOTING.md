@@ -11,6 +11,6 @@ This guide lists common problems encountered during development and how to analy
 ## Debugging & Log Analysis
 
 - Start the app in development mode with `pnpm tauri dev` to view live output.
-- The backend stores logs in memory; watch console messages for `error` or `warn` entries.
+- The backend writes logs to a persistent file named `torwell.log` in the project directory. Older entries are trimmed once the file exceeds the configured line limit.
 - If the UI fails to load, open the browser developer tools (`Ctrl+Shift+I`) to inspect console logs and network activity.
 

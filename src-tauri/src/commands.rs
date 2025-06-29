@@ -118,3 +118,8 @@ pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<String>> {
 pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
     state.clear_log_file().await
 }
+
+#[tauri::command]
+pub async fn get_log_file_path(state: State<'_, AppState>) -> Result<String> {
+    Ok(state.log_file_path())
+}

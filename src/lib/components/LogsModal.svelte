@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { X, Download, Copy, Trash2 } from 'lucide-svelte';
-	import { createEventDispatcher, onMount } from 'svelte';
-	import { invoke } from '@tauri-apps/api';
+        import { X, Download, Copy, Trash2, FolderOpen } from 'lucide-svelte';
+        import { createEventDispatcher, onMount } from 'svelte';
+        import { invoke } from '@tauri-apps/api';
+        import { open } from '@tauri-apps/api/shell';
 
 	export let show = false;
 
@@ -14,21 +15,23 @@
 		level: string;
 	}
 
-	let activeTab = 'all';
-	let logs: LogEntry[] = [];
-	let isLoading = false;
-	let isClearing = false;
+        let activeTab = 'all';
+        let logs: LogEntry[] = [];
+        let isLoading = false;
+        let isClearing = false;
+        let logFilePath = '';
 
 	$: filteredLogs = activeTab === 'all' ? logs : logs.filter(log => log.type === activeTab);
 
-	$: if (show) {
-		loadLogs();
-	}
+        $: if (show) {
+                loadLogs();
+                fetchLogFilePath();
+        }
 
-	async function loadLogs() {
-		isLoading = true;
-		try {
-			const response: any[] = await invoke('get_logs');
+        async function loadLogs() {
+                isLoading = true;
+                try {
+                        const response: any[] = await invoke('get_logs');
 			logs = response.map(entry => ({
 				type: entry.level.toLowerCase() === 'info' ? 'connection' : 'system',
 				timestamp: new Date(entry.timestamp).toLocaleString(),
@@ -42,8 +45,16 @@
 			];
 		} finally {
 			isLoading = false;
-		}
-	}
+                }
+        }
+
+        async function fetchLogFilePath() {
+                try {
+                        logFilePath = await invoke('get_log_file_path');
+                } catch (error) {
+                        console.error('Failed to get log file path', error);
+                }
+        }
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
@@ -69,19 +80,25 @@
 		navigator.clipboard.writeText(logText);
 	}
 
-	async function clearLogs() {
-		if (isClearing) return;
-		isClearing = true;
-		try {
-			await invoke('clear_logs');
-			console.log('Logs cleared successfully');
-			logs = [];
-		} catch (error) {
-			console.error('Failed to clear logs:', error);
-		} finally {
-			isClearing = false;
-		}
-	}
+        async function clearLogs() {
+                if (isClearing) return;
+                isClearing = true;
+                try {
+                        await invoke('clear_logs');
+                        console.log('Logs cleared successfully');
+                        logs = [];
+                } catch (error) {
+                        console.error('Failed to clear logs:', error);
+                } finally {
+                        isClearing = false;
+                }
+        }
+
+        function openLogFile() {
+                if (logFilePath) {
+                        open(logFilePath);
+                }
+        }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -142,28 +159,35 @@
 
 			<!-- Footer -->
 			<div class="flex items-center justify-between p-6 border-t border-white/10">
-				<div class="flex gap-2">
-					<button 
-						class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
-						on:click={downloadLogs}
-					>
-						<Download size={16} /> Download
-					</button>
-					<button 
-						class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
-						on:click={copyLogs}
-					>
-						<Copy size={16} /> Copy
+                                <div class="flex gap-2">
+                                        <button
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
+                                                on:click={downloadLogs}
+                                        >
+                                                <Download size={16} /> Download
+                                        </button>
+                                        <button
+                                                class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm flex items-center gap-2"
+                                                on:click={openLogFile}
+                                        >
+                                                <FolderOpen size={16} /> Open File
+                                        </button>
+                                        <button
+                                                class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
+                                                on:click={copyLogs}
+                                        >
+                                                <Copy size={16} /> Copy
 					</button>
 				</div>
-				<button 
-					class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-2 {isClearing ? 'opacity-50 cursor-not-allowed' : ''}"
-					on:click={clearLogs}
-					disabled={isClearing}
-				>
-					<Trash2 size={16} /> {isClearing ? 'Clearing...' : 'Clear Logs'}
-				</button>
-			</div>
-		</div>
-	</div>
+                                <button
+                                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-2 {isClearing ? 'opacity-50 cursor-not-allowed' : ''}"
+                                        on:click={clearLogs}
+                                        disabled={isClearing}
+                                >
+                                        <Trash2 size={16} /> {isClearing ? 'Clearing...' : 'Clear Logs'}
+                                </button>
+                        </div>
+                        <p class="text-xs text-gray-400 px-6 pb-4">Log file: {logFilePath}</p>
+                </div>
+        </div>
 {/if}

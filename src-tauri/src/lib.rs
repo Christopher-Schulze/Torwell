@@ -29,7 +29,8 @@ pub fn run() {
             commands::get_isolated_circuit,
             commands::set_exit_country,
             commands::get_logs,
-            commands::clear_logs
+            commands::clear_logs,
+            commands::get_log_file_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
