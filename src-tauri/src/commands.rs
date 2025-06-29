@@ -3,6 +3,13 @@ use crate::state::AppState;
 use serde::Serialize;
 use tauri::{Manager, State};
 
+/// Total bytes sent and received through Tor.
+#[derive(Serialize, Clone)]
+pub struct TrafficStats {
+    pub bytes_sent: u64,
+    pub bytes_received: u64,
+}
+
 /// Information about a single relay in the active circuit.
 ///
 /// `country` is an ISO 3166-1 alpha-2 code derived from the relay's IP address.
@@ -117,6 +124,15 @@ pub async fn get_isolated_circuit(
 #[tauri::command]
 pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String>) -> Result<()> {
     state.tor_manager.set_exit_country(country).await
+}
+
+#[tauri::command]
+pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStats> {
+    let stats = state.tor_manager.traffic_stats().await?;
+    Ok(TrafficStats {
+        bytes_sent: stats.bytes_sent,
+        bytes_received: stats.bytes_received,
+    })
 }
 
 #[tauri::command]
