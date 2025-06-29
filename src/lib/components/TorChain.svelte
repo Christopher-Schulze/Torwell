@@ -11,13 +11,13 @@
 	// Node data with IPs and names
 	export let nodeData: { nickname: string; ip_address: string; country: string }[] = [];
 
-	const getCountryFlag = (countryCode: string) => {
-        if (!countryCode) return '🏳️';
-		const codePoints = countryCode
-			.toUpperCase()
-			.split('')
-			.map(char =>  127397 + char.charCodeAt(0));
-		return String.fromCodePoint(...codePoints);
+        const getCountryFlag = (countryCode: string) => {
+        if (!countryCode || countryCode === '??' || countryCode === 'XX') return '🏳️';
+                const codePoints = countryCode
+                        .toUpperCase()
+                        .split('')
+                        .map(char =>  127397 + char.charCodeAt(0));
+                return String.fromCodePoint(...codePoints);
 	};
 
 	const countries = ['Germany','France','Belgium','Switzerland','Liechtenstein','Luxembourg','Austria','Spain','Italy','Portugal','Russia','Romania','Turkey','UK','USA','Canada','Mexico','Brazil','Argentina','Japan','China','Antarctica'];
@@ -141,11 +141,11 @@
 			<div class="text-center flex-1 flex flex-col justify-center space-y-1">
 				<div class="text-sm text-white font-medium h-5 flex items-center justify-center">You</div>
 				<div class="text-xs text-gray-400 h-4 flex items-center justify-center">
-					{#if isConnected}
-						{nodeData[0]?.ip || '-'}
-					{:else}
-						-
-					{/if}
+                                        {#if isConnected}
+                                                {nodeData[0]?.ip_address || '-'}
+                                        {:else}
+                                                -
+                                        {/if}
 				</div>
 				<div class="text-lg h-6 flex items-center justify-center">
 					{#if isConnected}
