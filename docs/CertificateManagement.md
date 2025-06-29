@@ -4,7 +4,8 @@ Torwell84 uses certificate pinning to defend against man-in-the-middle attacks. 
 
 ## Rotation Procedure
 1. The application fetches new certificates from a trusted endpoint using the existing pinned certificate.
-2. The new certificate replaces `src-tauri/certs/server.pem` on success.
-3. If the download fails, the previous certificate remains in place and continues to be used.
+2. Downloaded PEM files are saved to `src-tauri/certs/server.pem`.
+3. `SecureHttpClient` reloads the file automatically so the new certificate is used without restarting the app.
+4. If the download fails, the previous certificate remains in place and continues to be used.
 
 This process ensures that the client always validates TLS connections against a known certificate while still allowing updates when required.
