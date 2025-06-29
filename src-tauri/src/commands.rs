@@ -76,15 +76,11 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
     Ok(())
 }
 #[tauri::command]
-pub async fn get_logs() -> Result<Vec<String>> {
-    // For now, this returns an empty list.
-    // TODO: Implement actual log retrieval.
-    Ok(vec![])
+pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<String>> {
+    state.read_logs().await
 }
 
 #[tauri::command]
-pub async fn clear_logs() -> Result<()> {
-    // For now, this does nothing.
-    // TODO: Implement actual log clearing.
-    Ok(())
+pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
+    state.clear_log_file().await
 }

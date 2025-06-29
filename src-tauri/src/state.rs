@@ -1,28 +1,72 @@
+use crate::error::Result;
 use crate::tor_manager::TorManager;
+use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::fs::{self, OpenOptions};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 
 pub struct AppState {
     pub tor_manager: Arc<TorManager>,
-    pub logs: Arc<Mutex<Vec<String>>>,
+    /// Path to the persistent log file
+    pub log_file: PathBuf,
+    /// Mutex used to serialize file writes
+    pub log_lock: Arc<Mutex<()>>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
+        let log_file = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("torwell.log");
+        if let Some(parent) = log_file.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+
         Self {
             tor_manager: Arc::new(TorManager::new()),
-            logs: Arc::new(Mutex::new(Vec::new())),
+            log_file,
+            log_lock: Arc::new(Mutex::new(())),
         }
     }
 }
 
 impl AppState {
-    pub async fn add_log(&self, message: String) {
-        let mut logs = self.logs.lock().await;
-        logs.push(message);
-        // Optional: Limit log size to prevent memory issues
-        if logs.len() > 1000 {
-            logs.remove(0);
+    const MAX_LINES: usize = 1000;
+
+    pub async fn add_log(&self, message: String) -> Result<()> {
+        let _guard = self.log_lock.lock().await;
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.log_file)
+            .await?;
+        file.write_all(message.as_bytes()).await?;
+        file.write_all(b"\n").await?;
+        drop(file);
+        self.trim_logs().await?;
+        Ok(())
+    }
+
+    async fn trim_logs(&self) -> Result<()> {
+        let contents = fs::read_to_string(&self.log_file).await.unwrap_or_default();
+        let mut lines: Vec<&str> = contents.lines().collect();
+        if lines.len() > Self::MAX_LINES {
+            lines = lines[lines.len() - Self::MAX_LINES..].to_vec();
+            fs::write(&self.log_file, lines.join("\n")).await?;
         }
+        Ok(())
+    }
+
+    pub async fn read_logs(&self) -> Result<Vec<String>> {
+        let _guard = self.log_lock.lock().await;
+        let contents = fs::read_to_string(&self.log_file).await.unwrap_or_default();
+        Ok(contents.lines().map(|l| l.to_string()).collect())
+    }
+
+    pub async fn clear_log_file(&self) -> Result<()> {
+        let _guard = self.log_lock.lock().await;
+        fs::write(&self.log_file, b"").await?;
+        Ok(())
     }
 }
