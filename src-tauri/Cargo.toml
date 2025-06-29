@@ -28,6 +28,7 @@ tor-dirmgr = "0.31.0"
 tor-netdir = "0.31.0"
 tor-proto = "0.31.0"
 tor-linkspec = "0.31.0"
+maxminddb = "0.26.0"
 
 [features]
 # by default Tauri runs in production mode

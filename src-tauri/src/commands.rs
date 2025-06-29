@@ -17,19 +17,28 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
     // Fire and forget
     tokio::spawn(async move {
         // Inform the frontend that we are connecting
-        if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "CONNECTING", "bootstrapProgress": 0 })) {
+        if let Err(e) = app_handle.emit_all(
+            "tor-status-update",
+            serde_json::json!({ "status": "CONNECTING", "bootstrapProgress": 0 }),
+        ) {
             log::error!("Failed to emit status update: {}", e);
         }
 
         // Perform the actual connection
         match tor_manager.connect().await {
             Ok(_) => {
-                if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "CONNECTED", "bootstrapProgress": 100 })) {
+                if let Err(e) = app_handle.emit_all(
+                    "tor-status-update",
+                    serde_json::json!({ "status": "CONNECTED", "bootstrapProgress": 100 }),
+                ) {
                     log::error!("Failed to emit status update: {}", e);
                 }
             }
             Err(e) => {
-                if let Err(e_emit) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "ERROR", "errorMessage": e.to_string() })) {
+                if let Err(e_emit) = app_handle.emit_all(
+                    "tor-status-update",
+                    serde_json::json!({ "status": "ERROR", "errorMessage": e.to_string() }),
+                ) {
                     log::error!("Failed to emit error status update: {}", e_emit);
                 }
             }
@@ -41,13 +50,19 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
-    if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "DISCONNECTING" })) {
+    if let Err(e) = app_handle.emit_all(
+        "tor-status-update",
+        serde_json::json!({ "status": "DISCONNECTING" }),
+    ) {
         log::error!("Failed to emit status update: {}", e);
     }
-    
+
     state.tor_manager.disconnect().await?;
 
-    if let Err(e) = app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0 })) {
+    if let Err(e) = app_handle.emit_all(
+        "tor-status-update",
+        serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0 }),
+    ) {
         log::error!("Failed to emit status update: {}", e);
     }
 
@@ -72,8 +87,16 @@ pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayI
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     state.tor_manager.new_identity().await?;
     // Emit event to update frontend
-    app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "NEW_IDENTITY" }))?;
+    app_handle.emit_all(
+        "tor-status-update",
+        serde_json::json!({ "status": "NEW_IDENTITY" }),
+    )?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn update_geoip_database(state: State<'_, AppState>, path: String) -> Result<()> {
+    state.tor_manager.load_geoip_db(&path).await
 }
 #[tauri::command]
 pub async fn get_logs() -> Result<Vec<String>> {

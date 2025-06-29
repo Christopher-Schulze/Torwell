@@ -59,6 +59,7 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 - **Rust-Powered**: Built with Rust for performance and safety
 - **Native UI**: Cross-platform desktop application using Tauri
 - **Modern Stack**: Svelte-based frontend with TypeScript
+- **GeoIP Support**: Relay country lookup via MaxMind database
 
 ### 📊 Status
 - **Stable**: Core Tor functionality is working
@@ -118,6 +119,7 @@ pnpm tauri build
 - Node.js 18+ and pnpm
 - Rust and Cargo (via rustup)
 - System dependencies for Tauri (see [Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites))
+- Optional: set `GEOIP_DB_PATH` to the location of your MaxMind DB
 
 ## 🛠️ Technical Details
 

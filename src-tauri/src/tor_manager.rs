@@ -1,6 +1,7 @@
 use crate::commands::RelayInfo;
 use crate::error::{Error, Result};
 use arti_client::{TorClient, TorClientConfig};
+use maxminddb::{geoip2, Reader};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tor_circmgr::isolation::StreamIsolation;
@@ -10,13 +11,21 @@ use tor_rtcompat::PreferredRuntime;
 
 pub struct TorManager {
     client: Arc<Mutex<Option<TorClient<PreferredRuntime>>>>,
+    geoip: Arc<Mutex<Option<Reader<Vec<u8>>>>>,
 }
 
 impl TorManager {
     pub fn new() -> Self {
         Self {
             client: Arc::new(Mutex::new(None)),
+            geoip: Arc::new(Mutex::new(None)),
         }
+    }
+
+    pub async fn load_geoip_db(&self, path: &str) -> Result<()> {
+        let reader = Reader::open_readfile(path)?;
+        *self.geoip.lock().await = Some(reader);
+        Ok(())
     }
 
     pub async fn connect(&self) -> Result<()> {
@@ -51,8 +60,15 @@ impl TorManager {
         // We get a circuit by requesting one for a generic exit.
         let circuit = client
             .circmgr()
-            .get_or_launch_exit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None)
+            .get_or_launch_exit(
+                (&*netdir).into(),
+                &[],
+                StreamIsolation::no_isolation(),
+                None,
+            )
             .await?;
+
+        let geoip_guard = self.geoip.lock().await;
 
         let relays = circuit
             .path_ref()?
@@ -61,17 +77,32 @@ impl TorManager {
             .map(|hop| {
                 if let Some(relay) = hop.as_chan_target() {
                     // Use relay ID as identifier since nickname is no longer available
-                    let nickname = relay.rsa_identity()
-                        .map(|id| format!("${}", id.to_string().chars().take(8).collect::<String>()))
+                    let nickname = relay
+                        .rsa_identity()
+                        .map(|id| {
+                            format!("${}", id.to_string().chars().take(8).collect::<String>())
+                        })
                         .unwrap_or_else(|| "$unknown".to_string());
-                    let ip_address = relay.addrs().get(0).map_or_else(
-                        || "?.?.?.?".to_string(),
-                        |addr| addr.to_string(),
-                    );
+                    let ip_address = relay
+                        .addrs()
+                        .get(0)
+                        .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
+                    let country = if let Some(reader) = geoip_guard.as_ref() {
+                        ip_address
+                            .parse::<std::net::SocketAddr>()
+                            .ok()
+                            .and_then(|s| reader.lookup::<geoip2::Country>(s.ip()).ok())
+                            .and_then(|c| {
+                                c.country.and_then(|cc| cc.iso_code.map(|s| s.to_string()))
+                            })
+                            .unwrap_or_else(|| "XX".to_string())
+                    } else {
+                        "XX".to_string()
+                    };
                     RelayInfo {
                         nickname,
                         ip_address,
-                        country: "XX".to_string(), // Placeholder
+                        country,
                     }
                 } else {
                     RelayInfo {
@@ -93,11 +124,19 @@ impl TorManager {
         // Force new configuration and circuits
         client.reconfigure(&TorClientConfig::default())?;
         client.circmgr().retire_all_circs();
-        
+
         // Build fresh circuit
         let netdir = client.dirmgr().netdir(Timeliness::Timely)?;
-        client.circmgr().build_circuit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None).await?;
-        
+        client
+            .circmgr()
+            .build_circuit(
+                (&*netdir).into(),
+                &[],
+                StreamIsolation::no_isolation(),
+                None,
+            )
+            .await?;
+
         Ok(())
     }
 }

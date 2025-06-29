@@ -19,6 +19,11 @@
 ### Fixed
 - None
 
+## [2.2.0] - 2025-07-01
+### Added
+- GeoIP lookup using MaxMind database
+- Command to update the GeoIP database
+
 ## [2.0.0] - 2025-06-15
 ### Initial Release
 - Rewritten architecture with Rust backend and Svelte frontend

@@ -12,6 +12,9 @@ pub enum Error {
     #[error("Tauri Error: {0}")]
     Tauri(String),
 
+    #[error("GeoIP Error: {0}")]
+    GeoIp(String),
+
     #[error("Client not initialized")]
     NotConnected,
 
@@ -57,5 +60,11 @@ impl From<tor_circmgr::Error> for Error {
 impl From<tor_proto::Error> for Error {
     fn from(err: tor_proto::Error) -> Self {
         Error::Tor(err.to_string())
+    }
+}
+
+impl From<maxminddb::MaxMindDBError> for Error {
+    fn from(err: maxminddb::MaxMindDBError) -> Self {
+        Error::GeoIp(err.to_string())
     }
 }

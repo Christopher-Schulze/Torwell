@@ -7,6 +7,11 @@ use state::AppState;
 
 pub fn run() {
     let app_state = AppState::default();
+    let geoip_path = std::env::var("GEOIP_DB_PATH").unwrap_or_else(|_| "geoip.mmdb".into());
+    let geoip_manager = app_state.tor_manager.clone();
+    tauri::async_runtime::spawn(async move {
+        let _ = geoip_manager.load_geoip_db(&geoip_path).await;
+    });
 
     tauri::Builder::default()
         .manage(app_state)
@@ -25,6 +30,8 @@ pub fn run() {
             commands::disconnect,
             commands::get_status,
             commands::get_active_circuit,
+            commands::new_identity,
+            commands::update_geoip_database,
             commands::get_logs,
             commands::clear_logs
         ])

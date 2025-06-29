@@ -1,9 +1,10 @@
 # Torwell84 - Pending Tasks
 
 ## High Priority
-1. Implement GeoIP integration for country detection in Tor relays
+1. ~~Implement GeoIP integration for country detection in Tor relays~~
 2. Add real traffic metrics to StatusCard component
 3. Create persistent log storage (file-based)
+4. Provide configuration option to update GeoIP database
 
 ## Medium Priority
 1. Refactor TorManager error handling for better diagnostics
