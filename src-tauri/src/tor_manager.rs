@@ -13,6 +13,9 @@ use tor_geoip::CountryCode;
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
 
+const INITIAL_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
+const MAX_BACKOFF: std::time::Duration = std::time::Duration::from_secs(30);
+
 #[async_trait]
 pub trait TorClientBehavior: Send + Sync + Sized + 'static {
     async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String>;
@@ -79,19 +82,23 @@ impl<C: TorClientBehavior> TorManager<C> {
         self.connect_once().await
     }
 
-    pub async fn connect_with_backoff(&self, max_retries: u32) -> Result<()> {
+    pub async fn connect_with_backoff<F>(&self, max_retries: u32, mut on_retry: F) -> Result<()>
+    where
+        F: FnMut(u32, &Error) + Send,
+    {
         let mut attempt = 0;
-        let mut delay = std::time::Duration::from_secs(1);
+        let mut delay = INITIAL_BACKOFF;
         loop {
             match self.connect_once().await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
+                    on_retry(attempt + 1, &e);
                     attempt += 1;
                     if attempt > max_retries {
                         return Err(e);
                     }
                     tokio::time::sleep(delay).await;
-                    delay *= 2;
+                    delay = std::cmp::min(delay * 2, MAX_BACKOFF);
                 }
             }
         }
