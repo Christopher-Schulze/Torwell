@@ -38,14 +38,6 @@
       <img src="https://img.shields.io/github/actions/workflow/status/Christopher-Schulze/Torwell84/ci.yml?branch=main" alt="Build Status">
     </a>
   </div>
-
-  <!-- Navigation -->
-  <p style="margin-top: 1.5em;">
-    <a href="#features">Features</a> ·
-    <a href="#getting-started">Getting Started</a> ·
-    <a href="#development">Development</a> ·
-    <a href="#roadmap">Roadmap</a>
-  </p>
 </div>
 
 ---
@@ -55,10 +47,6 @@
 Torwell84 is a privacy-focused Tor client built with modern technologies to provide secure and private internet access. Built with Rust and Tauri, it offers a native desktop experience with strong privacy guarantees through the Tor network.
 
 > 🚀 **Status**: Actively developed with core Tor functionality implemented and working.
-
-<div align="center">
-  <img src="docs/TargetPicture.png" alt="Torwell84 in Action" width="80%">
-</div>
 
 ## ✨ Current Features
 
