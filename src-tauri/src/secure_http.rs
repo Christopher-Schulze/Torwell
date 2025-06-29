@@ -10,8 +10,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-/// Location of the pinned server certificate
-pub const DEFAULT_CERT_PATH: &str = "certs/server.pem";
+/// Location of the pinned server certificate. The path is relative to the
+/// repository root so updates persist across runs.
+pub const DEFAULT_CERT_PATH: &str = "src-tauri/certs/server.pem";
+
+/// Default URL for retrieving updated certificates
+pub const DEFAULT_CERT_URL: &str = "https://example.com/certs/server.pem";
 
 pub struct SecureHttpClient {
     client: Arc<Mutex<Client>>,
@@ -71,13 +75,15 @@ impl SecureHttpClient {
         interval: Option<Duration>,
     ) -> anyhow::Result<Arc<Self>> {
         let client = Arc::new(Self::new_default()?);
-        if let Some(url) = cert_url.clone() {
-            // Perform an initial check on startup
-            if let Err(e) = client.update_certificates(&url).await {
-                log::error!("initial certificate update failed: {}", e);
-            }
+
+        // Always try to refresh certificates on startup using the currently
+        // pinned certificate for validation.
+        let url = cert_url.unwrap_or_else(|| DEFAULT_CERT_URL.to_string());
+        if let Err(e) = client.update_certificates(&url).await {
+            log::error!("initial certificate update failed: {}", e);
         }
-        if let (Some(url), Some(int)) = (cert_url, interval) {
+
+        if let Some(int) = interval {
             client.clone().schedule_updates(url, int);
         }
         Ok(client)
