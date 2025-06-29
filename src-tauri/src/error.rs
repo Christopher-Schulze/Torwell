@@ -41,3 +41,21 @@ impl From<std::io::Error> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<tor_netdir::Error> for Error {
+    fn from(err: tor_netdir::Error) -> Self {
+        Error::Tor(err.to_string())
+    }
+}
+
+impl From<tor_circmgr::Error> for Error {
+    fn from(err: tor_circmgr::Error) -> Self {
+        Error::Tor(err.to_string())
+    }
+}
+
+impl From<tor_proto::Error> for Error {
+    fn from(err: tor_proto::Error) -> Self {
+        Error::Tor(err.to_string())
+    }
+}

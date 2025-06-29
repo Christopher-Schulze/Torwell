@@ -25,7 +25,6 @@ pub fn run() {
             commands::disconnect,
             commands::get_status,
             commands::get_active_circuit,
-            commands::new_identity,
             commands::get_logs,
             commands::clear_logs
         ])

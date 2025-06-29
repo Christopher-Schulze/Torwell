@@ -17,8 +17,8 @@ The new architecture is unified and consists of the following components:
 The backend is structured into several logical modules:
 
 -   **`main.rs` & `lib.rs`:** The entry points for the Tauri application, responsible for initializing the builder, managing the application state, and registering commands.
--   **`state.rs`:** Defines the shared `AppState`, which holds the `TorManager` instance, ensuring a single, consistent state for the Tor client across the application.
--   **`tor_manager.rs`:** A dedicated, robust module that encapsulates all interactions with the `arti-client` library. It exclusively handles the lifecycle of the Tor client, including connection, disconnection, circuit management (`get_active_circuit`), and requesting a new identity (`new_identity`).
+-   **`state.rs`:** Defines the shared `AppState`, which holds the `TorManager` instance and log storage, ensuring a single, consistent state for the Tor client across the application.
+-   **`tor_manager.rs`:** A dedicated, robust module that encapsulates all interactions with the `arti-client` library. It handles the lifecycle of the Tor client, including connection, disconnection, circuit management (`get_active_circuit`), and requesting a new identity (`new_identity`).
 -   **`commands.rs`:** Implements all Tauri commands that are exposed to the Svelte frontend. These functions act as thin, clean wrappers, delegating all business logic to the `TorManager`. This ensures a clear separation of concerns.
 -   **`error.rs`:** Defines a custom, serializable `Error` enum for the entire backend, including specific, descriptive errors like `NotConnected` or `AlreadyConnected`. This ensures that all errors are handled gracefully and can be sent to the frontend in a structured way.
 
@@ -31,7 +31,23 @@ The frontend remains visually and functionally identical to the original design,
     -   `uiStore.ts`: A Svelte store for managing the state of the UI, such as open modals. It also handles client-side settings persistence using `Dexie.js`.
 -   **Components:** All UI components from the original version are reused without modification to their appearance. The logic within them now communicates with the robust and fully implemented Rust backend via Tauri's `invoke` API. Mock data and placeholders have been removed.
 
-## 3. Build Process
+## 3. New Features in V2.1
+
+### 3.1 New Identity Functionality
+- Added ability to request new Tor circuits via `new_identity` command
+- Full integration with frontend UI using dedicated button
+- Uses arti-client's `reconfigure` and `retire_all_circs` for identity refresh
+
+### 3.2 Logging System
+- Centralized log storage in AppState with thread-safe access
+- Automatic log rotation (max 1000 entries)
+- Commands for log retrieval and clearing
+
+### 3.3 Documentation Updates
+- Comprehensive changelog tracking
+- Task list for future improvements
+
+## 4. Build Process
 
 The application is built as a standard Tauri project:
 

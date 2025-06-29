@@ -1,8 +1,16 @@
-# TODO - Next Steps
+# Torwell84 - Pending Tasks
 
-All outstanding issues have been resolved. The application is now in a complete and robust state.
+## High Priority
+1. Implement GeoIP integration for country detection in Tor relays
+2. Add real traffic metrics to StatusCard component
+3. Create persistent log storage (file-based)
 
-- [x] **Refactor Backend Architecture:** Logic has been encapsulated in `tor_manager.rs`.
-- [x] **Implement Missing Functions:** `get_active_circuit` and `new_identity` are now fully functional.
-- [x] **Remove Frontend Placeholders:** All mock data and placeholder logic in the UI have been replaced with calls to the live backend.
-- [x] **Update Documentation:** All documentation has been updated to reflect the final state of the project.
+## Medium Priority
+1. Refactor TorManager error handling for better diagnostics
+2. Add unit tests for critical backend functions
+3. // Darkmode entfernt
+
+## Future Ideas
+- Support for multiple simultaneous circuits
+- Integration with hardware security modules
+- Mobile app version using Capacitor

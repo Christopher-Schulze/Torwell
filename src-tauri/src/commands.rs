@@ -5,9 +5,9 @@ use tauri::{Manager, State};
 
 #[derive(Serialize, Clone)]
 pub struct RelayInfo {
-    nickname: String,
-    ip_address: String,
-    country: String,
+    pub nickname: String,
+    pub ip_address: String,
+    pub country: String,
 }
 
 #[tauri::command]
@@ -69,8 +69,11 @@ pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayI
 }
 
 #[tauri::command]
-pub async fn new_identity(state: State<'_, AppState>) -> Result<()> {
-    state.tor_manager.new_identity().await
+pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    state.tor_manager.new_identity().await?;
+    // Emit event to update frontend
+    app_handle.emit_all("tor-status-update", serde_json::json!({ "status": "NEW_IDENTITY" }))?;
+    Ok(())
 }
 #[tauri::command]
 pub async fn get_logs() -> Result<Vec<String>> {
