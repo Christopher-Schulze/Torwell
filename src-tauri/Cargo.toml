@@ -28,6 +28,8 @@ tor-dirmgr = "0.31.0"
 tor-netdir = "0.31.0"
 tor-proto = "0.31.0"
 tor-linkspec = "0.31.0"
+pin-project = "1.1"
+async-trait = "0.1"
 
 [features]
 # by default Tauri runs in production mode

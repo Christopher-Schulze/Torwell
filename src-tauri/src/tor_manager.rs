@@ -2,6 +2,7 @@ use crate::commands::RelayInfo;
 use crate::error::{Error, Result};
 use arti_client::{TorClient, TorClientConfig};
 use std::sync::Arc;
+use crate::traffic::{Counting, TrafficCounters};
 use tokio::sync::Mutex;
 use tor_circmgr::isolation::StreamIsolation;
 use tor_dirmgr::Timeliness;
@@ -10,12 +11,14 @@ use tor_rtcompat::PreferredRuntime;
 
 pub struct TorManager {
     client: Arc<Mutex<Option<TorClient<PreferredRuntime>>>>,
+    tcp_provider: Arc<Mutex<Option<Counting<PreferredRuntime>>>>,
 }
 
 impl TorManager {
     pub fn new() -> Self {
         Self {
             client: Arc::new(Mutex::new(None)),
+            tcp_provider: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -23,8 +26,17 @@ impl TorManager {
         if self.is_connected().await {
             return Err(Error::AlreadyConnected);
         }
+        let runtime = PreferredRuntime::current()?;
+        let counting = Counting::new(runtime.clone());
+        let runtime = runtime.with_tcp_provider(counting.clone());
+
         let config = TorClientConfig::default();
-        let tor_client = TorClient::create_bootstrapped(config).await?;
+        let tor_client = TorClient::with_runtime(runtime)
+            .config(config)
+            .create_bootstrapped()
+            .await?;
+
+        *self.tcp_provider.lock().await = Some(counting);
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -35,11 +47,20 @@ impl TorManager {
             return Err(Error::NotConnected);
         }
         // Client is dropped here, which handles shutdown.
+        *self.tcp_provider.lock().await = None;
         Ok(())
     }
 
     pub async fn is_connected(&self) -> bool {
         self.client.lock().await.is_some()
+    }
+
+    pub async fn get_traffic(&self) -> TrafficCounters {
+        if let Some(provider) = &*self.tcp_provider.lock().await {
+            provider.counters()
+        } else {
+            TrafficCounters::default()
+        }
     }
 
     pub async fn get_active_circuit(&self) -> Result<Vec<RelayInfo>> {

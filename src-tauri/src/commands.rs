@@ -1,5 +1,6 @@
 use crate::error::Result;
 use crate::state::AppState;
+use crate::traffic::TrafficCounters;
 use serde::Serialize;
 use tauri::{Manager, State};
 
@@ -66,6 +67,11 @@ pub async fn get_status(state: State<'_, AppState>) -> Result<String> {
 #[tauri::command]
 pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayInfo>> {
     state.tor_manager.get_active_circuit().await
+}
+
+#[tauri::command]
+pub async fn get_traffic_metrics(state: State<'_, AppState>) -> Result<TrafficCounters> {
+    Ok(state.tor_manager.get_traffic().await)
 }
 
 #[tauri::command]
