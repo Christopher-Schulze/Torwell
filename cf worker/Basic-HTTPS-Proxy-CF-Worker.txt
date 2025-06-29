@@ -1,0 +1,115 @@
+/**
+ * ===============================================
+ * Universal Serverless HTTPS-Proxy
+ * Cloudflare Worker Single-File
+ * ===============================================
+ *
+ * 📌 Features:
+ * - Open proxy (no authentication)
+ * - Auto-negotiation HTTP/3 → HTTP/2 → HTTP/1.1
+ * - TLS 1.3 enforced by Cloudflare
+ * - Hop-by-Hop Header Filtering (RFC 7230)
+ * - Streaming Request & Response Bodies
+ * - Via Header for transparency: "1.1 cf-proxy"
+ * - Fully compatible with any standard HTTPS proxy client
+ * - Optimized for low overhead & max stability
+ *
+ * 🔧 Deployment & Usage:
+ * 1) Copy this entire file as worker.js into your CF Worker project
+ * 2) wrangler publish
+ *    Route: https://<your-subdomain>.workers.dev/*
+ *
+ * 📝 Quick Blog-Style Tutorial
+ * -----------------------------
+ * **Proxy Endpoint**  
+ *   Address: https://<your-subdomain>.workers.dev/fetch  
+ *   Usage:    GET /fetch?url=<absolute-URL>
+ *
+ * **Health Check**  
+ *   GET /ping → responds “pong”
+ *
+ * **Landing Page**  
+ *   GET / or any andere → zeigt “CF Worker Proxy running”
+ *
+ * **How to Connect**  
+ * - curl example:  
+ *     curl "https://<your-subdomain>.workers.dev/fetch?url=https://api.ipify.org?format=json"  
+ *
+ * 🚀 Additional Optimization & Stability Tips
+ * ------------------------------------------
+ * - **Connection Reuse**: Enable HTTP Keep-Alive client-seitig  
+ * - **DNS Prefetching**: Nutze 1.1.1.1 für minimalen Lookup-Overhead  
+ * - **Edge Caching**: Can cache GET/HEAD via Cache API, wenn statische Assets  
+ * - **Timeouts**: Clients sollten Timeouts (z.B. 30s) setzen  
+ * - **Compression**: Clients können `Accept-Encoding: gzip, br` senden  
+ * - **Minimal Headers**: Strip unneeded headers (Proxy-Connection, Connection)  
+ * - **Error Handling**: Klare Statuscodes (400, 405) für Fallbacks  
+ * - **Protocol Fallback**: CF intern auto-negotiates (H3 → H2 → H1)
+ */
+
+export default {
+  async fetch(request) {
+    const urlObj = new URL(request.url);
+    const path = urlObj.pathname;
+
+    // 1) Landing-Page
+    if (path === '/' || path === '') {
+      return new Response('CF Worker Proxy running', {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+
+    // 2) Health-Check
+    if (path === '/ping') {
+      return new Response('pong', {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+
+    // 3) Proxy Endpoint
+    if (path === '/fetch') {
+      const target = urlObj.searchParams.get('url');
+      if (!target) {
+        return new Response('Missing ?url parameter', { status: 400 });
+      }
+
+      // 3a) No CONNECT support
+      if (request.method === 'CONNECT') {
+        return new Response('CONNECT not supported', { status: 405 });
+      }
+
+      // 3b) Strip hop-by-hop request headers & add Via
+      const reqH = new Headers(request.headers);
+      ['Proxy-Connection', 'Connection'].forEach(h => reqH.delete(h));
+      reqH.set('Via', '1.1 cf-proxy');
+
+      // 3c) Forward request
+      const res = await fetch(target, {
+        method: request.method,
+        headers: reqH,
+        body: ['GET','HEAD'].includes(request.method) ? undefined : request.body,
+        redirect: 'manual'
+      });
+
+      // 3d) Strip hop-by-hop response headers & add Via
+      const outH = new Headers(res.headers);
+      [
+        'Connection','Proxy-Connection','Keep-Alive','Proxy-Authenticate',
+        'Proxy-Authorization','TE','Trailers','Transfer-Encoding','Upgrade'
+      ].forEach(h => outH.delete(h));
+      outH.set('Via', '1.1 cf-proxy');
+
+      // 3e) Return proxied response
+      return new Response(res.body, {
+        status: res.status,
+        statusText: res.statusText,
+        headers: outH
+      });
+    }
+
+    // 4) Anything else → 404
+    return new Response('Page not found', { status: 404 });
+  }
+};

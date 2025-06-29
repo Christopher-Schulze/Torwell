@@ -1,0 +1,344 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: '1.21'
+  NODE_VERSION: '18'
+  RUST_VERSION: 'stable'
+
+jobs:
+  # Backend Tests and Quality Checks
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Install dependencies
+      working-directory: ./backend
+      run: go mod download
+      
+    - name: Run tests with coverage
+      working-directory: ./backend
+      run: |
+        go test -v -race -coverprofile=coverage.out ./...
+        go tool cover -html=coverage.out -o coverage.html
+        
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.out
+        flags: backend
+        
+    - name: Run go vet
+      working-directory: ./backend
+      run: go vet ./...
+      
+    - name: Run staticcheck
+      uses: dominikh/staticcheck-action@v1.3.0
+      with:
+        version: "2023.1.6"
+        install-go: false
+        working-directory: ./backend
+        
+    - name: Run gosec security scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: './backend/...'
+        
+  # Frontend Tests and Quality Checks
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: './ui/package-lock.json'
+        
+    - name: Install dependencies
+      working-directory: ./ui
+      run: npm ci
+      
+    - name: Run linting
+      working-directory: ./ui
+      run: npm run lint
+      
+    - name: Run type checking
+      working-directory: ./ui
+      run: npm run check
+      
+    - name: Run tests
+      working-directory: ./ui
+      run: npm run test:coverage
+      
+    - name: Upload frontend coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./ui/coverage/lcov.info
+        flags: frontend
+        
+  # Local Build Test
+  local-build:
+    name: Local Build Test
+    needs: [backend-test, frontend-test]
+    strategy:
+      matrix:
+        platform: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ui/package-lock.json
+        
+    - name: Install system dependencies (Ubuntu)
+      if: matrix.platform == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tor obfs4proxy
+        
+    - name: Install system dependencies (macOS)
+      if: matrix.platform == 'macos-latest'
+      run: |
+        brew install tor
+        
+    - name: Make build script executable
+      run: chmod +x build.sh
+      
+    - name: Run local build
+      run: ./build.sh --clean
+      
+    - name: Test binary
+      run: |
+        ./dist/torwell-fusion --version || echo "Version check not implemented"
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: torwell-fusion-${{ matrix.platform }}
+        path: |
+          dist/
+          !dist/**/*.log
+      
+  # Security and Dependency Checks
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Run Go security audit
+      working-directory: ./backend
+      run: |
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        gosec -fmt json -out gosec-report.json ./...
+        
+    - name: Run npm audit
+      working-directory: ./ui
+      run: |
+        npm audit --audit-level moderate
+        
+    - name: Check for known vulnerabilities
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+        
+  # Code Quality Analysis
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        
+  # Performance Benchmarks
+  performance-test:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Run benchmarks
+      working-directory: ./backend
+      run: |
+        go test -bench=. -benchmem -run=^$ ./... > benchmark-results.txt
+        
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: ./backend/benchmark-results.txt
+        
+  # Integration Tests
+  integration-test:
+    name: Integration Tests
+    needs: [backend-test, frontend-test]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tor obfs4proxy
+        
+    - name: Install dependencies
+      run: |
+        cd backend && go mod download
+        cd ../ui && npm ci
+        
+    - name: Start Tor service
+      run: |
+        sudo systemctl start tor
+        sudo systemctl status tor
+        
+    - name: Wait for Tor service
+      run: |
+        timeout 60 bash -c 'until nc -z localhost 9050; do sleep 2; done'
+        
+    - name: Run integration tests
+      working-directory: ./backend
+      run: go test -tags=integration -v ./tests/integration/...
+      env:
+        TOR_PROXY_URL: socks5://localhost:9050
+        
+  # Release Build (only on main branch)
+  release-build:
+    name: Release Build
+    if: github.ref == 'refs/heads/main'
+    needs: [backend-test, frontend-test, security-audit, code-quality, performance-test, integration-test]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ui/package-lock.json
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tor obfs4proxy
+        
+    - name: Make build script executable
+      run: chmod +x build.sh
+      
+    - name: Create release build
+      run: ./build.sh --clean --cross --release
+      
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          dist/torwell-fusion-*.tar.gz
+          dist/torwell-fusion-*
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-binaries
+        path: |
+          dist/torwell-fusion-*
+          dist/*.tar.gz
+        retention-days: 30

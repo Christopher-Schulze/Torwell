@@ -1,0 +1,26 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  PROJECT_NAME: Torwell84-V2
+
+tasks:
+  default:
+    cmds:
+      - task: --list-all
+
+  setup:
+    desc: "Install all frontend and backend dependencies."
+    cmds:
+      - bun install
+
+  dev:
+    desc: "Starts the application in development mode with hot-reloading."
+    cmds:
+      - bun tauri dev
+
+  build:
+    desc: "Builds the application for production."
+    cmds:
+      - bun tauri build

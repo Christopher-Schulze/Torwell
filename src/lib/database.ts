@@ -1,0 +1,21 @@
+// lib/database.ts
+import Dexie, { type Table } from 'dexie';
+
+export interface Settings {
+  id?: number;
+  workerList: string[];
+  torrcConfig: string;
+}
+
+export class AppDatabase extends Dexie {
+  settings!: Table<Settings>;
+
+  constructor() {
+    super('Torwell84DatabaseV2');
+    this.version(1).stores({
+      settings: '++id, workerList, torrcConfig', // Primary key and indexed props
+    });
+  }
+}
+
+export const db = new AppDatabase();
