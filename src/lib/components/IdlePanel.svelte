@@ -3,6 +3,7 @@
         export let currentStatus = 'Idle'; // Current Tor status
         export let retryCount = 0;
         export let retryDelay = 0;
+        export let bootstrapMessage = '';
 
 	// Animation for status text changes
 	let isAnimating = false;
@@ -27,6 +28,9 @@
                         ></div>
                 </div>
                 <p class="text-xs text-gray-300">{Math.round(connectionProgress)}%</p>
+                {#if bootstrapMessage}
+                        <p class="text-xs text-gray-400 italic">{bootstrapMessage}</p>
+                {/if}
 		
 		<!-- Animated Status Text -->
                 <div class="text-center relative h-4 flex items-center justify-center">
