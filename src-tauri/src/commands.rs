@@ -36,17 +36,29 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
 
         // Perform the actual connection
         match tor_manager
-            .connect_with_backoff(5, |attempt, delay, err| {
-                let _ = app_handle.emit_all(
-                    "tor-status-update",
-                    serde_json::json!({
-                        "status": "RETRYING",
-                        "retryCount": attempt,
-                        "retryDelay": delay.as_secs(),
-                        "errorMessage": err.to_string()
-                    }),
-                );
-            })
+            .connect_with_backoff(
+                5,
+                |attempt, delay, err| {
+                    let _ = app_handle.emit_all(
+                        "tor-status-update",
+                        serde_json::json!({
+                            "status": "RETRYING",
+                            "retryCount": attempt,
+                            "retryDelay": delay.as_secs(),
+                            "errorMessage": err.to_string()
+                        }),
+                    );
+                },
+                |progress| {
+                    let _ = app_handle.emit_all(
+                        "tor-status-update",
+                        serde_json::json!({
+                            "status": "CONNECTING",
+                            "bootstrapProgress": progress
+                        }),
+                    );
+                },
+            )
             .await
         {
             Ok(_) => {

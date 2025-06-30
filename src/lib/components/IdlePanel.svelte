@@ -20,12 +20,13 @@
 <div class="bg-black/20 rounded-xl p-6">
 	<div class="flex flex-col items-center gap-3">
 		<!-- Progress Bar -->
-		<div class="w-full bg-gray-700/50 rounded-full h-2">
-			<div 
-				class="bg-white h-2 rounded-full transition-all duration-500 ease-out" 
-				style="width: {connectionProgress}%"
-			></div>
-		</div>
+                <div class="w-full bg-gray-700/50 rounded-full h-2">
+                        <div
+                                class="bg-white h-2 rounded-full transition-all duration-500 ease-out"
+                                style="width: {connectionProgress}%"
+                        ></div>
+                </div>
+                <p class="text-xs text-gray-300">{Math.round(connectionProgress)}%</p>
 		
 		<!-- Animated Status Text -->
                 <div class="text-center relative h-4 flex items-center justify-center">
@@ -38,5 +39,5 @@
                 {#if currentStatus === 'RETRYING'}
                         <p class="text-xs text-yellow-300">retry {retryCount} in {retryDelay}s</p>
                 {/if}
-	</div>
+        </div>
 </div>
