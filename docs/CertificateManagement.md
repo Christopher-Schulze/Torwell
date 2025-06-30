@@ -22,9 +22,11 @@ reuse the same mechanism.
 ## Configuration File
 
 The certificate path and update URL are stored in a small JSON file. By default
-`SecureHttpClient` looks for `src-tauri/certs/cert_config.json`. The values from
-this file can be overridden when calling `SecureHttpClient::init` by passing
-custom `cert_path` and `cert_url` parameters.
+`SecureHttpClient` reads `src-tauri/certs/cert_config.json`. When `init` is
+called you may supply alternative values for the path and URL to override what
+is specified inside the file.  This makes it possible to keep the configuration
+file checked into version control while still testing different certificate
+locations during development.
 
 ```json
 {
@@ -45,4 +47,6 @@ endpoint used to retrieve updates.
    for validation.
 3. The file at `cert_path` is replaced and the HTTP client reloads the
    certificate.
-4. Periodic checks repeat the same process at the configured interval.
+4. Periodic checks repeat the same process at the configured interval. The
+   `schedule_updates` method spawns a background task that calls
+   `update_certificates` on a timer.
