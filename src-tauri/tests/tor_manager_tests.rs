@@ -29,6 +29,20 @@ impl TorClientBehavior for MockTorClient {
             .expect("no result")
     }
 
+    async fn create_bootstrapped_with_progress<P>(
+        config: TorClientConfig,
+        progress: &mut P,
+    ) -> std::result::Result<Self, String>
+    where
+        P: FnMut(u8) + Send,
+    {
+        let res = Self::create_bootstrapped(config).await;
+        if res.is_ok() {
+            progress(100);
+        }
+        res
+    }
+
     fn reconfigure(&self, _config: &TorClientConfig) -> std::result::Result<(), String> {
         if self.reconfigure_ok {
             Ok(())
@@ -53,7 +67,7 @@ async fn connect_with_backoff_success() {
     MockTorClient::push_result(Err("fail".into()));
     MockTorClient::push_result(Ok(MockTorClient::default()));
     let manager: TorManager<MockTorClient> = TorManager::new();
-    let res = manager.connect_with_backoff(5, |_a, _d, _e| {}).await;
+    let res = manager.connect_with_backoff(5, |_a, _d, _e| {}, |_| {}).await;
     assert!(res.is_ok());
 }
 
@@ -62,7 +76,7 @@ async fn connect_with_backoff_error() {
     MockTorClient::push_result(Err("e1".into()));
     MockTorClient::push_result(Err("e2".into()));
     let manager: TorManager<MockTorClient> = TorManager::new();
-    let res = manager.connect_with_backoff(1, |_a, _d, _e| {}).await;
+    let res = manager.connect_with_backoff(1, |_a, _d, _e| {}, |_| {}).await;
     assert!(matches!(res, Err(Error::Bootstrap(_))));
 }
 
@@ -72,7 +86,7 @@ async fn connect_when_already_connected() {
     MockTorClient::push_result(Ok(MockTorClient::default()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
-    let res = manager.connect_with_backoff(0, |_a, _d, _e| {}).await;
+    let res = manager.connect_with_backoff(0, |_a, _d, _e| {}, |_| {}).await;
     assert!(matches!(res, Err(Error::AlreadyConnected)));
 }
 

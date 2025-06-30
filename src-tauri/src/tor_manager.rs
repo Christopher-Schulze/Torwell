@@ -28,6 +28,12 @@ pub struct TrafficStats {
 #[async_trait]
 pub trait TorClientBehavior: Send + Sync + Sized + 'static {
     async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String>;
+    async fn create_bootstrapped_with_progress<P>(
+        config: TorClientConfig,
+        progress: &mut P,
+    ) -> std::result::Result<Self, String>
+    where
+        P: FnMut(u8) + Send;
     fn reconfigure(&self, config: &TorClientConfig) -> std::result::Result<(), String>;
     fn retire_all_circs(&self);
     async fn build_new_circuit(&self) -> std::result::Result<(), String>;
@@ -39,6 +45,48 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
         TorClient::create_bootstrapped(config)
             .await
             .map_err(|e| e.to_string())
+    }
+
+    async fn create_bootstrapped_with_progress<P>(
+        config: TorClientConfig,
+        progress: &mut P,
+    ) -> std::result::Result<Self, String>
+    where
+        P: FnMut(u8) + Send,
+    {
+        use futures::StreamExt;
+
+        let client = TorClient::builder()
+            .config(config)
+            .bootstrap_behavior(arti_client::BootstrapBehavior::Manual)
+            .create_unbootstrapped_async()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let mut events = client.bootstrap_events();
+        let mut bootstrap = client.bootstrap();
+        tokio::pin!(bootstrap);
+
+        loop {
+            tokio::select! {
+                ev = events.next() => {
+                    if let Some(ev) = ev {
+                        let pct = (ev.as_frac() * 100.0).round() as u8;
+                        progress(pct);
+                    } else {
+                        break;
+                    }
+                }
+                res = &mut bootstrap => {
+                    res.map_err(|e| e.to_string())?;
+                    break;
+                }
+            }
+        }
+
+        progress(100);
+
+        Ok(client)
     }
 
     fn reconfigure(&self, config: &TorClientConfig) -> std::result::Result<(), String> {
@@ -75,12 +123,15 @@ impl<C: TorClientBehavior> TorManager<C> {
         }
     }
 
-    async fn connect_once(&self) -> Result<()> {
+    async fn connect_once<P>(&self, progress: &mut P) -> Result<()>
+    where
+        P: FnMut(u8) + Send,
+    {
         if self.is_connected().await {
             return Err(Error::AlreadyConnected);
         }
         let config = TorClientConfig::default();
-        let tor_client = C::create_bootstrapped(config)
+        let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
             .map_err(|e| Error::Bootstrap(e))?;
         *self.client.lock().await = Some(tor_client);
@@ -88,17 +139,23 @@ impl<C: TorClientBehavior> TorManager<C> {
     }
 
     pub async fn connect(&self) -> Result<()> {
-        self.connect_once().await
+        self.connect_once(&mut |_| {}).await
     }
 
-    pub async fn connect_with_backoff<F>(&self, max_retries: u32, mut on_retry: F) -> Result<()>
+    pub async fn connect_with_backoff<F, P>(
+        &self,
+        max_retries: u32,
+        mut on_retry: F,
+        mut on_progress: P,
+    ) -> Result<()>
     where
         F: FnMut(u32, std::time::Duration, &Error) + Send,
+        P: FnMut(u8) + Send,
     {
         let mut attempt = 0;
         let mut delay = INITIAL_BACKOFF;
         loop {
-            match self.connect_once().await {
+            match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
                     attempt += 1;
