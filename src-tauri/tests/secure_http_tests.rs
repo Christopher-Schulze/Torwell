@@ -29,7 +29,9 @@ async fn init_fetches_new_certificate() {
     });
     fs::write(&config_path, config.to_string()).unwrap();
 
-    let _client = SecureHttpClient::init(&config_path, None).await.unwrap();
+    let _client = SecureHttpClient::init(&config_path, None, None, None)
+        .await
+        .unwrap();
 
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
@@ -57,4 +59,28 @@ async fn update_certificates_replaces_file() {
 
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
+async fn reload_certificates_applies_new_file() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/hello");
+            then.status(200).body("ok");
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+    assert!(client.get_text(&server.url("/hello")).await.is_ok());
+
+    fs::write(&cert_path, NEW_CERT).unwrap();
+    client.reload_certificates().await.unwrap();
+
+    let res = client.get_text(&server.url("/hello")).await;
+    assert!(res.is_err());
 }

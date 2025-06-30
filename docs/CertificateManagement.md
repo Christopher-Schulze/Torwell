@@ -22,7 +22,9 @@ reuse the same mechanism.
 ## Configuration File
 
 The certificate path and update URL are stored in a small JSON file. By default
-`SecureHttpClient` looks for `src-tauri/certs/cert_config.json`.
+`SecureHttpClient` looks for `src-tauri/certs/cert_config.json`. The values from
+this file can be overridden when calling `SecureHttpClient::init` by passing
+custom `cert_path` and `cert_url` parameters.
 
 ```json
 {
@@ -37,7 +39,8 @@ endpoint used to retrieve updates.
 ### Update Workflow
 
 1. On startup `SecureHttpClient::init` reads the configuration file and pins the
-   certificate from `cert_path`.
+   certificate from `cert_path`. Optional parameters allow overriding these
+   values without modifying the file.
 2. The client downloads a new PEM from `cert_url` using the pinned certificate
    for validation.
 3. The file at `cert_path` is replaced and the HTTP client reloads the
