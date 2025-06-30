@@ -5,9 +5,20 @@ mod state;
 mod tor_manager;
 
 use state::AppState;
+use secure_http::SecureHttpClient;
+use std::time::Duration;
 
 pub fn run() {
-    let app_state = AppState::default();
+    let http_client = tauri::async_runtime::block_on(async {
+        SecureHttpClient::init(
+            secure_http::DEFAULT_CONFIG_PATH,
+            None,
+            None,
+            Some(Duration::from_secs(60 * 60 * 24)),
+        )
+        .expect("failed to initialize http client")
+    });
+    let app_state = AppState::new(http_client);
 
     tauri::Builder::default()
         .manage(app_state)

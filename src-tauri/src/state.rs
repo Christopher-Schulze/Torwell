@@ -1,5 +1,6 @@
 use crate::error::Result;
 use crate::tor_manager::{TorClientBehavior, TorManager};
+use crate::secure_http::SecureHttpClient;
 use arti_client::TorClient;
 use chrono::Utc;
 use log::Level;
@@ -21,6 +22,7 @@ pub struct LogEntry {
 
 pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub tor_manager: Arc<TorManager<C>>,
+    pub http_client: Arc<SecureHttpClient>,
     /// Path to the persistent log file
     pub log_file: PathBuf,
     /// Mutex used to serialize file writes
@@ -45,6 +47,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
 
         Self {
             tor_manager: Arc::new(TorManager::new()),
+            http_client: Arc::new(SecureHttpClient::new_default().expect("failed to create http client")),
             log_file,
             log_lock: Arc::new(Mutex::new(())),
             max_log_lines,
@@ -52,7 +55,29 @@ impl<C: TorClientBehavior> Default for AppState<C> {
     }
 }
 
-impl AppState {
+impl<C: TorClientBehavior> AppState<C> {
+    pub fn new(http_client: Arc<SecureHttpClient>) -> Self {
+        let log_file = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("torwell.log");
+        if let Some(parent) = log_file.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+
+        let max_log_lines = std::env::var("TORWELL_MAX_LOG_LINES")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(Self::DEFAULT_MAX_LINES);
+
+        AppState {
+            tor_manager: Arc::new(TorManager::new()),
+            http_client,
+            log_file,
+            log_lock: Arc::new(Mutex::new(())),
+            max_log_lines,
+        }
+    }
+
     const DEFAULT_MAX_LINES: usize = 1000;
 
     pub async fn add_log(&self, level: Level, message: String) -> Result<()> {
