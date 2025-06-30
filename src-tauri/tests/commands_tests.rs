@@ -36,6 +36,19 @@ impl TorClientBehavior for MockTorClient {
             .pop_front()
             .expect("no result")
     }
+    async fn create_bootstrapped_with_progress<P>(
+        config: TorClientConfig,
+        progress: &mut P,
+    ) -> std::result::Result<Self, String>
+    where
+        P: FnMut(u8, String) + Send,
+    {
+        let res = Self::create_bootstrapped(config).await;
+        if res.is_ok() {
+            progress(100, "done".into());
+        }
+        res
+    }
     fn reconfigure(&self, _config: &TorClientConfig) -> std::result::Result<(), String> {
         if self.reconfigure_ok {
             Ok(())
