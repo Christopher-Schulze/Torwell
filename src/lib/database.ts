@@ -6,6 +6,7 @@ export interface Settings {
   workerList: string[];
   torrcConfig: string;
   exitCountry?: string | null;
+  bridges?: string[];
 }
 
 export class AppDatabase extends Dexie {
@@ -14,7 +15,7 @@ export class AppDatabase extends Dexie {
   constructor() {
     super('Torwell84DatabaseV2');
     this.version(1).stores({
-      settings: '++id, workerList, torrcConfig', // Primary key and indexed props
+      settings: '++id, workerList, torrcConfig, exitCountry, bridges', // Primary key and indexed props
     });
   }
 }

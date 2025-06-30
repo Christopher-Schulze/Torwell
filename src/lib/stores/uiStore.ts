@@ -7,6 +7,7 @@ type AppSettings = {
     workerList: string[];
     torrcConfig: string;
     exitCountry: string | null;
+    bridges: string[];
 };
 
 type UIState = {
@@ -24,6 +25,7 @@ function createUIStore() {
             workerList: ['worker1.example.com', 'worker2.example.com'], // Default values
             torrcConfig: '# Default torrc config\n',
             exitCountry: null,
+            bridges: [],
         },
         error: null,
     });
@@ -46,6 +48,7 @@ function createUIStore() {
                             workerList: storedSettings.workerList,
                             torrcConfig: storedSettings.torrcConfig,
                             exitCountry: storedSettings.exitCountry ?? null,
+                            bridges: storedSettings.bridges ?? [],
                         }
                     }));
                 }
@@ -62,6 +65,22 @@ function createUIStore() {
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
                 update(state => ({ ...state, error: `Failed to save settings: ${message}` }));
+            }
+        },
+
+        setBridges: async (bridges: string[]) => {
+            try {
+                await invoke('set_bridges', { bridges });
+                const current = get({ subscribe });
+                const newSettings: AppSettings = {
+                    ...current.settings,
+                    bridges,
+                };
+                await db.settings.put({ id: 1, ...newSettings });
+                update(state => ({ ...state, settings: newSettings, error: null }));
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to set bridges: ${message}` }));
             }
         },
 
