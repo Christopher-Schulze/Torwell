@@ -5,14 +5,13 @@ use arti_client::config::{
 };
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
 use async_trait::async_trait;
-use reqwest::Client;
 use std::collections::HashMap;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tor_circmgr::isolation::{IsolationToken, StreamIsolation};
 use tor_dirmgr::Timeliness;
-use tor_geoip::CountryCode;
+use tor_geoip::{CountryCode, GeoipDb};
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
 
@@ -121,6 +120,7 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     isolation_tokens: Arc<Mutex<HashMap<String, Vec<IsolationToken>>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
     bridges: Arc<Mutex<Vec<String>>>,
+    country_cache: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl<C: TorClientBehavior> TorManager<C> {
@@ -130,6 +130,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             isolation_tokens: Arc::new(Mutex::new(HashMap::new())),
             exit_country: Arc::new(Mutex::new(None)),
             bridges: Arc::new(Mutex::new(Vec::new())),
+            country_cache: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -214,25 +215,29 @@ impl<C: TorClientBehavior> TorManager<C> {
         Ok(())
     }
 
-    async fn lookup_country_code(client: &Client, ip: &str) -> Option<String> {
+    async fn lookup_country_code(&self, ip: &str) -> Option<String> {
         if ip.contains('?') {
             return None;
         }
+
+        let mut cache = self.country_cache.lock().await;
+        if let Some(code) = cache.get(ip) {
+            return Some(code.clone());
+        }
+
         let addr = ip
             .parse::<SocketAddr>()
             .map(|sa| sa.ip().to_string())
             .unwrap_or_else(|_| ip.split(':').next().unwrap_or(ip).to_string());
-        let url = format!("https://ipapi.co/{}/country/", addr);
-        if let Ok(resp) = client.get(url).send().await {
-            if resp.status().is_success() {
-                if let Ok(text) = resp.text().await {
-                    let code = text.trim();
-                    if code.len() == 2 {
-                        return Some(code.to_uppercase());
-                    }
-                }
+
+        if let Ok(ip_addr) = addr.parse::<IpAddr>() {
+            if let Some(cc) = GeoipDb::new_embedded().lookup_country_code(ip_addr) {
+                let code = cc.as_ref().to_string();
+                cache.insert(ip.to_string(), code.clone());
+                return Some(code);
             }
         }
+
         None
     }
 
@@ -306,7 +311,6 @@ impl TorManager {
             .cloned()
             .collect();
 
-        let http = Client::new();
         let mut relays = Vec::new();
         for hop in hops {
             if let Some(relay) = hop.as_chan_target() {
@@ -318,7 +322,8 @@ impl TorManager {
                     .addrs()
                     .get(0)
                     .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
-                let country = Self::lookup_country_code(&http, &ip_address)
+                let country = self
+                    .lookup_country_code(&ip_address)
                     .await
                     .unwrap_or_else(|| "??".to_string());
                 relays.push(RelayInfo {
@@ -380,7 +385,6 @@ impl TorManager {
             .cloned()
             .collect();
 
-        let http = Client::new();
         let mut relays = Vec::new();
         for hop in hops {
             if let Some(relay) = hop.as_chan_target() {
@@ -392,7 +396,8 @@ impl TorManager {
                     .addrs()
                     .get(0)
                     .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
-                let country = Self::lookup_country_code(&http, &ip_address)
+                let country = self
+                    .lookup_country_code(&ip_address)
                     .await
                     .unwrap_or_else(|| "??".to_string());
                 relays.push(RelayInfo {
