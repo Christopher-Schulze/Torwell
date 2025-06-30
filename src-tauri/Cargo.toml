@@ -23,6 +23,7 @@ arti-client = { version = "0.31.0", features = ["tokio", "rpc", "full", "experim
 tor-rtcompat = { version = "0.31.0" }
 tokio = { version = "1", features = ["full"] }
 futures-util = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
 tor-circmgr = "0.31.0"
 tor-dirmgr = "0.31.0"
 tor-netdir = "0.31.0"

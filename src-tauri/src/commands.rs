@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::state::AppState;
+use crate::state::{AppState, LogEntry};
 use serde::Serialize;
 use tauri::{Manager, State};
 
@@ -159,7 +159,7 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
     Ok(())
 }
 #[tauri::command]
-pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<String>> {
+pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<LogEntry>> {
     state.read_logs().await
 }
 

@@ -1,15 +1,16 @@
-use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use tauri::Manager;
 use once_cell::sync::Lazy;
 use std::collections::VecDeque;
+use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::Mutex as StdMutex;
+use tauri::Manager;
+use tokio::sync::Mutex;
 
+use log::Level;
 use torwell84::commands;
-use torwell84::state::AppState;
-use torwell84::tor_manager::{TorManager, TorClientBehavior, TorClientConfig};
 use torwell84::error::Error;
+use torwell84::state::{AppState, LogEntry};
+use torwell84::tor_manager::{TorClientBehavior, TorClientConfig, TorManager};
 
 #[derive(Clone, Default)]
 struct MockTorClient {
@@ -29,14 +30,26 @@ impl MockTorClient {
 #[async_trait::async_trait]
 impl TorClientBehavior for MockTorClient {
     async fn create_bootstrapped(_config: TorClientConfig) -> std::result::Result<Self, String> {
-        CONNECT_RESULTS.lock().unwrap().pop_front().expect("no result")
+        CONNECT_RESULTS
+            .lock()
+            .unwrap()
+            .pop_front()
+            .expect("no result")
     }
     fn reconfigure(&self, _config: &TorClientConfig) -> std::result::Result<(), String> {
-        if self.reconfigure_ok { Ok(()) } else { Err("reconf".into()) }
+        if self.reconfigure_ok {
+            Ok(())
+        } else {
+            Err("reconf".into())
+        }
     }
     fn retire_all_circs(&self) {}
     async fn build_new_circuit(&self) -> std::result::Result<(), String> {
-        if self.build_ok { Ok(()) } else { Err("build".into()) }
+        if self.build_ok {
+            Ok(())
+        } else {
+            Err("build".into())
+        }
     }
 }
 
@@ -104,7 +117,10 @@ async fn command_disconnect_connected() {
 
 #[tokio::test]
 async fn command_new_identity_success() {
-    MockTorClient::push_result(Ok(MockTorClient { reconfigure_ok: true, build_ok: true }));
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: true,
+    }));
     let mut app = tauri::test::mock_app();
     let state = mock_state();
     state.tor_manager.connect().await.unwrap();
@@ -148,10 +164,13 @@ async fn command_log_retrieval() {
     let _ = tokio::fs::remove_file(&state.log_file).await;
     app.manage(state);
     let state = app.state::<AppState<MockTorClient>>();
-    state.add_log("line1".into()).await.unwrap();
-    state.add_log("line2".into()).await.unwrap();
+    state.add_log(Level::Info, "line1".into()).await.unwrap();
+    state.add_log(Level::Warn, "line2".into()).await.unwrap();
     let logs = commands::get_logs(state).await.unwrap();
-    assert_eq!(logs, vec!["line1", "line2"]);
+    assert_eq!(logs.len(), 2);
+    assert_eq!(logs[0].message, "line1");
+    assert_eq!(logs[0].level, "INFO");
+    assert_eq!(logs[1].level, "WARN");
     commands::clear_logs(state).await.unwrap();
     let logs = commands::get_logs(state).await.unwrap();
     assert!(logs.is_empty());
