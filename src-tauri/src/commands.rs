@@ -29,7 +29,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
         // Inform the frontend that we are connecting
         if let Err(e) = app_handle.emit_all(
             "tor-status-update",
-            serde_json::json!({ "status": "CONNECTING", "bootstrapProgress": 0, "retryCount": 0, "retryDelay": 0 }),
+            serde_json::json!({ "status": "CONNECTING", "bootstrapProgress": 0, "bootstrapMessage": "", "retryCount": 0, "retryDelay": 0 }),
         ) {
             log::error!("Failed to emit status update: {}", e);
         }
@@ -49,12 +49,13 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                         }),
                     );
                 },
-                |progress| {
+                |progress, msg| {
                     let _ = app_handle.emit_all(
                         "tor-status-update",
                         serde_json::json!({
                             "status": "CONNECTING",
-                            "bootstrapProgress": progress
+                            "bootstrapProgress": progress,
+                            "bootstrapMessage": msg
                         }),
                     );
                 },
@@ -67,6 +68,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                     serde_json::json!({
                         "status": "CONNECTED",
                         "bootstrapProgress": 100,
+                        "bootstrapMessage": "done",
                         "retryCount": 0, "retryDelay": 0
                     }),
                 ) {
@@ -79,6 +81,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                     serde_json::json!({
                         "status": "ERROR",
                         "errorMessage": e.to_string(),
+                        "bootstrapMessage": "",
                         "retryCount": 0, "retryDelay": 0
                     }),
                 ) {
@@ -95,7 +98,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
 pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
-        serde_json::json!({ "status": "DISCONNECTING", "retryCount": 0, "retryDelay": 0 }),
+        serde_json::json!({ "status": "DISCONNECTING", "bootstrapMessage": "", "retryCount": 0, "retryDelay": 0 }),
     ) {
         log::error!("Failed to emit status update: {}", e);
     }
@@ -104,7 +107,7 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
 
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
-        serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0, "retryCount": 0, "retryDelay": 0 }),
+        serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0, "bootstrapMessage": "", "retryCount": 0, "retryDelay": 0 }),
     ) {
         log::error!("Failed to emit status update: {}", e);
     }

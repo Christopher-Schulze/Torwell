@@ -1,7 +1,9 @@
 use crate::commands::RelayInfo;
 use crate::error::{Error, Result};
+use arti_client::config::{
+    BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
+};
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
-use arti_client::config::{BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder, BoolOrAuto};
 use async_trait::async_trait;
 use reqwest::Client;
 use std::collections::HashMap;
@@ -34,7 +36,7 @@ pub trait TorClientBehavior: Send + Sync + Sized + 'static {
         progress: &mut P,
     ) -> std::result::Result<Self, String>
     where
-        P: FnMut(u8) + Send;
+        P: FnMut(u8, String) + Send;
     fn reconfigure(&self, config: &TorClientConfig) -> std::result::Result<(), String>;
     fn retire_all_circs(&self);
     async fn build_new_circuit(&self) -> std::result::Result<(), String>;
@@ -53,7 +55,7 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
         progress: &mut P,
     ) -> std::result::Result<Self, String>
     where
-        P: FnMut(u8) + Send,
+        P: FnMut(u8, String) + Send,
     {
         use futures::StreamExt;
 
@@ -73,7 +75,7 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
                 ev = events.next() => {
                     if let Some(ev) = ev {
                         let pct = (ev.as_frac() * 100.0).round() as u8;
-                        progress(pct);
+                        progress(pct, ev.to_string());
                     } else {
                         break;
                     }
@@ -85,7 +87,7 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
             }
         }
 
-        progress(100);
+        progress(100, "done".into());
 
         Ok(client)
     }
@@ -104,7 +106,12 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
             .netdir(Timeliness::Timely)
             .map_err(|e| e.to_string())?;
         self.circmgr()
-            .build_circuit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None)
+            .build_circuit(
+                (&*netdir).into(),
+                &[],
+                StreamIsolation::no_isolation(),
+                None,
+            )
             .await
             .map_err(|e| e.to_string())
     }
@@ -131,33 +138,33 @@ impl<C: TorClientBehavior> TorManager<C> {
         if bridges.is_empty() {
             Ok(TorClientConfig::default())
         } else {
-            use arti_client::config::{BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder, BoolOrAuto};
+            use arti_client::config::{
+                BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
+            };
 
             let mut builder = TorClientConfigBuilder::default();
             {
                 let mut bridge_builder = BridgesConfigBuilder::default();
                 bridge_builder.enabled(BoolOrAuto::Explicit(true));
                 for line in bridges {
-                    let b: BridgeConfigBuilder = line
-                        .parse()
-                        .map_err(|e| Error::Tor(e.to_string()))?;
+                    let b: BridgeConfigBuilder =
+                        line.parse().map_err(|e| Error::Tor(e.to_string()))?;
                     bridge_builder.bridges().push(b);
                 }
                 builder.bridges(bridge_builder);
             }
-            builder
-                .build()
-                .map_err(|e| Error::Tor(e.to_string()))
+            builder.build().map_err(|e| Error::Tor(e.to_string()))
         }
     }
 
     async fn connect_once<P>(&self, progress: &mut P) -> Result<()>
     where
-        P: FnMut(u8) + Send,
+        P: FnMut(u8, String) + Send,
     {
         if self.is_connected().await {
             return Err(Error::AlreadyConnected);
         }
+        progress(0, "starting".into());
         let config = self.build_config().await?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
@@ -167,7 +174,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     }
 
     pub async fn connect(&self) -> Result<()> {
-        self.connect_once(&mut |_| {}).await
+        self.connect_once(&mut |_, _| {}).await
     }
 
     pub async fn connect_with_backoff<F, P>(
@@ -178,7 +185,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     ) -> Result<()>
     where
         F: FnMut(u32, std::time::Duration, &Error) + Send,
-        P: FnMut(u8) + Send,
+        P: FnMut(u8, String) + Send,
     {
         let mut attempt = 0;
         let mut delay = INITIAL_BACKOFF;
@@ -250,7 +257,6 @@ impl<C: TorClientBehavior> TorManager<C> {
         self.client.lock().await.is_some()
     }
 
-
     pub async fn new_identity(&self) -> Result<()> {
         let client_guard = self.client.lock().await;
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
@@ -283,7 +289,12 @@ impl TorManager {
             .map_err(|e| Error::NetDir(e.to_string()))?;
         let circuit = client
             .circmgr()
-            .get_or_launch_exit((&*netdir).into(), &[], StreamIsolation::no_isolation(), None)
+            .get_or_launch_exit(
+                (&*netdir).into(),
+                &[],
+                StreamIsolation::no_isolation(),
+                None,
+            )
             .await
             .map_err(|e| Error::Circuit(e.to_string()))?;
 

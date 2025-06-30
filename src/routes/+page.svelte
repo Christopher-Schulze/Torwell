@@ -95,6 +95,7 @@
 
     <IdlePanel
       connectionProgress={$torStore.bootstrapProgress}
+      bootstrapMessage={$torStore.bootstrapMessage}
       currentStatus={$torStore.status}
       retryCount={$torStore.retryCount}
       retryDelay={$torStore.retryDelay}
