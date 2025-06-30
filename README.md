@@ -61,6 +61,7 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 - **Rust-Powered**: Built with Rust for performance and safety
 - **Native UI**: Cross-platform desktop application using Tauri
 - **Modern Stack**: Svelte-based frontend with TypeScript
+- **Structured Logging**: JSON log entries with level and timestamp
 
 ### 📊 Status
 - **Stable**: Core Tor functionality is working
