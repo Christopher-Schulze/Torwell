@@ -74,3 +74,12 @@ Version 2.2 introduces live traffic counters. `TorManager` exposes the total byt
 sent and received via `traffic_stats()`, and the `get_traffic_stats` Tauri command
 passes these values to the frontend. The main status card now periodically
 displays the aggregate traffic in megabytes.
+
+## 7. Bootstrap Progress
+
+`TorManager::connect_once` streams bootstrap events from `arti-client` and
+invokes a progress callback with the current percentage. The `connect` command
+forwards these values through `tor-status-update` events so the frontend can
+render a live progress bar. `torStore.ts` listens for the events to keep its
+`bootstrapProgress` state updated, and `IdlePanel.svelte` displays this value to
+give users visual feedback during connection.
