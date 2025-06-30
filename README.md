@@ -54,6 +54,8 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 - **Tor Network Integration**: Secure and private internet access through the Tor network
 - **Circuit Visualization**: Monitor your Tor circuit in real-time
 - **No Logs Policy**: We don't track, store, or sell your browsing data
+- **Bridge Support**: Configure custom Tor bridges from the settings modal
+- **Isolated Circuits per Domain**: Multiple parallel circuits are maintained for the same domain
 
 ### 🚀 Technical Highlights
 - **Rust-Powered**: Built with Rust for performance and safety
@@ -142,7 +144,6 @@ The backend emits detailed error messages via the `tor-status-update` event. Pos
 - [ ] Windows & Linux support
 - [ ] Advanced circuit management
 - [ ] Network monitoring tools
-- [ ] Bridge configuration options
 
 ## 🤝 Contributing
 

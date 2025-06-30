@@ -83,3 +83,11 @@ forwards these values through `tor-status-update` events so the frontend can
 render a live progress bar. `torStore.ts` listens for the events to keep its
 `bootstrapProgress` state updated, and `IdlePanel.svelte` displays this value to
 give users visual feedback during connection.
+
+## 8. Bridge Configuration and Circuit Isolation
+
+- `TorManager` accepts a list of bridge lines which are applied to the `TorClientConfig` when connecting.
+- The command `set_bridges` stores user-provided bridges so that censored networks can reach the Tor network.
+- `get_isolated_circuit` manages multiple isolation tokens per domain, allowing several parallel circuits to the same hostname.
+- The settings modal in the Svelte UI offers a simple list of bridges the user can enable or disable.
+
