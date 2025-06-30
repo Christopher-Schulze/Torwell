@@ -111,3 +111,41 @@ async fn schedule_updates_fetches_certificate() {
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
 }
+#[tokio::test]
+async fn init_overrides_config_values() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cfg_cert_path = dir.path().join("cfg.pem");
+    fs::write(&cfg_cert_path, CA_PEM).unwrap();
+
+    let config_path = dir.path().join("config.json");
+    let config = serde_json::json!({
+        "cert_path": cfg_cert_path.to_string_lossy(),
+        "cert_url": "https://invalid.example/cert.pem"
+    });
+    fs::write(&config_path, config.to_string()).unwrap();
+
+    let override_path = dir.path().join("override.pem");
+    fs::write(&override_path, CA_PEM).unwrap();
+
+    let _client = SecureHttpClient::init(
+        &config_path,
+        Some(override_path.to_string_lossy().to_string()),
+        Some(server.url("/cert.pem")),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let updated = fs::read_to_string(&override_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+    let original = fs::read_to_string(&cfg_cert_path).unwrap();
+    assert_eq!(original, CA_PEM);
+}

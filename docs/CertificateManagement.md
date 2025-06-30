@@ -38,6 +38,18 @@ locations during development.
 `cert_path` is where the PEM file is written. `cert_url` specifies the HTTPS
 endpoint used to retrieve updates.
 
+When calling `SecureHttpClient::init` you can override these values without
+modifying the file:
+
+```rust
+let client = SecureHttpClient::init(
+    "src-tauri/certs/cert_config.json",
+    Some("/tmp/dev.pem".into()),
+    Some("https://localhost/dev_cert.pem".into()),
+    None,
+).await?;
+```
+
 ### Update Workflow
 
 1. On startup `SecureHttpClient::init` reads the configuration file and pins the
