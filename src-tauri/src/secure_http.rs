@@ -3,6 +3,7 @@ use rustls::pki_types::CertificateDer;
 use rustls::version::{TLS12, TLS13};
 use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
+use serde::Deserialize;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -16,6 +17,45 @@ pub const DEFAULT_CERT_PATH: &str = "src-tauri/certs/server.pem";
 
 /// Default URL for retrieving updated certificates
 pub const DEFAULT_CERT_URL: &str = "https://example.com/certs/server.pem";
+
+/// Default location of the certificate configuration file
+pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/certs/cert_config.json";
+
+#[derive(Deserialize)]
+struct CertConfig {
+    #[serde(default = "default_cert_path")]
+    cert_path: String,
+    #[serde(default = "default_cert_url")]
+    cert_url: String,
+}
+
+fn default_cert_path() -> String {
+    DEFAULT_CERT_PATH.to_string()
+}
+
+fn default_cert_url() -> String {
+    DEFAULT_CERT_URL.to_string()
+}
+
+impl CertConfig {
+    fn load<P: AsRef<Path>>(path: P) -> Self {
+        let data = std::fs::read_to_string(path).ok();
+        if let Some(data) = data {
+            serde_json::from_str(&data).unwrap_or_default()
+        } else {
+            Self::default()
+        }
+    }
+}
+
+impl Default for CertConfig {
+    fn default() -> Self {
+        Self {
+            cert_path: DEFAULT_CERT_PATH.to_string(),
+            cert_url: DEFAULT_CERT_URL.to_string(),
+        }
+    }
+}
 
 pub struct SecureHttpClient {
     client: Arc<Mutex<Client>>,
@@ -68,17 +108,18 @@ impl SecureHttpClient {
         Self::new(DEFAULT_CERT_PATH)
     }
 
-    /// Initialize a client using the default certificate and optionally start
-    /// periodic updates if a URL is provided.
-    pub async fn init(
-        cert_url: Option<String>,
+    /// Initialize a client using settings from a configuration file and
+    /// optionally start periodic updates.
+    pub async fn init<P: AsRef<Path>>(
+        config_path: P,
         interval: Option<Duration>,
     ) -> anyhow::Result<Arc<Self>> {
-        let client = Arc::new(Self::new_default()?);
+        let cfg = CertConfig::load(config_path);
+        let client = Arc::new(Self::new(&cfg.cert_path)?);
 
         // Always try to refresh certificates on startup using the currently
         // pinned certificate for validation.
-        let url = cert_url.unwrap_or_else(|| DEFAULT_CERT_URL.to_string());
+        let url = cfg.cert_url.clone();
         if let Err(e) = client.update_certificates(&url).await {
             log::error!("initial certificate update failed: {}", e);
         }
