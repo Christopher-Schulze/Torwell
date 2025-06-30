@@ -59,6 +59,10 @@
   - Add support for custom exit policies
   - Improve circuit build timeout handling
 
+#### 2.1.3 GeoIP Handling
+- Country codes are now resolved using the embedded Tor GeoIP database.
+- No external GeoIP requests are performed.
+
 ### 2.2 Performance Optimizations
 
 #### 2.2.1 Connection Pooling
