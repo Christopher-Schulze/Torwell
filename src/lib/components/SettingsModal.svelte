@@ -1,20 +1,32 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { X, Edit3 } from 'lucide-svelte';
+        import { createEventDispatcher } from 'svelte';
+        import { X, Edit3 } from 'lucide-svelte';
+        import { uiStore } from '$lib/stores/uiStore';
+
+        const availableBridges = [
+                'Bridge obfs4 192.0.2.1:443 0123456789ABCDEF0123456789ABCDEF01234567 cert=AAAA iat-mode=0',
+                'Bridge obfs4 192.0.2.2:443 89ABCDEF0123456789ABCDEF0123456789ABCDEF cert=BBBB iat-mode=0'
+        ];
+
+        let selectedBridges: string[] = [];
 	// import TorrcEditorModal from './TorrcEditorModal.svelte';
 	
 	
 	export let show: boolean;
 	
-	const dispatch = createEventDispatcher();
-	let showTorrcEditor = false; // This will be unused for now
+        const dispatch = createEventDispatcher();
+        let showTorrcEditor = false; // This will be unused for now
 
-	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			show = false;
-			dispatch('close');
-		}
-	}
+        $: if (show) {
+                selectedBridges = [...$uiStore.settings.bridges];
+        }
+
+        function handleKeyDown(event: KeyboardEvent) {
+                if (event.key === 'Escape') {
+                        show = false;
+                        dispatch('close');
+                }
+        }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
@@ -43,8 +55,8 @@
 				</div>
 				<div class="overflow-y-auto flex-grow">
 					<!-- Tor Chain Configuration -->
-					<div class="mb-8">
-						<h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Tor Chain Configuration</h3>
+                                        <div class="mb-8">
+                                                <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Tor Chain Configuration</h3>
 						<p class="text-sm text-gray-400 mb-4">Edit the TORRC file to customize Tor settings and connection behavior.</p>
 						<button 
 							class="text-sm py-2 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
@@ -53,8 +65,25 @@
 							<Edit3 size={16} />
 							Editor
 						</button>
-						<p class="text-xs text-gray-500 mt-2">Edit the TORRC file</p>
-					</div>
+                                                <p class="text-xs text-gray-500 mt-2">Edit the TORRC file</p>
+                                        </div>
+
+                                        <div class="mb-8">
+                                                <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Bridges</h3>
+                                                <p class="text-sm text-gray-400 mb-4">Select one or more bridges to use for connecting.</p>
+                                                {#each availableBridges as bridge}
+                                                        <label class="flex items-center gap-2 mb-2">
+                                                                <input type="checkbox" value={bridge} bind:group={selectedBridges} />
+                                                                <span class="text-sm">{bridge}</span>
+                                                        </label>
+                                                {/each}
+                                                <button
+                                                        class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                                        on:click={() => uiStore.actions.setBridges(selectedBridges)}
+                                                >
+                                                        Apply
+                                                </button>
+                                        </div>
 
 					<!-- Worker Management section has been removed as it was placeholder functionality. -->
 				</div>

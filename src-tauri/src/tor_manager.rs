@@ -1,6 +1,7 @@
 use crate::commands::RelayInfo;
 use crate::error::{Error, Result};
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
+use arti_client::config::{BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder, BoolOrAuto};
 use async_trait::async_trait;
 use reqwest::Client;
 use std::collections::HashMap;
@@ -110,8 +111,9 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
 }
 pub struct TorManager<C = TorClient<PreferredRuntime>> {
     client: Arc<Mutex<Option<C>>>,
-    isolation_tokens: Arc<Mutex<HashMap<String, IsolationToken>>>,
+    isolation_tokens: Arc<Mutex<HashMap<String, Vec<IsolationToken>>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
+    bridges: Arc<Mutex<Vec<String>>>,
 }
 
 impl<C: TorClientBehavior> TorManager<C> {
@@ -120,6 +122,32 @@ impl<C: TorClientBehavior> TorManager<C> {
             client: Arc::new(Mutex::new(None)),
             isolation_tokens: Arc::new(Mutex::new(HashMap::new())),
             exit_country: Arc::new(Mutex::new(None)),
+            bridges: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    async fn build_config(&self) -> Result<TorClientConfig> {
+        let bridges = self.bridges.lock().await.clone();
+        if bridges.is_empty() {
+            Ok(TorClientConfig::default())
+        } else {
+            use arti_client::config::{BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder, BoolOrAuto};
+
+            let mut builder = TorClientConfigBuilder::default();
+            {
+                let mut bridge_builder = BridgesConfigBuilder::default();
+                bridge_builder.enabled(BoolOrAuto::Explicit(true));
+                for line in bridges {
+                    let b: BridgeConfigBuilder = line
+                        .parse()
+                        .map_err(|e| Error::Tor(e.to_string()))?;
+                    bridge_builder.bridges().push(b);
+                }
+                builder.bridges(bridge_builder);
+            }
+            builder
+                .build()
+                .map_err(|e| Error::Tor(e.to_string()))
         }
     }
 
@@ -130,7 +158,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         if self.is_connected().await {
             return Err(Error::AlreadyConnected);
         }
-        let config = TorClientConfig::default();
+        let config = self.build_config().await?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
             .map_err(|e| Error::Bootstrap(e))?;
@@ -212,6 +240,12 @@ impl<C: TorClientBehavior> TorManager<C> {
         Ok(())
     }
 
+    pub async fn set_bridges(&self, bridges: Vec<String>) -> Result<()> {
+        let mut guard = self.bridges.lock().await;
+        *guard = bridges;
+        Ok(())
+    }
+
     pub async fn is_connected(&self) -> bool {
         self.client.lock().await.is_some()
     }
@@ -222,8 +256,9 @@ impl<C: TorClientBehavior> TorManager<C> {
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
 
         // Force new configuration and circuits
+        let config = self.build_config().await?;
         client
-            .reconfigure(&TorClientConfig::default())
+            .reconfigure(&config)
             .map_err(|e| Error::Identity(e))?;
         client.retire_all_circs();
 
@@ -297,7 +332,9 @@ impl TorManager {
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
 
         let mut tokens = self.isolation_tokens.lock().await;
-        let token = tokens.entry(domain).or_insert_with(IsolationToken::new);
+        let entry = tokens.entry(domain).or_default();
+        let token = IsolationToken::new();
+        entry.push(token);
 
         let netdir = client
             .dirmgr()
@@ -305,7 +342,7 @@ impl TorManager {
             .map_err(|e| Error::NetDir(e.to_string()))?;
 
         let isolation = StreamIsolation::builder()
-            .owner_token(*token)
+            .owner_token(token)
             .build()
             .expect("StreamIsolation builder failed");
 

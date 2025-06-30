@@ -28,6 +28,7 @@ pub fn run() {
             commands::get_active_circuit,
             commands::get_isolated_circuit,
             commands::set_exit_country,
+            commands::set_bridges,
             commands::get_traffic_stats,
             commands::get_logs,
             commands::clear_logs,

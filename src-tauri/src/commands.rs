@@ -140,6 +140,11 @@ pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String
 }
 
 #[tauri::command]
+pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Result<()> {
+    state.tor_manager.set_bridges(bridges).await
+}
+
+#[tauri::command]
 pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStats> {
     let stats = state.tor_manager.traffic_stats().await?;
     Ok(TrafficStats {
