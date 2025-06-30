@@ -42,6 +42,7 @@ The frontend remains visually and functionally identical to the original design,
 - Centralized log storage in AppState with thread-safe access
 - Automatic log rotation (max 1000 entries)
 - Commands for log retrieval and clearing
+- Logs are stored as JSON lines containing the log level, timestamp and message
 
 ### 3.3 Documentation Updates
 - Comprehensive changelog tracking
