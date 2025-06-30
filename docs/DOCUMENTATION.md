@@ -43,6 +43,8 @@ The frontend remains visually and functionally identical to the original design,
 - Automatic log rotation (max 1000 entries)
 - Commands for log retrieval and clearing
 - Logs are stored as JSON lines containing the log level, timestamp and message
+- The Logs modal in the Svelte UI lets users filter by level and highlights
+  warnings and errors with dedicated colours
 
 ### 3.3 Documentation Updates
 - Comprehensive changelog tracking
