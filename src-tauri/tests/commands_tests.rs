@@ -9,6 +9,7 @@ use tokio::sync::Mutex;
 use log::Level;
 use torwell84::commands;
 use torwell84::error::Error;
+use torwell84::secure_http::SecureHttpClient;
 use torwell84::state::{AppState, LogEntry};
 use torwell84::tor_manager::{TorClientBehavior, TorClientConfig, TorManager};
 
@@ -69,6 +70,7 @@ impl TorClientBehavior for MockTorClient {
 fn mock_state() -> AppState<MockTorClient> {
     AppState {
         tor_manager: Arc::new(TorManager::new()),
+        http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
         log_file: PathBuf::from("test.log"),
         log_lock: Arc::new(Mutex::new(())),
         max_log_lines: 1000,

@@ -149,3 +149,31 @@ async fn init_overrides_config_values() {
     let original = fs::read_to_string(&cfg_cert_path).unwrap();
     assert_eq!(original, CA_PEM);
 }
+
+#[tokio::test]
+async fn init_with_repo_config() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let cfg_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("certs/cert_config.json");
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let _client = SecureHttpClient::init(
+        &cfg_path,
+        Some(cert_path.to_string_lossy().to_string()),
+        Some(server.url("/cert.pem")),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
