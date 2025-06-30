@@ -9,7 +9,9 @@
         ];
 
         let selectedBridges: string[] = [];
-	// import TorrcEditorModal from './TorrcEditorModal.svelte';
+        let torrcConfig = '';
+        let workerListString = '';
+        // import TorrcEditorModal from './TorrcEditorModal.svelte';
 	
 	
 	export let show: boolean;
@@ -19,6 +21,8 @@
 
         $: if (show) {
                 selectedBridges = [...$uiStore.settings.bridges];
+                torrcConfig = $uiStore.settings.torrcConfig;
+                workerListString = $uiStore.settings.workerList.join('\n');
         }
 
         function handleKeyDown(event: KeyboardEvent) {
@@ -26,6 +30,18 @@
                         show = false;
                         dispatch('close');
                 }
+        }
+
+        function saveTorrc() {
+                uiStore.actions.saveTorrcConfig(torrcConfig);
+        }
+
+        function saveWorkers() {
+                const list = workerListString
+                        .split(/\r?\n/)
+                        .map((l) => l.trim())
+                        .filter((l) => l.length > 0);
+                uiStore.actions.saveWorkerList(list);
         }
 </script>
 
@@ -54,18 +70,20 @@
 					</button>
 				</div>
 				<div class="overflow-y-auto flex-grow">
-					<!-- Tor Chain Configuration -->
+                                        <!-- Torrc Configuration -->
                                         <div class="mb-8">
-                                                <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Tor Chain Configuration</h3>
-						<p class="text-sm text-gray-400 mb-4">Edit the TORRC file to customize Tor settings and connection behavior.</p>
-						<button 
-							class="text-sm py-2 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-							on:click={() => showTorrcEditor = true}
-						>
-							<Edit3 size={16} />
-							Editor
-						</button>
-                                                <p class="text-xs text-gray-500 mt-2">Edit the TORRC file</p>
+                                                <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Torrc Configuration</h3>
+                                                <textarea
+                                                        class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm font-mono"
+                                                        rows="6"
+                                                        bind:value={torrcConfig}
+                                                ></textarea>
+                                                <button
+                                                        class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                                        on:click={saveTorrc}
+                                                >
+                                                        Save
+                                                </button>
                                         </div>
 
                                         <div class="mb-8">
@@ -83,6 +101,22 @@
                                                 >
                                                         Apply
                                                 </button>
+                                        </div>
+
+                                        <div class="mb-8">
+                                                <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Worker List</h3>
+                                                <textarea
+                                                        class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm font-mono"
+                                                        rows="4"
+                                                        bind:value={workerListString}
+                                                ></textarea>
+                                                <button
+                                                        class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                                        on:click={saveWorkers}
+                                                >
+                                                        Save
+                                                </button>
+                                                <p class="text-xs text-gray-500 mt-2">One worker URL per line</p>
                                         </div>
 
 					<!-- Worker Management section has been removed as it was placeholder functionality. -->

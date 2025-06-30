@@ -51,6 +51,10 @@ function createUIStore() {
                             bridges: storedSettings.bridges ?? [],
                         }
                     }));
+
+                    // Apply settings to backend so configuration is used on start
+                    await invoke('set_bridges', { bridges: storedSettings.bridges ?? [] });
+                    await invoke('set_exit_country', { country: storedSettings.exitCountry ?? null });
                 }
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
@@ -97,6 +101,72 @@ function createUIStore() {
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
                 update(state => ({ ...state, error: `Failed to set exit country: ${message}` }));
+            }
+        },
+
+        loadTorrcConfig: async () => {
+            try {
+                const stored = await db.settings.get(1);
+                if (stored) {
+                    update(state => ({
+                        ...state,
+                        settings: {
+                            ...state.settings,
+                            torrcConfig: stored.torrcConfig,
+                        },
+                    }));
+                }
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to load torrc config: ${message}` }));
+            }
+        },
+
+        saveTorrcConfig: async (config: string) => {
+            try {
+                const current = get({ subscribe });
+                const newSettings: AppSettings = {
+                    ...current.settings,
+                    torrcConfig: config,
+                };
+                await db.settings.put({ id: 1, ...newSettings });
+                update(state => ({ ...state, settings: newSettings, error: null }));
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to save torrc config: ${message}` }));
+            }
+        },
+
+        loadWorkerList: async () => {
+            try {
+                const stored = await db.settings.get(1);
+                if (stored) {
+                    update(state => ({
+                        ...state,
+                        settings: {
+                            ...state.settings,
+                            workerList: stored.workerList,
+                        },
+                    }));
+                }
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to load worker list: ${message}` }));
+            }
+        },
+
+        saveWorkerList: async (workers: string[]) => {
+            try {
+                const current = get({ subscribe });
+                const newSettings: AppSettings = {
+                    ...current.settings,
+                    workerList: workers,
+                };
+                await db.settings.put({ id: 1, ...newSettings });
+                update(state => ({ ...state, settings: newSettings, error: null }));
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to save worker list: ${message}` }));
             }
         },
     };
