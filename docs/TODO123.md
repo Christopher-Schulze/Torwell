@@ -11,6 +11,8 @@
 3. // Darkmode entfernt
 
 ## Future Ideas
-- Support for multiple simultaneous circuits
 - Integration with hardware security modules
 - Mobile app version using Capacitor
+
+## Completed Features
+- Multiple simultaneous circuits per domain
