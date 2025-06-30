@@ -112,9 +112,17 @@ impl SecureHttpClient {
     /// optionally start periodic updates.
     pub async fn init<P: AsRef<Path>>(
         config_path: P,
+        cert_path: Option<String>,
+        cert_url: Option<String>,
         interval: Option<Duration>,
     ) -> anyhow::Result<Arc<Self>> {
-        let cfg = CertConfig::load(config_path);
+        let mut cfg = CertConfig::load(config_path);
+        if let Some(path) = cert_path {
+            cfg.cert_path = path;
+        }
+        if let Some(url) = cert_url {
+            cfg.cert_url = url;
+        }
         let client = Arc::new(Self::new(&cfg.cert_path)?);
 
         // Always try to refresh certificates on startup using the currently
