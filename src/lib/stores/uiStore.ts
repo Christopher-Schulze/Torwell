@@ -80,6 +80,60 @@ function createUIStore() {
                 update(state => ({ ...state, error: `Failed to set exit country: ${message}` }));
             }
         },
+
+        loadTorrcConfig: async () => {
+            try {
+                const stored = await db.settings.get(1);
+                if (stored) {
+                    update(state => ({
+                        ...state,
+                        settings: { ...state.settings, torrcConfig: stored.torrcConfig }
+                    }));
+                }
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to load torrc config: ${message}` }));
+            }
+        },
+
+        saveTorrcConfig: async (config: string) => {
+            try {
+                const current = get({ subscribe });
+                const newSettings: AppSettings = { ...current.settings, torrcConfig: config };
+                await db.settings.put({ id: 1, ...newSettings });
+                update(state => ({ ...state, settings: newSettings, error: null }));
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to save torrc config: ${message}` }));
+            }
+        },
+
+        loadWorkerList: async () => {
+            try {
+                const stored = await db.settings.get(1);
+                if (stored) {
+                    update(state => ({
+                        ...state,
+                        settings: { ...state.settings, workerList: stored.workerList }
+                    }));
+                }
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to load worker list: ${message}` }));
+            }
+        },
+
+        saveWorkerList: async (list: string[]) => {
+            try {
+                const current = get({ subscribe });
+                const newSettings: AppSettings = { ...current.settings, workerList: list };
+                await db.settings.put({ id: 1, ...newSettings });
+                update(state => ({ ...state, settings: newSettings, error: null }));
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                update(state => ({ ...state, error: `Failed to save worker list: ${message}` }));
+            }
+        },
     };
     
     // Load settings on initialization

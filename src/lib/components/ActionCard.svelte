@@ -2,8 +2,9 @@
 	import { Activity, Settings, Play, Square, RotateCcw, RefreshCw, AlertCircle } from 'lucide-svelte';
 	import { createEventDispatcher } from 'svelte';
 	
-	import { torStore } from '$lib/stores/torStore';
-	import { invoke } from '@tauri-apps/api';
+        import { torStore } from '$lib/stores/torStore';
+        import { uiStore } from '$lib/stores/uiStore';
+        import { invoke } from '@tauri-apps/api';
 
 	let connectError = null;
 
@@ -12,9 +13,12 @@
 	let isCreatingCircuit = false;
 	let isCreatingIdentity = false;
 
-	async function handleConnect() {
-		await invoke('connect');
-	}
+        async function handleConnect() {
+                await invoke('connect', {
+                        torrcConfig: $uiStore.settings.torrcConfig,
+                        workerList: $uiStore.settings.workerList
+                });
+        }
 
 	async function handleDisconnect() {
 		await invoke('disconnect');

@@ -1,5 +1,7 @@
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::state::AppState;
+use arti_client::config::{TorClientConfig, TorClientConfigBuilder};
+use toml;
 use serde::Serialize;
 use tauri::{Manager, State};
 
@@ -21,8 +23,21 @@ pub struct RelayInfo {
 }
 
 #[tauri::command]
-pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+pub async fn connect(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+    torrc_config: String,
+    worker_list: Vec<String>,
+) -> Result<()> {
     let tor_manager = state.tor_manager.clone();
+    let cfg_value: toml::Value = toml::from_str(&torrc_config)
+        .map_err(|e| Error::Tor(e.to_string()))?;
+    let builder: TorClientConfigBuilder = cfg_value
+        .try_into()
+        .map_err(|e| Error::Tor(e.to_string()))?;
+    let config: TorClientConfig = builder
+        .build()
+        .map_err(|e| Error::Tor(e.to_string()))?;
 
     // Fire and forget
     tokio::spawn(async move {
@@ -35,8 +50,10 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
         }
 
         // Perform the actual connection
+        let _worker_list = worker_list; // currently unused
         match tor_manager
             .connect_with_backoff(
+                &config,
                 5,
                 |attempt, delay, err| {
                     let _ = app_handle.emit_all(

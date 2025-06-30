@@ -123,15 +123,14 @@ impl<C: TorClientBehavior> TorManager<C> {
         }
     }
 
-    async fn connect_once<P>(&self, progress: &mut P) -> Result<()>
+    async fn connect_once<P>(&self, config: &TorClientConfig, progress: &mut P) -> Result<()>
     where
         P: FnMut(u8) + Send,
     {
         if self.is_connected().await {
             return Err(Error::AlreadyConnected);
         }
-        let config = TorClientConfig::default();
-        let tor_client = C::create_bootstrapped_with_progress(config, progress)
+        let tor_client = C::create_bootstrapped_with_progress(config.clone(), progress)
             .await
             .map_err(|e| Error::Bootstrap(e))?;
         *self.client.lock().await = Some(tor_client);
@@ -139,11 +138,12 @@ impl<C: TorClientBehavior> TorManager<C> {
     }
 
     pub async fn connect(&self) -> Result<()> {
-        self.connect_once(&mut |_| {}).await
+        self.connect_once(&TorClientConfig::default(), &mut |_| {}).await
     }
 
     pub async fn connect_with_backoff<F, P>(
         &self,
+        config: &TorClientConfig,
         max_retries: u32,
         mut on_retry: F,
         mut on_progress: P,
@@ -155,7 +155,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         let mut attempt = 0;
         let mut delay = INITIAL_BACKOFF;
         loop {
-            match self.connect_once(&mut on_progress).await {
+            match self.connect_once(config, &mut on_progress).await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
                     attempt += 1;

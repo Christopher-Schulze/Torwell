@@ -1,13 +1,32 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { X, Edit3 } from 'lucide-svelte';
-	// import TorrcEditorModal from './TorrcEditorModal.svelte';
+        import { createEventDispatcher } from 'svelte';
+        import { X, Edit3 } from 'lucide-svelte';
+        import { uiStore } from '$lib/stores/uiStore';
+        // import TorrcEditorModal from './TorrcEditorModal.svelte';
 	
 	
 	export let show: boolean;
 	
 	const dispatch = createEventDispatcher();
-	let showTorrcEditor = false; // This will be unused for now
+        let showTorrcEditor = false; // This will be unused for now
+        let torrcConfig = '';
+        let workerListText = '';
+
+        $: if (show) {
+                torrcConfig = $uiStore.settings.torrcConfig;
+                workerListText = $uiStore.settings.workerList.join('\n');
+        }
+
+        async function save() {
+                const list = workerListText
+                        .split('\n')
+                        .map((l) => l.trim())
+                        .filter((l) => l.length > 0);
+                await uiStore.actions.saveWorkerList(list);
+                await uiStore.actions.saveTorrcConfig(torrcConfig);
+                show = false;
+                dispatch('close');
+        }
 
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
@@ -43,21 +62,35 @@
 				</div>
 				<div class="overflow-y-auto flex-grow">
 					<!-- Tor Chain Configuration -->
-					<div class="mb-8">
-						<h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Tor Chain Configuration</h3>
-						<p class="text-sm text-gray-400 mb-4">Edit the TORRC file to customize Tor settings and connection behavior.</p>
-						<button 
-							class="text-sm py-2 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-							on:click={() => showTorrcEditor = true}
-						>
-							<Edit3 size={16} />
-							Editor
-						</button>
-						<p class="text-xs text-gray-500 mt-2">Edit the TORRC file</p>
-					</div>
+                                        <div class="mb-8 space-y-4">
+                                                <h3 class="text-lg font-semibold mb-2 border-b border-white/10 pb-2">Tor Configuration</h3>
+                                                <textarea
+                                                        class="w-full p-2 rounded-md bg-black/30 border border-white/10 font-mono text-sm"
+                                                        rows="6"
+                                                        bind:value={torrcConfig}
+                                                ></textarea>
+                                                <p class="text-xs text-gray-500">Custom TOML configuration for Arti/Tor.</p>
+                                        </div>
 
-					<!-- Worker Management section has been removed as it was placeholder functionality. -->
-				</div>
+                                        <div class="mb-8 space-y-4">
+                                                <h3 class="text-lg font-semibold mb-2 border-b border-white/10 pb-2">Worker List</h3>
+                                                <textarea
+                                                        class="w-full p-2 rounded-md bg-black/30 border border-white/10 font-mono text-sm"
+                                                        rows="4"
+                                                        bind:value={workerListText}
+                                                ></textarea>
+                                                <p class="text-xs text-gray-500">One host per line</p>
+                                        </div>
+
+                                        <div class="flex justify-end mt-4">
+                                                <button
+                                                        class="py-2 px-4 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                                                        on:click={save}
+                                                >
+                                                        Save
+                                                </button>
+                                        </div>
+                                </div>
 			</section>
 		</div>
 {/if}
