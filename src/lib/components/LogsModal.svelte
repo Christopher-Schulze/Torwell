@@ -16,12 +16,14 @@
 	}
 
         let activeTab = 'all';
+        let levelFilter = 'all';
         let logs: LogEntry[] = [];
         let isLoading = false;
         let isClearing = false;
         let logFilePath = '';
 
-	$: filteredLogs = activeTab === 'all' ? logs : logs.filter(log => log.type === activeTab);
+        $: filteredByType = activeTab === 'all' ? logs : logs.filter(log => log.type === activeTab);
+        $: filteredLogs = levelFilter === 'all' ? filteredByType : filteredByType.filter(log => log.level === levelFilter);
 
         $: if (show) {
                 loadLogs();
@@ -120,18 +122,28 @@
 			</div>
 
 			<!-- Tabs -->
-			<div class="flex border-b border-white/10">
-				{#each [{ id: 'all', label: 'All Logs' }, { id: 'connection', label: 'Connection Logs' }, { id: 'system', label: 'System Logs' }] as tab}
-					<button
-						class="px-6 py-3 text-sm font-medium transition-colors {activeTab === tab.id
-							? 'text-blue-400 border-b-2 border-blue-400'
-							: 'text-gray-400 hover:text-white'}"
-						on:click={() => (activeTab = tab.id)}
-					>
-						{tab.label}
-					</button>
-				{/each}
-			</div>
+                        <div class="flex border-b border-white/10">
+                                {#each [{ id: 'all', label: 'All Logs' }, { id: 'connection', label: 'Connection Logs' }, { id: 'system', label: 'System Logs' }] as tab}
+                                        <button
+                                                class="px-6 py-3 text-sm font-medium transition-colors {activeTab === tab.id
+                                                        ? 'text-blue-400 border-b-2 border-blue-400'
+                                                        : 'text-gray-400 hover:text-white'}"
+                                                on:click={() => (activeTab = tab.id)}
+                                        >
+                                                {tab.label}
+                                        </button>
+                                {/each}
+                        </div>
+
+                        <div class="flex items-center gap-2 p-2 border-b border-white/10">
+                                <label class="text-sm text-gray-400">Level:</label>
+                                <select bind:value={levelFilter} class="bg-gray-800 text-white text-sm rounded p-1">
+                                        <option value="all">All</option>
+                                        <option value="INFO">Info</option>
+                                        <option value="WARN">Warn</option>
+                                        <option value="ERROR">Error</option>
+                                </select>
+                        </div>
 
 			<!-- Log Content -->
 			<div class="p-6 max-h-96 overflow-y-auto">
@@ -147,11 +159,11 @@
 				{:else}
 					<div class="space-y-2">
 						<div class="text-sm text-gray-300 font-mono">
-							{#each filteredLogs as log}
-								<div class="{log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARN' ? 'text-yellow-400' : log.type === 'connection' ? 'text-green-400' : 'text-blue-400'}">
-									[{log.timestamp}] {log.message}
-								</div>
-							{/each}
+                                                        {#each filteredLogs as log}
+                                                                <div class="{log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARN' ? 'text-yellow-400' : 'text-blue-400'}">
+                                                                        [{log.timestamp}] [{log.level}] {log.message}
+                                                                </div>
+                                                        {/each}
 						</div>
 					</div>
 				{/if}

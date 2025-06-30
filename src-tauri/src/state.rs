@@ -1,12 +1,22 @@
 use crate::error::Result;
 use crate::tor_manager::{TorClientBehavior, TorManager};
 use arti_client::TorClient;
-use tor_rtcompat::PreferredRuntime;
+use chrono::Utc;
+use log::Level;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct LogEntry {
+    pub level: String,
+    pub timestamp: String,
+    pub message: String,
+}
 
 pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub tor_manager: Arc<TorManager<C>>,
@@ -44,14 +54,20 @@ impl<C: TorClientBehavior> Default for AppState<C> {
 impl AppState {
     const DEFAULT_MAX_LINES: usize = 1000;
 
-    pub async fn add_log(&self, message: String) -> Result<()> {
+    pub async fn add_log(&self, level: Level, message: String) -> Result<()> {
         let _guard = self.log_lock.lock().await;
         let mut file = OpenOptions::new()
             .create(true)
             .append(true)
             .open(&self.log_file)
             .await?;
-        file.write_all(message.as_bytes()).await?;
+        let entry = LogEntry {
+            level: level.to_string(),
+            timestamp: Utc::now().to_rfc3339(),
+            message,
+        };
+        let json = serde_json::to_string(&entry)?;
+        file.write_all(json.as_bytes()).await?;
         file.write_all(b"\n").await?;
         drop(file);
         self.trim_logs().await?;
@@ -68,10 +84,16 @@ impl AppState {
         Ok(())
     }
 
-    pub async fn read_logs(&self) -> Result<Vec<String>> {
+    pub async fn read_logs(&self) -> Result<Vec<LogEntry>> {
         let _guard = self.log_lock.lock().await;
         let contents = fs::read_to_string(&self.log_file).await.unwrap_or_default();
-        Ok(contents.lines().map(|l| l.to_string()).collect())
+        let mut entries = Vec::new();
+        for line in contents.lines() {
+            if let Ok(entry) = serde_json::from_str::<LogEntry>(line) {
+                entries.push(entry);
+            }
+        }
+        Ok(entries)
     }
 
     pub async fn clear_log_file(&self) -> Result<()> {
