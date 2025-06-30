@@ -3,6 +3,7 @@ use crate::tor_manager::{TorClientBehavior, TorManager};
 use arti_client::TorClient;
 use chrono::Utc;
 use log::Level;
+use tor_rtcompat::PreferredRuntime;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::path::PathBuf;
