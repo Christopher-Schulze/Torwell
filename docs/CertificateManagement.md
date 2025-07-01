@@ -1,6 +1,7 @@
 # Certificate Management
 
 Torwell84 uses certificate pinning to defend against man-in-the-middle attacks. The pinned certificates are stored in `src-tauri/certs`. A helper module (`secure_http.rs`) loads these certificates into a custom `RootCertStore` for `reqwest`.
+All HTTPS connections enforce TLS&nbsp;1.2 or newer. `rustls` is configured to request OCSP stapling so revocation status is delivered with the server certificate when available.
 
 ## Rotation Procedure
 

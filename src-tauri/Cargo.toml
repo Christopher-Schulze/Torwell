@@ -39,6 +39,7 @@ sysinfo = "0.30"
 [dev-dependencies]
 async-trait = "0.1"
 once_cell = "1"
+logtest = "2"
 
 [features]
 # by default Tauri runs in production mode

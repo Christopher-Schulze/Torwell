@@ -1,4 +1,5 @@
 use httpmock::prelude::*;
+use logtest::Logger;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -231,4 +232,61 @@ async fn init_using_default_constant() {
 
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
+async fn ocsp_stapling_requested() {
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let cfg = SecureHttpClient::build_tls_config(&cert_path).unwrap();
+    assert!(cfg.enable_ocsp_stapling);
+}
+
+#[tokio::test]
+async fn hsts_warning_on_get() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/hello");
+            then.status(200).body("ok");
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+
+    let logger = Logger::start();
+    let _ = client.get_text(&server.url("/hello")).await.unwrap();
+    assert!(logger
+        .into_iter()
+        .any(|rec| rec.level() == log::Level::Warn && rec.args().contains("HSTS header missing")));
+}
+
+#[tokio::test]
+async fn hsts_warning_on_update() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+
+    let logger = Logger::start();
+    client
+        .update_certificates(&server.url("/cert.pem"))
+        .await
+        .unwrap();
+    assert!(logger
+        .into_iter()
+        .any(|rec| rec.level() == log::Level::Warn && rec.args().contains("HSTS header missing")));
 }

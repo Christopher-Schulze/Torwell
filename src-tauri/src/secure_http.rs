@@ -72,6 +72,26 @@ impl Clone for SecureHttpClient {
 }
 
 impl SecureHttpClient {
+    #[cfg(test)]
+    pub(crate) fn build_tls_config<P: AsRef<Path>>(path: P) -> anyhow::Result<ClientConfig> {
+        let mut store = RootCertStore::empty();
+        let file = File::open(&path)?;
+        let mut reader = BufReader::new(file);
+        let certs: Vec<CertificateDer<'static>> =
+            pemfile::certs(&mut reader).collect::<Result<_, _>>()?;
+        store.add_parsable_certificates(certs);
+
+        let mut config = ClientConfig::builder()
+            .with_safe_default_cipher_suites()
+            .with_safe_default_kx_groups()
+            .with_protocol_versions(&[&TLS13, &TLS12])?
+            .with_root_certificates(store)
+            .with_no_client_auth();
+
+        config.enable_ocsp_stapling = true;
+        Ok(config)
+    }
+
     fn build_client<P: AsRef<Path>>(path: P) -> anyhow::Result<Client> {
         let mut store = RootCertStore::empty();
         let file = File::open(&path)?;
@@ -80,12 +100,13 @@ impl SecureHttpClient {
             pemfile::certs(&mut reader).collect::<Result<_, _>>()?;
         store.add_parsable_certificates(certs);
 
-        let config = ClientConfig::builder()
+        let mut config = ClientConfig::builder()
             .with_safe_default_cipher_suites()
             .with_safe_default_kx_groups()
             .with_protocol_versions(&[&TLS13, &TLS12])?
             .with_root_certificates(store)
             .with_no_client_auth();
+        config.enable_ocsp_stapling = true;
 
         let client = ClientBuilder::new()
             .use_preconfigured_tls(config)
@@ -168,6 +189,9 @@ update cert_url in cert_config.json"
         };
         match resp {
             Ok(resp) => {
+                if resp.headers().get("strict-transport-security").is_none() {
+                    log::warn!("HSTS header missing for {}", url);
+                }
                 let pem = resp.bytes().await?;
                 if let Some(parent) = Path::new(&self.cert_path).parent() {
                     std::fs::create_dir_all(parent)?;
