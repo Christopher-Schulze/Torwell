@@ -79,7 +79,13 @@
   <div
     class="bg-white/20 backdrop-blur-xl rounded-[32px] border border-white/20 p-6 flex flex-col gap-2"
   >
-    <StatusCard status={$torStore.status} {totalTrafficMB} pingMs={undefined} />
+    <StatusCard
+      status={$torStore.status}
+      {totalTrafficMB}
+      memoryMB={$torStore.memoryUsageMB}
+      circuitCount={$torStore.circuitCount}
+      pingMs={undefined}
+    />
 
     <TorChain
       isConnected={$torStore.status === "CONNECTED"}
