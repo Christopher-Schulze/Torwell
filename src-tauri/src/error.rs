@@ -18,6 +18,9 @@ pub enum Error {
     #[error("Client is already connected")]
     AlreadyConnected,
 
+    #[error("Connection timed out")]
+    Timeout,
+
     #[error("No circuit available")]
     NoCircuit,
 

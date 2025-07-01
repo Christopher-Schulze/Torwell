@@ -14,4 +14,6 @@ This guide lists common problems encountered during development and how to analy
 - The backend writes logs to a persistent file named `torwell.log` in the project directory. Older entries are trimmed once the file exceeds the configured line limit.
 - Each line of this file is a JSON object with `level`, `timestamp` and `message` fields.
 - If the UI fails to load, open the browser developer tools (`Ctrl+Shift+I`) to inspect console logs and network activity.
+- Failed connection attempts are recorded with `WARN` level. The retry counter resets when a new connection starts.
+- If `Error::Timeout` occurs, the Tor bootstrap exceeded the allowed time. Check your network or increase the limit.
 

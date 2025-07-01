@@ -68,7 +68,12 @@ async fn connect_with_backoff_success() {
     MockTorClient::push_result(Ok(MockTorClient::default()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager
-        .connect_with_backoff(5, |_a, _d, _e| {}, |_| {})
+        .connect_with_backoff(
+            5,
+            std::time::Duration::from_secs(10),
+            |_a, _d, _e| {},
+            |_| {},
+        )
         .await;
     assert!(res.is_ok());
 }
@@ -79,7 +84,12 @@ async fn connect_with_backoff_error() {
     MockTorClient::push_result(Err("e2".into()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager
-        .connect_with_backoff(1, |_a, _d, _e| {}, |_| {})
+        .connect_with_backoff(
+            1,
+            std::time::Duration::from_secs(5),
+            |_a, _d, _e| {},
+            |_| {},
+        )
         .await;
     assert!(matches!(res, Err(Error::Bootstrap(_))));
 }
@@ -91,9 +101,29 @@ async fn connect_when_already_connected() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
     let res = manager
-        .connect_with_backoff(0, |_a, _d, _e| {}, |_| {})
+        .connect_with_backoff(
+            0,
+            std::time::Duration::from_secs(5),
+            |_a, _d, _e| {},
+            |_| {},
+        )
         .await;
     assert!(matches!(res, Err(Error::AlreadyConnected)));
+}
+
+#[tokio::test]
+async fn connect_with_backoff_timeout() {
+    MockTorClient::push_result(Err("e1".into()));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager
+        .connect_with_backoff(
+            5,
+            std::time::Duration::from_secs(0),
+            |_a, _d, _e| {},
+            |_| {},
+        )
+        .await;
+    assert!(matches!(res, Err(Error::Timeout)));
 }
 
 #[tokio::test]

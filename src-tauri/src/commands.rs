@@ -1,6 +1,8 @@
 use crate::error::Result;
 use crate::state::{AppState, LogEntry};
+use log::Level;
 use serde::Serialize;
+use std::time::Duration;
 use tauri::{Manager, State};
 
 /// Total bytes sent and received through Tor.
@@ -23,6 +25,7 @@ pub struct RelayInfo {
 #[tauri::command]
 pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     let tor_manager = state.tor_manager.clone();
+    let state_clone = state.inner().clone();
 
     // Fire and forget
     tokio::spawn(async move {
@@ -35,17 +38,30 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
         }
 
         // Perform the actual connection
+        let _ = state_clone.reset_retry_counter().await;
         match tor_manager
             .connect_with_backoff(
                 5,
+                Duration::from_secs(60),
                 |attempt, delay, err| {
+                    let err_str = err.to_string();
+                    let sc = state_clone.clone();
+                    tokio::spawn(async move {
+                        sc.increment_retry_counter().await;
+                        let _ = sc
+                            .add_log(
+                                Level::Warn,
+                                format!("connection attempt {} failed: {}", attempt, err_str),
+                            )
+                            .await;
+                    });
                     let _ = app_handle.emit_all(
                         "tor-status-update",
                         serde_json::json!({
                             "status": "RETRYING",
                             "retryCount": attempt,
                             "retryDelay": delay.as_secs(),
-                            "errorMessage": err.to_string()
+                            "errorMessage": err_str
                         }),
                     );
                 },

@@ -1,10 +1,9 @@
 use crate::error::Result;
-use crate::tor_manager::{TorClientBehavior, TorManager};
 use crate::secure_http::SecureHttpClient;
+use crate::tor_manager::{TorClientBehavior, TorManager};
 use arti_client::TorClient;
 use chrono::Utc;
 use log::Level;
-use tor_rtcompat::PreferredRuntime;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::path::PathBuf;
@@ -12,6 +11,7 @@ use std::sync::Arc;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
+use tor_rtcompat::PreferredRuntime;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct LogEntry {
@@ -20,6 +20,7 @@ pub struct LogEntry {
     pub message: String,
 }
 
+#[derive(Clone)]
 pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub tor_manager: Arc<TorManager<C>>,
     pub http_client: Arc<SecureHttpClient>,
@@ -27,6 +28,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub log_file: PathBuf,
     /// Mutex used to serialize file writes
     pub log_lock: Arc<Mutex<()>>,
+    /// Counter for connection retries
+    pub retry_counter: Arc<Mutex<u32>>,
     /// Maximum number of lines to retain in the log file
     pub max_log_lines: usize,
 }
@@ -47,9 +50,12 @@ impl<C: TorClientBehavior> Default for AppState<C> {
 
         Self {
             tor_manager: Arc::new(TorManager::new()),
-            http_client: Arc::new(SecureHttpClient::new_default().expect("failed to create http client")),
+            http_client: Arc::new(
+                SecureHttpClient::new_default().expect("failed to create http client"),
+            ),
             log_file,
             log_lock: Arc::new(Mutex::new(())),
+            retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines,
         }
     }
@@ -74,11 +80,22 @@ impl<C: TorClientBehavior> AppState<C> {
             http_client,
             log_file,
             log_lock: Arc::new(Mutex::new(())),
+            retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines,
         }
     }
 
     const DEFAULT_MAX_LINES: usize = 1000;
+
+    pub async fn increment_retry_counter(&self) {
+        let mut guard = self.retry_counter.lock().await;
+        *guard += 1;
+    }
+
+    pub async fn reset_retry_counter(&self) {
+        let mut guard = self.retry_counter.lock().await;
+        *guard = 0;
+    }
 
     pub async fn add_log(&self, level: Level, message: String) -> Result<()> {
         let _guard = self.log_lock.lock().await;

@@ -181,6 +181,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     pub async fn connect_with_backoff<F, P>(
         &self,
         max_retries: u32,
+        max_total_time: std::time::Duration,
         mut on_retry: F,
         mut on_progress: P,
     ) -> Result<()>
@@ -188,9 +189,13 @@ impl<C: TorClientBehavior> TorManager<C> {
         F: FnMut(u32, std::time::Duration, &Error) + Send,
         P: FnMut(u8, String) + Send,
     {
+        let start = std::time::Instant::now();
         let mut attempt = 0;
         let mut delay = INITIAL_BACKOFF;
         loop {
+            if start.elapsed() >= max_total_time {
+                return Err(Error::Timeout);
+            }
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
@@ -198,6 +203,9 @@ impl<C: TorClientBehavior> TorManager<C> {
                     on_retry(attempt, delay, &e);
                     if attempt > max_retries {
                         return Err(e);
+                    }
+                    if start.elapsed() + delay > max_total_time {
+                        return Err(Error::Timeout);
                     }
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, MAX_BACKOFF);
