@@ -237,3 +237,30 @@ async fn command_set_bridges() {
     commands::set_bridges(state, bridges.clone()).await.unwrap();
     assert_eq!(state.tor_manager.get_bridges().await, bridges);
 }
+#[tokio::test]
+async fn command_set_exit_country_mixed_case() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_exit_country(state, Some("dE".into())).await.unwrap();
+    assert_eq!(
+        state.tor_manager.get_exit_country().await.as_deref(),
+        Some("DE")
+    );
+}
+
+#[tokio::test]
+async fn command_clear_bridges() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    let bridges = vec!["obfs4 2.3.4.5:443 key".to_string()];
+    commands::set_bridges(state, bridges).await.unwrap();
+    commands::set_bridges(state, Vec::new()).await.unwrap();
+    assert!(state.tor_manager.get_bridges().await.is_empty());
+}
+
