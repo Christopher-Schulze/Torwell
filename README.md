@@ -150,6 +150,11 @@ The backend emits detailed error messages via the `tor-status-update` event. Pos
 
 See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on code style, testing, and opening pull requests.
 
+## 🔬 Test Coverage
+
+An overview of existing backend tests and the CI workflow can be found in
+[docs/ExistingTests.md](docs/ExistingTests.md).
+
 ## 🐞 Troubleshooting
 
 Common issues and log analysis tips are documented in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
