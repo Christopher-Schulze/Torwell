@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tempfile::tempdir;
-use torwell84::secure_http::SecureHttpClient;
+use torwell84::secure_http::{SecureHttpClient, DEFAULT_CONFIG_PATH};
 
 const CA_PEM: &str = include_str!("../tests_data/ca.pem");
 const NEW_CERT: &str = include_str!("../tests_data/new_cert.pem");
@@ -196,6 +196,32 @@ async fn init_with_missing_config() {
 
     let _client = SecureHttpClient::init(
         &cfg_path,
+        Some(cert_path.to_string_lossy().to_string()),
+        Some(server.url("/cert.pem")),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
+#[tokio::test]
+async fn init_using_default_constant() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let _client = SecureHttpClient::init(
+        DEFAULT_CONFIG_PATH,
         Some(cert_path.to_string_lossy().to_string()),
         Some(server.url("/cert.pem")),
         None,
