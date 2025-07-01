@@ -73,6 +73,7 @@ fn mock_state() -> AppState<MockTorClient> {
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
         log_file: PathBuf::from("test.log"),
         log_lock: Arc::new(Mutex::new(())),
+        retry_counter: Arc::new(Mutex::new(0)),
         max_log_lines: 1000,
     }
 }
