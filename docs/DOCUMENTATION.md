@@ -98,3 +98,7 @@ give users visual feedback during connection.
 
 Torwell84 adheres to WCAG 2.1 AA where possible. All interactive controls now include meaningful `aria-label` attributes, and modal dialogs shift keyboard focus to their close buttons upon opening. Text colors were updated to maintain sufficient contrast against the dark interface. These improvements help screen reader users and enable consistent keyboard navigation.
 
+## 10. Accessibility Implementation
+
+All buttons and form controls declare `aria-label` values so assistive technologies can accurately describe their purpose. When a modal becomes visible, the close button receives focus using Svelte's `tick` helper, enabling keyboard users to dismiss dialogs without hunting for focus. Text colours across the UI were lightened to improve contrast against the dark theme, meeting WCAG AA requirements.
+

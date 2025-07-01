@@ -201,7 +201,7 @@
 			</div>
 			<div class="text-center flex-1 flex flex-col justify-center space-y-1">
 				<div class="text-sm text-white font-medium h-5 flex items-center justify-center">You</div>
-				<div class="text-xs text-gray-400 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
                                         {#if isConnected}
                                                 {nodeData[0]?.ip_address || '-'}
                                         {:else}
@@ -215,7 +215,7 @@
 					-
 				    {/if}
 				</div>
-				<div class="text-xs text-gray-300 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					-
 				</div>
 			</div>
@@ -228,7 +228,7 @@
 			</div>
 			<div class="text-center flex-1 flex flex-col justify-center space-y-1">
 				<div class="text-sm text-white font-medium h-5 flex items-center justify-center">Entry Node</div>
-				<div class="text-xs text-gray-400 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					{#if isConnected && nodeData[0]}
 						{nodeData[0].ip_address}
 					{:else}
@@ -242,7 +242,7 @@
 					-
 				    {/if}
 				</div>
-				<div class="text-xs text-gray-300 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					{#if isConnected && nodeData[0]}
 						{nodeData[0].nickname}
 					{:else}
@@ -259,7 +259,7 @@
 			</div>
 			<div class="text-center flex-1 flex flex-col justify-center space-y-1">
 				<div class="text-sm text-white font-medium h-5 flex items-center justify-center">Middle Node</div>
-				<div class="text-xs text-gray-400 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					{#if isConnected && nodeData[1]}
 						{nodeData[1].ip_address}
 					{:else}
@@ -273,7 +273,7 @@
 					-
 				    {/if}
 				</div>
-				<div class="text-xs text-gray-300 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					{#if isConnected && nodeData[1]}
 						{nodeData[1].nickname}
 					{:else}
@@ -290,7 +290,7 @@
 			</div>
 			<div class="text-center flex-1 flex flex-col justify-center space-y-1">
 				<div class="text-sm text-white font-medium h-5 flex items-center justify-center">Exit Node</div>
-				<div class="text-xs text-gray-400 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					{#if isConnected && nodeData[2]}
 						{nodeData[2].ip_address}
 					{:else}
@@ -304,7 +304,7 @@
 					-
 				    {/if}
 				</div>
-				<div class="text-xs text-gray-300 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					{#if isConnected && nodeData[2]}
 						{nodeData[2].nickname}
 					{:else}
@@ -320,14 +320,14 @@
 				<div class="text-3xl {cloudflareEnabled ? '' : 'opacity-50'}">☁️</div>
 			</div>
 			<div class="text-center flex-1 flex flex-col justify-center space-y-1">
-				<div class="text-sm {cloudflareEnabled ? 'text-white' : 'text-gray-500'} font-medium h-5 flex items-center justify-center">Cloudflare</div>
-				<div class="text-xs {cloudflareEnabled ? 'text-gray-400' : 'text-gray-600'} h-4 flex items-center justify-center">
+				<div class="text-sm {cloudflareEnabled ? 'text-white' : 'text-gray-300'} font-medium h-5 flex items-center justify-center">Cloudflare</div>
+				<div class="text-xs {cloudflareEnabled ? 'text-gray-200' : 'text-gray-400'} h-4 flex items-center justify-center">
 					-
 				</div>
 				<div class="text-lg h-6 flex items-center justify-center">
 					-
 				</div>
-				<div class="text-xs text-gray-300 h-4 flex items-center justify-center">
+				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
 					-
 				</div>
 			</div>

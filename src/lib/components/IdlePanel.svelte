@@ -27,9 +27,9 @@
                                 style="width: {connectionProgress}%"
                         ></div>
                 </div>
-                <p class="text-xs text-gray-200">{Math.round(connectionProgress)}%</p>
+                <p class="text-xs text-gray-100">{Math.round(connectionProgress)}%</p>
                 {#if bootstrapMessage}
-                        <p class="text-xs text-gray-200 italic">{bootstrapMessage}</p>
+                        <p class="text-xs text-gray-100 italic">{bootstrapMessage}</p>
                 {/if}
 		
 		<!-- Animated Status Text -->
