@@ -11,6 +11,7 @@
         let selectedBridges: string[] = [];
         let torrcConfig = '';
         let workerListString = '';
+        let maxLogLines = 1000;
         // import TorrcEditorModal from './TorrcEditorModal.svelte';
 	
 	
@@ -24,6 +25,7 @@ let closeButton: HTMLButtonElement | null = null;
                 selectedBridges = [...$uiStore.settings.bridges];
                 torrcConfig = $uiStore.settings.torrcConfig;
                 workerListString = $uiStore.settings.workerList.join('\n');
+                maxLogLines = $uiStore.settings.maxLogLines;
                 tick().then(() => closeButton && closeButton.focus());
         }
 
@@ -44,6 +46,13 @@ let closeButton: HTMLButtonElement | null = null;
                         .map((l) => l.trim())
                         .filter((l) => l.length > 0);
                 uiStore.actions.saveWorkerList(list);
+        }
+
+        function saveLogLimit() {
+                const limit = parseInt(String(maxLogLines));
+                if (!isNaN(limit) && limit > 0) {
+                        uiStore.actions.setLogLimit(limit);
+                }
         }
 </script>
 
@@ -125,6 +134,18 @@ let closeButton: HTMLButtonElement | null = null;
                                                         Save
                                                 </button>
                                                 <p class="text-xs text-gray-300 mt-2">One worker URL per line</p>
+                                        </div>
+
+                                        <div class="mb-8">
+                                                <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Max Log Lines</h3>
+                                                <input type="number" min="1" class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm" bind:value={maxLogLines} />
+                                                <button
+                                                        class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                                        on:click={saveLogLimit}
+                                                        aria-label="Save log limit"
+                                                >
+                                                        Save
+                                                </button>
                                         </div>
 
 					<!-- Worker Management section has been removed as it was placeholder functionality. -->
