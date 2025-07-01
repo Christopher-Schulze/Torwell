@@ -123,6 +123,13 @@ impl SecureHttpClient {
         if let Some(url) = cert_url {
             cfg.cert_url = url;
         }
+
+        if cfg.cert_url.contains("example.com") {
+            log::warn!(
+                "certificate update URL still points to example.com; \
+update cert_url in cert_config.json"
+            );
+        }
         let client = Arc::new(Self::new(&cfg.cert_path)?);
 
         // Always try to refresh certificates on startup using the currently
