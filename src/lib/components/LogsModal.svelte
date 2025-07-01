@@ -1,6 +1,6 @@
 <script lang="ts">
         import { X, Download, Copy, Trash2, FolderOpen } from 'lucide-svelte';
-        import { createEventDispatcher, onMount } from 'svelte';
+        import { createEventDispatcher, onMount, tick } from 'svelte';
         import { invoke } from '@tauri-apps/api';
         import { open } from '@tauri-apps/api/shell';
 
@@ -19,8 +19,9 @@
         let levelFilter = 'all';
         let logs: LogEntry[] = [];
         let isLoading = false;
-        let isClearing = false;
-        let logFilePath = '';
+       let isClearing = false;
+       let logFilePath = '';
+       let closeButton: HTMLButtonElement | null = null;
 
         $: filteredByType = activeTab === 'all' ? logs : logs.filter(log => log.type === activeTab);
         $: filteredLogs = levelFilter === 'all' ? filteredByType : filteredByType.filter(log => log.level === levelFilter);
@@ -28,6 +29,7 @@
         $: if (show) {
                 loadLogs();
                 fetchLogFilePath();
+                tick().then(() => closeButton && closeButton.focus());
         }
 
         async function loadLogs() {
@@ -106,17 +108,22 @@
 <svelte:window on:keydown={handleKeydown} />
 
 {#if show}
-	<div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-		<div
-			class="bg-black/80 backdrop-blur-3xl rounded-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] overflow-hidden"
-		>
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div
+                        class="bg-black/80 backdrop-blur-3xl rounded-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] overflow-hidden"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="logs-modal-title"
+                >
 			<!-- Header -->
 			<div class="flex items-center justify-between p-6 border-b border-white/10">
-				<h2 class="text-xl font-semibold text-white">Logs</h2>
-				<button
-					class="text-gray-400 hover:text-white transition-colors"
-					on:click={() => dispatch('close')}
-				>
+                                <h2 id="logs-modal-title" class="text-xl font-semibold text-white">Logs</h2>
+                                <button
+                                        class="text-gray-200 hover:text-white transition-colors"
+                                        on:click={() => dispatch('close')}
+                                        aria-label="Close logs"
+                                        bind:this={closeButton}
+                                >
 					<X size={24} />
 				</button>
 			</div>
@@ -127,7 +134,7 @@
                                         <button
                                                 class="px-6 py-3 text-sm font-medium transition-colors {activeTab === tab.id
                                                         ? 'text-blue-400 border-b-2 border-blue-400'
-                                                        : 'text-gray-400 hover:text-white'}"
+                                                        : 'text-gray-200 hover:text-white'}"
                                                 on:click={() => (activeTab = tab.id)}
                                         >
                                                 {tab.label}
@@ -136,7 +143,7 @@
                         </div>
 
                         <div class="flex items-center gap-2 p-2 border-b border-white/10">
-                                <label class="text-sm text-gray-400">Level:</label>
+                                <label class="text-sm text-gray-200">Level:</label>
                                 <select bind:value={levelFilter} class="bg-gray-800 text-white text-sm rounded p-1">
                                         <option value="all">All</option>
                                         <option value="INFO">Info</option>
@@ -147,18 +154,18 @@
 
 			<!-- Log Content -->
 			<div class="p-6 max-h-96 overflow-y-auto">
-				{#if isLoading}
-					<div class="text-center text-gray-400 py-8">
+                                {#if isLoading}
+                                        <div class="text-center text-gray-200 py-8">
 						<div class="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-2"></div>
 						Loading logs...
 					</div>
-				{:else if filteredLogs.length === 0}
-					<div class="text-center text-gray-400 py-8">
+                                {:else if filteredLogs.length === 0}
+                                        <div class="text-center text-gray-200 py-8">
 						No logs available
 					</div>
 				{:else}
 					<div class="space-y-2">
-						<div class="text-sm text-gray-300 font-mono">
+                                                <div class="text-sm text-gray-200 font-mono">
                                                         {#each filteredLogs as log}
                                                                 <div class="{log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARN' ? 'text-yellow-400' : 'text-blue-400'}">
                                                                         [{log.timestamp}] [{log.level}] {log.message}
@@ -175,18 +182,21 @@
                                         <button
                                                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
                                                 on:click={downloadLogs}
+                                                aria-label="Download logs"
                                         >
                                                 <Download size={16} /> Download
                                         </button>
                                         <button
                                                 class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm flex items-center gap-2"
                                                 on:click={openLogFile}
+                                                aria-label="Open log file"
                                         >
                                                 <FolderOpen size={16} /> Open File
                                         </button>
                                         <button
                                                 class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
                                                 on:click={copyLogs}
+                                                aria-label="Copy logs"
                                         >
                                                 <Copy size={16} /> Copy
 					</button>
@@ -195,11 +205,12 @@
                                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-2 {isClearing ? 'opacity-50 cursor-not-allowed' : ''}"
                                         on:click={clearLogs}
                                         disabled={isClearing}
+                                        aria-label="Clear logs"
                                 >
                                         <Trash2 size={16} /> {isClearing ? 'Clearing...' : 'Clear Logs'}
                                 </button>
                         </div>
-                        <p class="text-xs text-gray-400 px-6 pb-4">Log file: {logFilePath}</p>
+                        <p class="text-xs text-gray-200 px-6 pb-4">Log file: {logFilePath}</p>
                 </div>
         </div>
 {/if}

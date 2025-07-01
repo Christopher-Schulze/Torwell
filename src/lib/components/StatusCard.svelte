@@ -95,7 +95,7 @@
         {#if pingMs !== undefined && pingMs >= 0}
           <span class="text-xs text-white font-medium">{pingMs} ms</span>
         {:else}
-          <span class="text-xs text-gray-400">- ms</span>
+          <span class="text-xs text-gray-200">- ms</span>
         {/if}
       </div>
 
@@ -107,6 +107,7 @@
         on:click={performPing}
         disabled={isPinging}
         title="Start Ping Test"
+        aria-label="Run ping test"
       >
         {#if isPinging}
           <!-- Animated ripples during ping -->

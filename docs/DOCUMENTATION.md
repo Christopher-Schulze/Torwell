@@ -94,3 +94,7 @@ give users visual feedback during connection.
 - `get_isolated_circuit` manages multiple isolation tokens per domain, allowing several parallel circuits to the same hostname.
 - The settings modal in the Svelte UI offers a simple list of bridges the user can enable or disable.
 
+## 9. Accessibility Strategy
+
+Torwell84 adheres to WCAG 2.1 AA where possible. All interactive controls now include meaningful `aria-label` attributes, and modal dialogs shift keyboard focus to their close buttons upon opening. Text colors were updated to maintain sufficient contrast against the dark interface. These improvements help screen reader users and enable consistent keyboard navigation.
+
