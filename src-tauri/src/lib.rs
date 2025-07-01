@@ -4,8 +4,8 @@ mod secure_http;
 mod state;
 mod tor_manager;
 
-use state::AppState;
 use secure_http::SecureHttpClient;
+use state::AppState;
 use std::time::Duration;
 
 pub fn run() {
@@ -41,6 +41,7 @@ pub fn run() {
             commands::set_exit_country,
             commands::set_bridges,
             commands::get_traffic_stats,
+            commands::get_metrics,
             commands::get_logs,
             commands::clear_logs,
             commands::get_log_file_path

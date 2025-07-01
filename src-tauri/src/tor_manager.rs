@@ -27,6 +27,15 @@ pub struct TrafficStats {
     pub bytes_received: u64,
 }
 
+/// Basic circuit metrics.
+#[derive(Debug, Clone)]
+pub struct CircuitMetrics {
+    /// Number of active circuits.
+    pub count: usize,
+    /// Age of the oldest circuit in seconds.
+    pub oldest_age: u64,
+}
+
 #[async_trait]
 pub trait TorClientBehavior: Send + Sync + Sized + 'static {
     async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String>;
@@ -448,6 +457,19 @@ impl TorManager {
         Ok(TrafficStats {
             bytes_sent: stats.bytes_written(),
             bytes_received: stats.bytes_read(),
+        })
+    }
+
+    /// Return number of active circuits and age of the oldest one in seconds.
+    pub async fn circuit_metrics(&self) -> Result<CircuitMetrics> {
+        let client_guard = self.client.lock().await;
+        let _client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+
+        // TODO: arti currently exposes no stable API to list open circuits.
+        // For now we return zero values.
+        Ok(CircuitMetrics {
+            count: 0,
+            oldest_age: 0,
         })
     }
 }

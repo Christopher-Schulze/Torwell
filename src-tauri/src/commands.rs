@@ -1,8 +1,9 @@
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::state::{AppState, LogEntry};
 use log::Level;
 use serde::Serialize;
 use std::time::Duration;
+use sysinfo::{PidExt, System, SystemExt};
 use tauri::{Manager, State};
 
 /// Total bytes sent and received through Tor.
@@ -20,6 +21,14 @@ pub struct RelayInfo {
     pub nickname: String,
     pub ip_address: String,
     pub country: String,
+}
+
+/// Memory and circuit metrics.
+#[derive(Serialize, Clone)]
+pub struct Metrics {
+    pub memory_bytes: u64,
+    pub circuit_count: usize,
+    pub oldest_circuit_age: u64,
 }
 
 #[tauri::command]
@@ -169,6 +178,47 @@ pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStat
     Ok(TrafficStats {
         bytes_sent: stats.bytes_sent,
         bytes_received: stats.bytes_received,
+    })
+}
+
+#[tauri::command]
+pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
+    let circ = state.tor_manager.circuit_metrics().await?;
+    let mut sys = sysinfo::System::new();
+    let pid = sysinfo::get_current_pid().map_err(|e| Error::Io(e.to_string()))?;
+    sys.refresh_process(pid);
+    let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
+    state.update_metrics(mem, circ.count).await;
+
+    if mem / 1024 / 1024 > state.max_memory_mb {
+        let _ = state
+            .add_log(
+                Level::Warn,
+                format!(
+                    "memory usage {} MB exceeds limit {}",
+                    mem / 1024 / 1024,
+                    state.max_memory_mb
+                ),
+            )
+            .await;
+    }
+
+    if circ.count > state.max_circuits {
+        let _ = state
+            .add_log(
+                Level::Warn,
+                format!(
+                    "circuit count {} exceeds limit {}",
+                    circ.count, state.max_circuits
+                ),
+            )
+            .await;
+    }
+
+    Ok(Metrics {
+        memory_bytes: mem,
+        circuit_count: circ.count,
+        oldest_circuit_age: circ.oldest_age,
     })
 }
 
