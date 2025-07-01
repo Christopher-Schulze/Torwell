@@ -166,12 +166,22 @@ update cert_url in cert_config.json"
         Ok(client)
     }
 
-    pub async fn get_text(&self, url: &str) -> reqwest::Result<String> {
-        let client = self.client.lock().await;
+    async fn get_with_hsts_check(&self, url: &str) -> reqwest::Result<reqwest::Response> {
+        // clone the client to avoid holding the lock while awaiting network I/O
+        let client = {
+            let guard = self.client.lock().await;
+            guard.clone()
+        };
+
         let resp = client.get(url).send().await?;
         if resp.headers().get("strict-transport-security").is_none() {
             log::warn!("HSTS header missing for {}", url);
         }
+        Ok(resp)
+    }
+
+    pub async fn get_text(&self, url: &str) -> reqwest::Result<String> {
+        let resp = self.get_with_hsts_check(url).await?;
         resp.text().await
     }
 
@@ -183,15 +193,8 @@ update cert_url in cert_config.json"
     }
 
     pub async fn update_certificates(&self, url: &str) -> anyhow::Result<()> {
-        let resp = {
-            let client = self.client.lock().await;
-            client.get(url).send().await
-        };
-        match resp {
+        match self.get_with_hsts_check(url).await {
             Ok(resp) => {
-                if resp.headers().get("strict-transport-security").is_none() {
-                    log::warn!("HSTS header missing for {}", url);
-                }
                 let pem = resp.bytes().await?;
                 if let Some(parent) = Path::new(&self.cert_path).parent() {
                     std::fs::create_dir_all(parent)?;
