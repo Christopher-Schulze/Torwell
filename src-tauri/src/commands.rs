@@ -1,12 +1,22 @@
 use crate::error::{Error, Result};
 use crate::state::{AppState, LogEntry};
+use governor::{
+    clock::DefaultClock,
+    state::{InMemoryState, NotKeyed},
+    Quota, RateLimiter,
+};
 use log::Level;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::Serialize;
+use std::collections::HashMap;
+use std::num::NonZeroU32;
 use std::time::Duration;
+use std::time::Instant;
 use sysinfo::{PidExt, System, SystemExt};
 use tauri::{Manager, State};
 use tokio::process::Command;
+use tokio::sync::Mutex;
 
 /// Total bytes sent and received through Tor.
 #[derive(Serialize, Clone)]
@@ -33,8 +43,26 @@ pub struct Metrics {
     pub oldest_circuit_age: u64,
 }
 
+const INVOCATION_WINDOW: Duration = Duration::from_secs(60);
+static INVOCATIONS: Lazy<Mutex<HashMap<&'static str, Vec<Instant>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+const LOG_LIMIT: u32 = 20;
+static LOG_LIMITER: Lazy<RateLimiter<NotKeyed, InMemoryState, DefaultClock>> =
+    Lazy::new(|| RateLimiter::direct(Quota::per_minute(NonZeroU32::new(LOG_LIMIT).unwrap())));
+
+async fn track_call(name: &'static str) -> usize {
+    let mut map = INVOCATIONS.lock().await;
+    let now = Instant::now();
+    let entry = map.entry(name).or_insert_with(Vec::new);
+    entry.retain(|t| now.duration_since(*t) <= INVOCATION_WINDOW);
+    entry.push(now);
+    entry.len()
+}
+
 #[tauri::command]
 pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("connect").await;
     let tor_manager = state.tor_manager.clone();
     let state_clone = state.inner().clone();
 
@@ -123,6 +151,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
 
 #[tauri::command]
 pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("disconnect").await;
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
         serde_json::json!({ "status": "DISCONNECTING", "bootstrapMessage": "", "retryCount": 0, "retryDelay": 0 }),
@@ -144,6 +173,7 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
 
 #[tauri::command]
 pub async fn get_status(state: State<'_, AppState>) -> Result<String> {
+    track_call("get_status").await;
     if state.tor_manager.is_connected().await {
         Ok("CONNECTED".to_string())
     } else {
@@ -153,6 +183,7 @@ pub async fn get_status(state: State<'_, AppState>) -> Result<String> {
 
 #[tauri::command]
 pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayInfo>> {
+    track_call("get_active_circuit").await;
     state.tor_manager.get_active_circuit().await
 }
 
@@ -161,21 +192,25 @@ pub async fn get_isolated_circuit(
     state: State<'_, AppState>,
     domain: String,
 ) -> Result<Vec<RelayInfo>> {
+    track_call("get_isolated_circuit").await;
     state.tor_manager.get_isolated_circuit(domain).await
 }
 
 #[tauri::command]
 pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String>) -> Result<()> {
+    track_call("set_exit_country").await;
     state.tor_manager.set_exit_country(country).await
 }
 
 #[tauri::command]
 pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Result<()> {
+    track_call("set_bridges").await;
     state.tor_manager.set_bridges(bridges).await
 }
 
 #[tauri::command]
 pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStats> {
+    track_call("get_traffic_stats").await;
     let stats = state.tor_manager.traffic_stats().await?;
     Ok(TrafficStats {
         bytes_sent: stats.bytes_sent,
@@ -185,6 +220,7 @@ pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStat
 
 #[tauri::command]
 pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
+    track_call("get_metrics").await;
     let circ = state.tor_manager.circuit_metrics().await?;
     let mut sys = sysinfo::System::new();
     let pid = sysinfo::get_current_pid().map_err(|e| Error::Io(e.to_string()))?;
@@ -226,6 +262,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
 
 #[tauri::command]
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("new_identity").await;
     state.tor_manager.new_identity().await?;
     // Emit event to update frontend
     app_handle.emit_all(
@@ -236,21 +273,28 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
 }
 #[tauri::command]
 pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<LogEntry>> {
+    track_call("get_logs").await;
+    if LOG_LIMITER.check().is_err() {
+        return Err(Error::RateLimited("get_logs".into()));
+    }
     state.read_logs().await
 }
 
 #[tauri::command]
 pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
+    track_call("clear_logs").await;
     state.clear_log_file().await
 }
 
 #[tauri::command]
 pub async fn get_log_file_path(state: State<'_, AppState>) -> Result<String> {
+    track_call("get_log_file_path").await;
     Ok(state.log_file_path())
 }
 
 #[tauri::command]
 pub async fn ping_host(host: Option<String>, count: Option<u8>) -> Result<u64> {
+    track_call("ping_host").await;
     let host = host.unwrap_or_else(|| "google.com".to_string());
     let count = count.unwrap_or(5).to_string();
     let mut cmd = if cfg!(target_os = "windows") {

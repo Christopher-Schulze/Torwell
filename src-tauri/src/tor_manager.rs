@@ -5,9 +5,15 @@ use arti_client::config::{
 };
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
 use async_trait::async_trait;
+use governor::{
+    clock::DefaultClock,
+    state::{InMemoryState, NotKeyed},
+    Quota, RateLimiter,
+};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
+use std::num::NonZeroU32;
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -31,6 +37,7 @@ use tor_rtcompat::PreferredRuntime;
 
 const INITIAL_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
 const MAX_BACKOFF: std::time::Duration = std::time::Duration::from_secs(30);
+const CONNECT_RATE_LIMIT: u32 = 5;
 
 /// Simple traffic statistics returned from [`TorManager::traffic_stats`].
 #[derive(Debug, Clone)]
@@ -144,6 +151,7 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     exit_country: Arc<Mutex<Option<CountryCode>>>,
     bridges: Arc<Mutex<Vec<String>>>,
     country_cache: Arc<Mutex<HashMap<String, String>>>,
+    connect_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
 }
 
 impl<C> Clone for TorManager<C> {
@@ -154,6 +162,7 @@ impl<C> Clone for TorManager<C> {
             exit_country: Arc::clone(&self.exit_country),
             bridges: Arc::clone(&self.bridges),
             country_cache: Arc::clone(&self.country_cache),
+            connect_limiter: Arc::clone(&self.connect_limiter),
         }
     }
 }
@@ -166,6 +175,9 @@ impl<C: TorClientBehavior> TorManager<C> {
             exit_country: Arc::new(Mutex::new(None)),
             bridges: Arc::new(Mutex::new(Vec::new())),
             country_cache: Arc::new(Mutex::new(HashMap::new())),
+            connect_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
+                NonZeroU32::new(CONNECT_RATE_LIMIT).unwrap(),
+            ))),
         };
 
         let cleanup_clone = manager.clone();
@@ -245,6 +257,9 @@ impl<C: TorClientBehavior> TorManager<C> {
         F: FnMut(u32, std::time::Duration, &Error) + Send,
         P: FnMut(u8, String) + Send,
     {
+        if self.connect_limiter.check().is_err() {
+            return Err(Error::RateLimited("connect".into()));
+        }
         let start = std::time::Instant::now();
         let mut attempt = 0;
         let mut delay = INITIAL_BACKOFF;
