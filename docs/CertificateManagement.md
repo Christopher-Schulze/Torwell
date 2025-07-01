@@ -62,3 +62,10 @@ let client = SecureHttpClient::init(
 4. Periodic checks repeat the same process at the configured interval. The
    `schedule_updates` method spawns a background task that calls
    `update_certificates` on a timer.
+
+## Konfiguration
+
+Der Standardwert für `cert_url` verweist auf `https://example.com/certs/server.pem` und dient lediglich als Platzhalter.
+Für produktive Einsätze muss dieser Wert auf den eigenen Update-Server zeigen.
+Dazu öffnen Sie `src-tauri/certs/cert_config.json` und ersetzen die URL durch den gewünschten Endpunkt.
+Alternativ können Sie beim Aufruf von `SecureHttpClient::init` einen abweichenden Wert übergeben, ohne die Datei zu verändern.
