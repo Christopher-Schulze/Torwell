@@ -75,6 +75,10 @@ fn mock_state() -> AppState<MockTorClient> {
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
         max_log_lines: 1000,
+        memory_usage: Arc::new(Mutex::new(0)),
+        circuit_count: Arc::new(Mutex::new(0)),
+        max_memory_mb: 1024,
+        max_circuits: 20,
     }
 }
 

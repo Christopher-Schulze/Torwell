@@ -32,6 +32,14 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub retry_counter: Arc<Mutex<u32>>,
     /// Maximum number of lines to retain in the log file
     pub max_log_lines: usize,
+    /// Current memory usage in bytes
+    pub memory_usage: Arc<Mutex<u64>>,
+    /// Current number of circuits
+    pub circuit_count: Arc<Mutex<usize>>,
+    /// Maximum memory usage before warning (in MB)
+    pub max_memory_mb: u64,
+    /// Maximum number of circuits before warning
+    pub max_circuits: usize,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -57,6 +65,16 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             log_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines,
+            memory_usage: Arc::new(Mutex::new(0)),
+            circuit_count: Arc::new(Mutex::new(0)),
+            max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(1024),
+            max_circuits: std::env::var("TORWELL_MAX_CIRCUITS")
+                .ok()
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(20),
         }
     }
 }
@@ -82,6 +100,16 @@ impl<C: TorClientBehavior> AppState<C> {
             log_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines,
+            memory_usage: Arc::new(Mutex::new(0)),
+            circuit_count: Arc::new(Mutex::new(0)),
+            max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(1024),
+            max_circuits: std::env::var("TORWELL_MAX_CIRCUITS")
+                .ok()
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(20),
         }
     }
 
@@ -148,5 +176,18 @@ impl<C: TorClientBehavior> AppState<C> {
     /// Return the path to the log file as a string
     pub fn log_file_path(&self) -> String {
         self.log_file.to_string_lossy().into()
+    }
+
+    /// Update stored metrics
+    pub async fn update_metrics(&self, memory: u64, circuits: usize) {
+        *self.memory_usage.lock().await = memory;
+        *self.circuit_count.lock().await = circuits;
+    }
+
+    /// Retrieve current metrics
+    pub async fn metrics(&self) -> (u64, usize) {
+        let mem = *self.memory_usage.lock().await;
+        let circ = *self.circuit_count.lock().await;
+        (mem, circ)
     }
 }
