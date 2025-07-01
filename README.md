@@ -153,6 +153,7 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on code style, t
 ## 🐞 Troubleshooting
 
 Common issues and log analysis tips are documented in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+The connection code already implements backoff with a maximum total time and logs each retry via `AppState.retry_counter`.
 
 ## 📜 License
 
