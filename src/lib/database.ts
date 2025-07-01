@@ -1,5 +1,5 @@
 // lib/database.ts
-import Dexie, { type Table } from 'dexie';
+import Dexie, { type Table } from "dexie";
 
 export interface Settings {
   id?: number;
@@ -7,15 +7,17 @@ export interface Settings {
   torrcConfig: string;
   exitCountry?: string | null;
   bridges?: string[];
+  maxLogLines?: number;
 }
 
 export class AppDatabase extends Dexie {
   settings!: Table<Settings>;
 
   constructor() {
-    super('Torwell84DatabaseV2');
+    super("Torwell84DatabaseV2");
     this.version(1).stores({
-      settings: '++id, workerList, torrcConfig, exitCountry, bridges', // Primary key and indexed props
+      settings:
+        "++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines", // Primary key and indexed props
     });
   }
 }

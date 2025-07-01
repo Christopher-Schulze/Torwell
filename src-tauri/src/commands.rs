@@ -250,6 +250,11 @@ pub async fn get_log_file_path(state: State<'_, AppState>) -> Result<String> {
 }
 
 #[tauri::command]
+pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<()> {
+    state.set_max_log_lines(limit).await
+}
+
+#[tauri::command]
 pub async fn ping_host(host: Option<String>, count: Option<u8>) -> Result<u64> {
     let host = host.unwrap_or_else(|| "google.com".to_string());
     let count = count.unwrap_or(5).to_string();

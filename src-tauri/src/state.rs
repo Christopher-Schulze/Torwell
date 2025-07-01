@@ -6,12 +6,37 @@ use chrono::Utc;
 use log::Level;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 use tor_rtcompat::PreferredRuntime;
+
+/// Default location of the application configuration file
+pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/app_config.json";
+
+/// Default number of log lines retained if no configuration is provided
+pub const DEFAULT_MAX_LOG_LINES: usize = 1000;
+
+#[derive(Deserialize, Default)]
+struct AppConfig {
+    #[serde(default = "default_max_log_lines")]
+    max_log_lines: usize,
+}
+
+fn default_max_log_lines() -> usize {
+    DEFAULT_MAX_LOG_LINES
+}
+
+impl AppConfig {
+    fn load<P: AsRef<Path>>(path: P) -> Self {
+        std::fs::read_to_string(path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default()
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct LogEntry {
@@ -31,7 +56,7 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     /// Counter for connection retries
     pub retry_counter: Arc<Mutex<u32>>,
     /// Maximum number of lines to retain in the log file
-    pub max_log_lines: usize,
+    pub max_log_lines: Arc<Mutex<usize>>,
     /// Current memory usage in bytes
     pub memory_usage: Arc<Mutex<u64>>,
     /// Current number of circuits
@@ -51,10 +76,13 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             let _ = std::fs::create_dir_all(parent);
         }
 
-        let max_log_lines = std::env::var("TORWELL_MAX_LOG_LINES")
-            .ok()
-            .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(Self::DEFAULT_MAX_LINES);
+        let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
+        let mut max_log_lines = cfg.max_log_lines;
+        if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_log_lines = n;
+            }
+        }
 
         Self {
             tor_manager: Arc::new(TorManager::new()),
@@ -64,7 +92,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             log_file,
             log_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
-            max_log_lines,
+            max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
@@ -88,10 +116,13 @@ impl<C: TorClientBehavior> AppState<C> {
             let _ = std::fs::create_dir_all(parent);
         }
 
-        let max_log_lines = std::env::var("TORWELL_MAX_LOG_LINES")
-            .ok()
-            .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(Self::DEFAULT_MAX_LINES);
+        let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
+        let mut max_log_lines = cfg.max_log_lines;
+        if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_log_lines = n;
+            }
+        }
 
         AppState {
             tor_manager: Arc::new(TorManager::new()),
@@ -99,7 +130,7 @@ impl<C: TorClientBehavior> AppState<C> {
             log_file,
             log_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
-            max_log_lines,
+            max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
@@ -113,7 +144,7 @@ impl<C: TorClientBehavior> AppState<C> {
         }
     }
 
-    const DEFAULT_MAX_LINES: usize = 1000;
+    const DEFAULT_MAX_LINES: usize = DEFAULT_MAX_LOG_LINES;
 
     pub async fn increment_retry_counter(&self) {
         let mut guard = self.retry_counter.lock().await;
@@ -148,8 +179,9 @@ impl<C: TorClientBehavior> AppState<C> {
     async fn trim_logs(&self) -> Result<()> {
         let contents = fs::read_to_string(&self.log_file).await.unwrap_or_default();
         let mut lines: Vec<&str> = contents.lines().collect();
-        if lines.len() > self.max_log_lines {
-            lines = lines[lines.len() - self.max_log_lines..].to_vec();
+        let limit = *self.max_log_lines.lock().await;
+        if lines.len() > limit {
+            lines = lines[lines.len() - limit..].to_vec();
             fs::write(&self.log_file, lines.join("\n")).await?;
         }
         Ok(())
@@ -171,6 +203,12 @@ impl<C: TorClientBehavior> AppState<C> {
         let _guard = self.log_lock.lock().await;
         fs::write(&self.log_file, b"").await?;
         Ok(())
+    }
+
+    /// Update the maximum number of log lines and trim existing logs
+    pub async fn set_max_log_lines(&self, limit: usize) -> Result<()> {
+        *self.max_log_lines.lock().await = limit;
+        self.trim_logs().await
     }
 
     /// Return the path to the log file as a string
