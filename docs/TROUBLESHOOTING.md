@@ -18,3 +18,8 @@ This guide lists common problems encountered during development and how to analy
 - If `Error::Timeout` occurs, the Tor bootstrap exceeded the allowed time. Check your network or increase the limit.
 - The function `connect_with_backoff` enforces a maximum overall connection time and logs each retry.
 
+## Rate Limits
+
+- Connection attempts are limited to **5 per minute**. Exceeding this limit returns a `RateLimited` error.
+- Retrieving logs via `get_logs` is limited to **20 requests per minute**.
+

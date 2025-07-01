@@ -35,6 +35,9 @@ pub enum Error {
 
     #[error("Identity change failed: {0}")]
     Identity(String),
+
+    #[error("Rate limit exceeded for {0}")]
+    RateLimited(String),
 }
 
 impl From<arti_client::Error> for Error {
