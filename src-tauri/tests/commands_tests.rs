@@ -192,3 +192,43 @@ async fn command_log_retrieval() {
     let path = commands::get_log_file_path(state).await.unwrap();
     assert!(path.ends_with("test.log"));
 }
+
+#[tokio::test]
+async fn command_set_exit_country() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_exit_country(state, Some("us".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        state.tor_manager.get_exit_country().await.as_deref(),
+        Some("US")
+    );
+
+    commands::set_exit_country(state, None).await.unwrap();
+    assert!(state.tor_manager.get_exit_country().await.is_none());
+}
+
+#[tokio::test]
+async fn command_set_exit_country_invalid() {
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::set_exit_country(state, Some("zzz".into())).await;
+    assert!(matches!(res, Err(Error::Tor(_))));
+}
+
+#[tokio::test]
+async fn command_set_bridges() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    let bridges = vec!["obfs4 1.2.3.4:80 key".to_string()];
+    commands::set_bridges(state, bridges.clone()).await.unwrap();
+    assert_eq!(state.tor_manager.get_bridges().await, bridges);
+}
