@@ -1,10 +1,12 @@
 use crate::error::{Error, Result};
 use crate::state::{AppState, LogEntry};
 use log::Level;
+use regex::Regex;
 use serde::Serialize;
 use std::time::Duration;
 use sysinfo::{PidExt, System, SystemExt};
 use tauri::{Manager, State};
+use tokio::process::Command;
 
 /// Total bytes sent and received through Tor.
 #[derive(Serialize, Clone)]
@@ -245,4 +247,47 @@ pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
 #[tauri::command]
 pub async fn get_log_file_path(state: State<'_, AppState>) -> Result<String> {
     Ok(state.log_file_path())
+}
+
+#[tauri::command]
+pub async fn ping_host(host: Option<String>, count: Option<u8>) -> Result<u64> {
+    let host = host.unwrap_or_else(|| "google.com".to_string());
+    let count = count.unwrap_or(5).to_string();
+    let mut cmd = if cfg!(target_os = "windows") {
+        let mut c = Command::new("ping");
+        c.arg("-n").arg(&count).arg(&host);
+        c
+    } else {
+        let mut c = Command::new("ping");
+        c.arg("-c").arg(&count).arg(&host);
+        c
+    };
+
+    let output = cmd.output().await?;
+    if !output.status.success() {
+        return Err(Error::Io(format!(
+            "ping failed with status {}",
+            output.status
+        )));
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    if cfg!(target_os = "windows") {
+        let re = Regex::new(r"Average = (\d+)ms").unwrap();
+        if let Some(caps) = re.captures(&stdout) {
+            if let Some(avg) = caps.get(1) {
+                return Ok(avg.as_str().parse().unwrap_or(0));
+            }
+        }
+    } else {
+        let re = Regex::new(r"= ([^/]+)/([^/]+)/([^/]+)/").unwrap();
+        if let Some(caps) = re.captures(&stdout) {
+            if let Some(avg) = caps.get(2) {
+                let avg_f: f64 = avg.as_str().parse().unwrap_or(0.0);
+                return Ok(avg_f.round() as u64);
+            }
+        }
+    }
+
+    Err(Error::Io("failed to parse ping output".into()))
 }
