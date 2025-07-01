@@ -73,10 +73,11 @@
 	<div class="grid grid-cols-4 gap-3">
 		<!-- Connect/Disconnect Button -->
 		{#if isStopped}
-			<button
-				class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-500/30 transform hover:scale-105"
-				on:click={handleConnect}
-			>
+                        <button
+                                class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-green-600/20 text-green-200 hover:bg-green-600/30 border border-green-500/30 transform hover:scale-105"
+                                on:click={handleConnect}
+                                aria-label="Connect to Tor"
+                        >
 				<Play size={16} /> Connect
 			</button>
 		{:else if isConnecting}
@@ -92,10 +93,11 @@
                                 {/if}
 			</button>
 		{:else if isConnected}
-			<button
-				class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30 transform hover:scale-105"
-				on:click={handleDisconnect}
-			>
+                        <button
+                                class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-red-600/20 text-red-200 hover:bg-red-600/30 border border-red-500/30 transform hover:scale-105"
+                                on:click={handleDisconnect}
+                                aria-label="Disconnect from Tor"
+                        >
 				<Square size={16} /> Disconnect
 			</button>
 		{:else if isDisconnecting}
@@ -109,11 +111,12 @@
 		{/if}
 		
 		<!-- New Circuit Button -->
-		<button
-			class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm {isConnected && !isCreatingCircuit ? 'bg-black/50 text-gray-300 hover:bg-black/60 cursor-pointer transform hover:scale-105' : 'bg-black/30 text-gray-500 cursor-not-allowed opacity-50'}"
-			on:click={handleNewCircuit}
-			disabled={!isConnected || isCreatingCircuit}
-		>
+                <button
+                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm {isConnected && !isCreatingCircuit ? 'bg-black/50 text-white hover:bg-black/60 cursor-pointer transform hover:scale-105' : 'bg-black/30 text-gray-500 cursor-not-allowed opacity-50'}"
+                        on:click={handleNewCircuit}
+                        disabled={!isConnected || isCreatingCircuit}
+                        aria-label="Request new circuit"
+                >
 			{#if isCreatingCircuit}
 				<div class="animate-spin"><RefreshCw size={16} /></div>
 				Creating...
@@ -123,18 +126,20 @@
 		</button>
 		
 		<!-- Logs Button -->
-		<button
-			class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-gray-300 hover:bg-black/60"
-			on:click={() => dispatch('openLogs')}
-		>
+                <button
+                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
+                        on:click={() => dispatch('openLogs')}
+                        aria-label="Open logs"
+                >
 			<Activity size={16} /> Logs
 		</button>
 		
 		<!-- Settings Button -->
-		<button
-			class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-gray-300 hover:bg-black/60"
-			on:click={() => dispatch('openSettings')}
-		>
+                <button
+                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
+                        on:click={() => dispatch('openSettings')}
+                        aria-label="Open settings"
+                >
 			<Settings size={16} /> Settings
 		</button>
 	</div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-        import { createEventDispatcher } from 'svelte';
+        import { createEventDispatcher, tick } from 'svelte';
         import { X, Edit3 } from 'lucide-svelte';
         import { uiStore } from '$lib/stores/uiStore';
 
@@ -14,15 +14,17 @@
         // import TorrcEditorModal from './TorrcEditorModal.svelte';
 	
 	
-	export let show: boolean;
-	
-        const dispatch = createEventDispatcher();
-        let showTorrcEditor = false; // This will be unused for now
+export let show: boolean;
+
+const dispatch = createEventDispatcher();
+let showTorrcEditor = false; // This will be unused for now
+let closeButton: HTMLButtonElement | null = null;
 
         $: if (show) {
                 selectedBridges = [...$uiStore.settings.bridges];
                 torrcConfig = $uiStore.settings.torrcConfig;
                 workerListString = $uiStore.settings.workerList.join('\n');
+                tick().then(() => closeButton && closeButton.focus());
         }
 
         function handleKeyDown(event: KeyboardEvent) {
@@ -48,24 +50,27 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 {#if show}
-		<div
-			class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-			on:click|stopPropagation={() => (show = false)}
-			role="dialog"
-			aria-modal="true"
-			on:keydown={handleKeyDown}
-		>
+                <div
+                        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                        on:click|stopPropagation={() => (show = false)}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="settings-modal-title"
+                        on:keydown={handleKeyDown}
+                >
 			<section
 				class="bg-black/40 backdrop-blur-3xl rounded-2xl border border-white/10 w-[90%] max-w-2xl min-h-[500px] p-6 flex flex-col"
 				on:click|stopPropagation
 				role="document"
 			>
-				<div class="flex justify-between items-center mb-4 shrink-0">
-					<h2 class="text-2xl font-semibold">Settings</h2>
-					<button
-						class="text-gray-400 hover:text-white transition-colors"
-						on:click={() => (show = false)}
-					>
+                                <div class="flex justify-between items-center mb-4 shrink-0">
+                                        <h2 id="settings-modal-title" class="text-2xl font-semibold">Settings</h2>
+                                        <button
+                                                class="text-gray-200 hover:text-white transition-colors"
+                                                on:click={() => (show = false)}
+                                                aria-label="Close settings"
+                                                bind:this={closeButton}
+                                        >
 						<X size={24} />
 					</button>
 				</div>
@@ -81,6 +86,7 @@
                                                 <button
                                                         class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
                                                         on:click={saveTorrc}
+                                                        aria-label="Save torrc configuration"
                                                 >
                                                         Save
                                                 </button>
@@ -88,7 +94,7 @@
 
                                         <div class="mb-8">
                                                 <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Bridges</h3>
-                                                <p class="text-sm text-gray-400 mb-4">Select one or more bridges to use for connecting.</p>
+                                                <p class="text-sm text-gray-200 mb-4">Select one or more bridges to use for connecting.</p>
                                                 {#each availableBridges as bridge}
                                                         <label class="flex items-center gap-2 mb-2">
                                                                 <input type="checkbox" value={bridge} bind:group={selectedBridges} />
@@ -98,6 +104,7 @@
                                                 <button
                                                         class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
                                                         on:click={() => uiStore.actions.setBridges(selectedBridges)}
+                                                        aria-label="Apply bridge selection"
                                                 >
                                                         Apply
                                                 </button>
@@ -113,10 +120,11 @@
                                                 <button
                                                         class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
                                                         on:click={saveWorkers}
+                                                        aria-label="Save worker list"
                                                 >
                                                         Save
                                                 </button>
-                                                <p class="text-xs text-gray-500 mt-2">One worker URL per line</p>
+                                                <p class="text-xs text-gray-300 mt-2">One worker URL per line</p>
                                         </div>
 
 					<!-- Worker Management section has been removed as it was placeholder functionality. -->

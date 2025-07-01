@@ -80,11 +80,12 @@
 		<!-- Entry Node Dropdown -->
 		<div class="flex items-center h-8">
 			<div class="relative w-full h-8">
-				<select 
-					class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
-					value={entryCountry}
-					on:change={(e) => handleCountryChange('entry', e)}
-				>
+                                <select
+                                        class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
+                                        value={entryCountry}
+                                        aria-label="Entry node country"
+                                        on:change={(e) => handleCountryChange('entry', e)}
+                                >
 					{#each countries as country}
 						<option value={country} class="bg-gray-800 text-xs">
 							{getCountryFlag(country)} {country}
@@ -102,11 +103,12 @@
 		<!-- Middle Node Dropdown -->
 		<div class="flex items-center h-8">
 			<div class="relative w-full h-8">
-				<select 
-					class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
-					value={middleCountry}
-					on:change={(e) => handleCountryChange('middle', e)}
-				>
+                                <select
+                                        class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
+                                        value={middleCountry}
+                                        aria-label="Middle node country"
+                                        on:change={(e) => handleCountryChange('middle', e)}
+                                >
 					{#each countries as country}
 						<option value={country} class="bg-gray-800 text-xs">
 							{getCountryFlag(country)} {country}
@@ -124,11 +126,12 @@
 		<!-- Exit Node Dropdown -->
 		<div class="flex items-center h-8">
 			<div class="relative w-full h-8">
-				<select 
-					class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
-					value={exitCountry}
-					on:change={(e) => handleCountryChange('exit', e)}
-				>
+                                <select
+                                        class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
+                                        value={exitCountry}
+                                        aria-label="Exit node country"
+                                        on:change={(e) => handleCountryChange('exit', e)}
+                                >
 					{#each countries as country}
 						<option value={country} class="bg-gray-800 text-xs">
 							{getCountryFlag(country)} {country}
@@ -149,11 +152,12 @@
 				<div class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 hover:bg-black/60 transition-all flex items-center">
 					<label class="flex items-center justify-between cursor-pointer w-full">
 						<span class="text-xs text-white font-medium">Active</span>
-						<input 
-							type="checkbox" 
-							bind:checked={isActive}
-							class="sr-only"
-						/>
+                                                <input
+                                                        type="checkbox"
+                                                        bind:checked={isActive}
+                                                        class="sr-only"
+                                                        aria-label="Toggle chain active"
+                                                />
 						<div class="relative w-8 h-4 bg-gray-600 rounded-full transition-colors {isActive ? 'bg-green-500' : 'bg-gray-600'}">
 							<div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform {isActive ? 'translate-x-4' : 'translate-x-0'}"></div>
 						</div>
@@ -165,11 +169,13 @@
 
         <!-- Exit Country Selection -->
         <div class="flex items-center mb-4">
-                <label class="text-xs text-white mr-2">Exit Country:</label>
+                <label class="text-xs text-white mr-2" for="exit-country">Exit Country:</label>
                 <div class="relative w-48 h-8">
                         <select
+                                id="exit-country"
                                 class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
                                 bind:value={selectedExitCountry}
+                                aria-label="Preferred exit country"
                                 on:change={changeExitCountry}
                         >
                                 <option value="">Auto</option>
