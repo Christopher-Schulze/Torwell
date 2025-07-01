@@ -45,6 +45,7 @@ pub fn run() {
             commands::get_logs,
             commands::clear_logs,
             commands::get_log_file_path,
+            commands::set_log_limit,
             commands::ping_host
         ])
         .run(tauri::generate_context!())

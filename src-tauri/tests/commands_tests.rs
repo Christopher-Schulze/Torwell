@@ -74,7 +74,7 @@ fn mock_state() -> AppState<MockTorClient> {
         log_file: PathBuf::from("test.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
-        max_log_lines: 1000,
+        max_log_lines: Arc::new(Mutex::new(1000)),
         memory_usage: Arc::new(Mutex::new(0)),
         circuit_count: Arc::new(Mutex::new(0)),
         max_memory_mb: 1024,
@@ -199,6 +199,25 @@ async fn command_log_retrieval() {
 }
 
 #[tokio::test]
+async fn command_set_log_limit_trims_logs() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    let _ = tokio::fs::remove_file(&state.log_file).await;
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_log_limit(state, 2).await.unwrap();
+    state.add_log(Level::Info, "one".into()).await.unwrap();
+    state.add_log(Level::Info, "two".into()).await.unwrap();
+    state.add_log(Level::Info, "three".into()).await.unwrap();
+
+    let logs = commands::get_logs(state).await.unwrap();
+    assert_eq!(logs.len(), 2);
+    assert_eq!(logs[0].message, "two");
+    assert_eq!(logs[1].message, "three");
+}
+
+#[tokio::test]
 async fn command_set_exit_country() {
     let mut app = tauri::test::mock_app();
     let state = mock_state();
@@ -244,7 +263,9 @@ async fn command_set_exit_country_mixed_case() {
     app.manage(state);
     let state = app.state::<AppState<MockTorClient>>();
 
-    commands::set_exit_country(state, Some("dE".into())).await.unwrap();
+    commands::set_exit_country(state, Some("dE".into()))
+        .await
+        .unwrap();
     assert_eq!(
         state.tor_manager.get_exit_country().await.as_deref(),
         Some("DE")
@@ -263,4 +284,3 @@ async fn command_clear_bridges() {
     commands::set_bridges(state, Vec::new()).await.unwrap();
     assert!(state.tor_manager.get_bridges().await.is_empty());
 }
-
