@@ -258,6 +258,20 @@ impl<C: TorClientBehavior> TorManager<C> {
         Ok(())
     }
 
+    /// Get the currently configured exit country as an ISO 3166-1 alpha-2 code.
+    pub async fn get_exit_country(&self) -> Option<String> {
+        self.exit_country
+            .lock()
+            .await
+            .clone()
+            .map(|cc| cc.to_string())
+    }
+
+    /// Retrieve the list of configured bridges.
+    pub async fn get_bridges(&self) -> Vec<String> {
+        self.bridges.lock().await.clone()
+    }
+
     pub async fn is_connected(&self) -> bool {
         self.client.lock().await.is_some()
     }
@@ -427,5 +441,65 @@ impl TorManager {
             bytes_sent: stats.bytes_written(),
             bytes_received: stats.bytes_read(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+
+    #[derive(Clone, Default)]
+    struct DummyClient;
+
+    #[async_trait]
+    impl TorClientBehavior for DummyClient {
+        async fn create_bootstrapped(_c: TorClientConfig) -> std::result::Result<Self, String> {
+            Ok(Self)
+        }
+
+        async fn create_bootstrapped_with_progress<P>(
+            _c: TorClientConfig,
+            _p: &mut P,
+        ) -> std::result::Result<Self, String>
+        where
+            P: FnMut(u8, String) + Send,
+        {
+            Ok(Self)
+        }
+
+        fn reconfigure(&self, _c: &TorClientConfig) -> std::result::Result<(), String> {
+            Ok(())
+        }
+
+        fn retire_all_circs(&self) {}
+
+        async fn build_new_circuit(&self) -> std::result::Result<(), String> {
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn geoip_cache_miss_and_hit() {
+        let manager: TorManager<DummyClient> = TorManager::new();
+
+        let ip = "8.8.8.8";
+        assert!(manager.country_cache.lock().await.is_empty());
+
+        let first = manager.lookup_country_code(ip).await;
+        assert!(first.is_some());
+        assert_eq!(manager.country_cache.lock().await.len(), 1);
+
+        let second = manager.lookup_country_code(ip).await;
+        assert_eq!(first, second);
+        assert_eq!(manager.country_cache.lock().await.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn geoip_cache_invalid_address() {
+        let manager: TorManager<DummyClient> = TorManager::new();
+        let res = manager.lookup_country_code("?.?.?.?").await;
+        assert!(res.is_none());
+        assert!(manager.country_cache.lock().await.is_empty());
     }
 }

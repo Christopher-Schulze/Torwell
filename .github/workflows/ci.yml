@@ -22,7 +22,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
       - name: Run cargo test
         working-directory: src-tauri
-        run: cargo test --verbose
+        run: cargo test --all-targets --verbose
 
   svelte-check:
     name: Svelte Checks

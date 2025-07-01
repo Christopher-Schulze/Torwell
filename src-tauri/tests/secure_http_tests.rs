@@ -177,3 +177,32 @@ async fn init_with_repo_config() {
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
 }
+
+#[tokio::test]
+async fn init_with_missing_config() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let cfg_path = dir.path().join("missing.json");
+
+    let _client = SecureHttpClient::init(
+        &cfg_path,
+        Some(cert_path.to_string_lossy().to_string()),
+        Some(server.url("/cert.pem")),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
