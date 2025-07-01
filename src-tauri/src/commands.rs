@@ -246,3 +246,8 @@ pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
 pub async fn get_log_file_path(state: State<'_, AppState>) -> Result<String> {
     Ok(state.log_file_path())
 }
+
+#[tauri::command]
+pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<()> {
+    state.set_max_log_lines(limit).await
+}
