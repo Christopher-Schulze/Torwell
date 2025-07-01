@@ -56,6 +56,7 @@
 #### 2.1.2 Circuit Management
 - **Enhancements**:
   - Implement circuit isolation by domain
+  - Isolation tokens are now cleaned up automatically
   - Add support for custom exit policies
   - Improve circuit build timeout handling
   - Circuit metrics (count and age) cannot be collected: arti-client does not expose circuit listings.

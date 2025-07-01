@@ -126,21 +126,54 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
 }
 pub struct TorManager<C = TorClient<PreferredRuntime>> {
     client: Arc<Mutex<Option<C>>>,
-    isolation_tokens: Arc<Mutex<HashMap<String, Vec<IsolationToken>>>>,
+    isolation_tokens: Arc<Mutex<HashMap<String, Vec<(IsolationToken, std::time::Instant)>>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
     bridges: Arc<Mutex<Vec<String>>>,
     country_cache: Arc<Mutex<HashMap<String, String>>>,
 }
 
+impl<C> Clone for TorManager<C> {
+    fn clone(&self) -> Self {
+        Self {
+            client: Arc::clone(&self.client),
+            isolation_tokens: Arc::clone(&self.isolation_tokens),
+            exit_country: Arc::clone(&self.exit_country),
+            bridges: Arc::clone(&self.bridges),
+            country_cache: Arc::clone(&self.country_cache),
+        }
+    }
+}
+
 impl<C: TorClientBehavior> TorManager<C> {
     pub fn new() -> Self {
-        Self {
+        let manager = Self {
             client: Arc::new(Mutex::new(None)),
             isolation_tokens: Arc::new(Mutex::new(HashMap::new())),
             exit_country: Arc::new(Mutex::new(None)),
             bridges: Arc::new(Mutex::new(Vec::new())),
             country_cache: Arc::new(Mutex::new(HashMap::new())),
-        }
+        };
+
+        let cleanup_clone = manager.clone();
+        tokio::spawn(async move {
+            let interval = std::time::Duration::from_secs(60 * 10);
+            let max_age = std::time::Duration::from_secs(60 * 60);
+            loop {
+                tokio::time::sleep(interval).await;
+                cleanup_clone.cleanup_isolation_tokens(max_age).await;
+            }
+        });
+
+        manager
+    }
+
+    pub async fn cleanup_isolation_tokens(&self, max_age: std::time::Duration) {
+        let now = std::time::Instant::now();
+        let mut tokens = self.isolation_tokens.lock().await;
+        tokens.retain(|_, list| {
+            list.retain(|(_, ts)| now.duration_since(*ts) <= max_age);
+            !list.is_empty()
+        });
     }
 
     async fn build_config(&self) -> Result<TorClientConfig> {
@@ -381,7 +414,7 @@ impl TorManager {
         let mut tokens = self.isolation_tokens.lock().await;
         let entry = tokens.entry(domain).or_default();
         let token = IsolationToken::new();
-        entry.push(token);
+        entry.push((token, std::time::Instant::now()));
 
         let netdir = client
             .dirmgr()
