@@ -49,7 +49,7 @@
   - No automatic reconnection logic
   - Limited error recovery
 - **Proposed Enhancements**:
-  - Implement exponential backoff for reconnections
+  - Exponential backoff for reconnections **implemented** via `connect_with_backoff`
   - Add circuit health monitoring
   - Implement fallback bridges
 

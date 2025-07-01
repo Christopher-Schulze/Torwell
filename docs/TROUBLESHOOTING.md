@@ -16,4 +16,5 @@ This guide lists common problems encountered during development and how to analy
 - If the UI fails to load, open the browser developer tools (`Ctrl+Shift+I`) to inspect console logs and network activity.
 - Failed connection attempts are recorded with `WARN` level. The retry counter resets when a new connection starts.
 - If `Error::Timeout` occurs, the Tor bootstrap exceeded the allowed time. Check your network or increase the limit.
+- The function `connect_with_backoff` enforces a maximum overall connection time and logs each retry.
 

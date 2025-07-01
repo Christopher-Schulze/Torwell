@@ -16,3 +16,5 @@
 
 ## Completed Features
 - Multiple simultaneous circuits per domain
+- Connection retries use exponential backoff with a maximum total time.
+- Each failed attempt increments `AppState.retry_counter` and is logged.

@@ -30,6 +30,10 @@
 - Parallel isolated circuits per domain via updated `get_isolated_circuit`
 - Bridge selection list in the settings modal
 
+## [2.2.2] - 2025-07-05
+### Added
+- Documented that connection retries and timeouts are already implemented.
+
 ## [2.0.0] - 2025-06-15
 ### Initial Release
 - Rewritten architecture with Rust backend and Svelte frontend
