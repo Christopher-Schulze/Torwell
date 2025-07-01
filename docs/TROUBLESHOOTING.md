@@ -18,3 +18,15 @@ This guide lists common problems encountered during development and how to analy
 - If `Error::Timeout` occurs, the Tor bootstrap exceeded the allowed time. Check your network or increase the limit.
 - The function `connect_with_backoff` enforces a maximum overall connection time and logs each retry.
 
+## Rate Limits
+
+Some commands are throttled to avoid excessive resource usage. By default:
+
+- The `connect` command may be invoked up to **3 times per minute**.
+- The `get_logs` command may be invoked up to **10 times per minute**.
+
+Exceeding these limits results in an `Error::RateLimited` response. When a
+connection attempt is blocked, the frontend also receives a
+`tor-status-update` event with status `RATE_LIMIT` so the user is informed
+immediately.
+
