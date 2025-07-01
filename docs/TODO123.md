@@ -18,3 +18,6 @@
 - Multiple simultaneous circuits per domain
 - Connection retries use exponential backoff with a maximum total time.
 - Each failed attempt increments `AppState.retry_counter` and is logged.
+
+## Limitations
+- Circuit metrics (active circuit count and age) cannot be implemented because the arti-client library does not expose a way to list circuits.
