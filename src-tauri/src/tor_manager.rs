@@ -5,13 +5,27 @@ use arti_client::config::{
 };
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
 use async_trait::async_trait;
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
+#[cfg(test)]
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tor_circmgr::isolation::{IsolationToken, StreamIsolation};
 use tor_dirmgr::Timeliness;
 use tor_geoip::{CountryCode, GeoipDb};
+
+#[cfg(test)]
+pub(crate) static GEOIP_INIT_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+static GEOIP_DB: Lazy<GeoipDb> = Lazy::new(|| {
+    #[cfg(test)]
+    {
+        GEOIP_INIT_COUNT.fetch_add(1, Ordering::SeqCst);
+    }
+    GeoipDb::new_embedded()
+});
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
 
@@ -281,7 +295,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             .unwrap_or_else(|_| ip.split(':').next().unwrap_or(ip).to_string());
 
         if let Ok(ip_addr) = addr.parse::<IpAddr>() {
-            if let Some(cc) = GeoipDb::new_embedded().lookup_country_code(ip_addr) {
+            if let Some(cc) = GEOIP_DB.lookup_country_code(ip_addr) {
                 let code = cc.as_ref().to_string();
                 cache.insert(ip.to_string(), code.clone());
                 return Some(code);
@@ -545,24 +559,32 @@ mod tests {
     #[tokio::test]
     async fn geoip_cache_miss_and_hit() {
         let manager: TorManager<DummyClient> = TorManager::new();
-
         let ip = "8.8.8.8";
         assert!(manager.country_cache.lock().await.is_empty());
 
+        let init_before = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
+
         let first = manager.lookup_country_code(ip).await;
+        let after_first = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
         assert!(first.is_some());
         assert_eq!(manager.country_cache.lock().await.len(), 1);
 
         let second = manager.lookup_country_code(ip).await;
+        let after_second = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
         assert_eq!(first, second);
         assert_eq!(manager.country_cache.lock().await.len(), 1);
+        assert!(after_first - init_before <= 1);
+        assert_eq!(after_second, after_first);
     }
 
     #[tokio::test]
     async fn geoip_cache_invalid_address() {
         let manager: TorManager<DummyClient> = TorManager::new();
+        let init_before = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
         let res = manager.lookup_country_code("?.?.?.?").await;
+        let init_after = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
         assert!(res.is_none());
         assert!(manager.country_cache.lock().await.is_empty());
+        assert_eq!(init_before, init_after);
     }
 }
