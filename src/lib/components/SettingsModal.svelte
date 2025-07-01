@@ -66,7 +66,7 @@ let closeButton: HTMLButtonElement | null = null;
                                 <div class="flex justify-between items-center mb-4 shrink-0">
                                         <h2 id="settings-modal-title" class="text-2xl font-semibold">Settings</h2>
                                         <button
-                                                class="text-gray-200 hover:text-white transition-colors"
+                                                class="text-gray-100 hover:text-white transition-colors"
                                                 on:click={() => (show = false)}
                                                 aria-label="Close settings"
                                                 bind:this={closeButton}
@@ -82,6 +82,7 @@ let closeButton: HTMLButtonElement | null = null;
                                                         class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm font-mono"
                                                         rows="6"
                                                         bind:value={torrcConfig}
+                                                        aria-label="Torrc configuration"
                                                 ></textarea>
                                                 <button
                                                         class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
@@ -94,7 +95,7 @@ let closeButton: HTMLButtonElement | null = null;
 
                                         <div class="mb-8">
                                                 <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">Bridges</h3>
-                                                <p class="text-sm text-gray-200 mb-4">Select one or more bridges to use for connecting.</p>
+                                                <p class="text-sm text-gray-100 mb-4">Select one or more bridges to use for connecting.</p>
                                                 {#each availableBridges as bridge}
                                                         <label class="flex items-center gap-2 mb-2">
                                                                 <input type="checkbox" value={bridge} bind:group={selectedBridges} />
@@ -116,6 +117,7 @@ let closeButton: HTMLButtonElement | null = null;
                                                         class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm font-mono"
                                                         rows="4"
                                                         bind:value={workerListString}
+                                                        aria-label="Worker list"
                                                 ></textarea>
                                                 <button
                                                         class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
@@ -124,7 +126,7 @@ let closeButton: HTMLButtonElement | null = null;
                                                 >
                                                         Save
                                                 </button>
-                                                <p class="text-xs text-gray-300 mt-2">One worker URL per line</p>
+                                                <p class="text-xs text-gray-200 mt-2">One worker URL per line</p>
                                         </div>
 
 					<!-- Worker Management section has been removed as it was placeholder functionality. -->

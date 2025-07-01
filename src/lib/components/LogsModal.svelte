@@ -119,7 +119,7 @@
 			<div class="flex items-center justify-between p-6 border-b border-white/10">
                                 <h2 id="logs-modal-title" class="text-xl font-semibold text-white">Logs</h2>
                                 <button
-                                        class="text-gray-200 hover:text-white transition-colors"
+                                        class="text-gray-100 hover:text-white transition-colors"
                                         on:click={() => dispatch('close')}
                                         aria-label="Close logs"
                                         bind:this={closeButton}
@@ -134,8 +134,9 @@
                                         <button
                                                 class="px-6 py-3 text-sm font-medium transition-colors {activeTab === tab.id
                                                         ? 'text-blue-400 border-b-2 border-blue-400'
-                                                        : 'text-gray-200 hover:text-white'}"
+                                                        : 'text-gray-100 hover:text-white'}"
                                                 on:click={() => (activeTab = tab.id)}
+                                                aria-label={tab.label}
                                         >
                                                 {tab.label}
                                         </button>
@@ -143,8 +144,8 @@
                         </div>
 
                         <div class="flex items-center gap-2 p-2 border-b border-white/10">
-                                <label class="text-sm text-gray-200">Level:</label>
-                                <select bind:value={levelFilter} class="bg-gray-800 text-white text-sm rounded p-1">
+                                <label class="text-sm text-gray-100" for="logs-level-filter">Level:</label>
+                                <select id="logs-level-filter" bind:value={levelFilter} class="bg-gray-800 text-white text-sm rounded p-1" aria-label="Filter logs by level">
                                         <option value="all">All</option>
                                         <option value="INFO">Info</option>
                                         <option value="WARN">Warn</option>
@@ -155,17 +156,17 @@
 			<!-- Log Content -->
 			<div class="p-6 max-h-96 overflow-y-auto">
                                 {#if isLoading}
-                                        <div class="text-center text-gray-200 py-8">
+                                        <div class="text-center text-gray-100 py-8">
 						<div class="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-2"></div>
 						Loading logs...
 					</div>
                                 {:else if filteredLogs.length === 0}
-                                        <div class="text-center text-gray-200 py-8">
+                                        <div class="text-center text-gray-100 py-8">
 						No logs available
 					</div>
 				{:else}
 					<div class="space-y-2">
-                                                <div class="text-sm text-gray-200 font-mono">
+                                                <div class="text-sm text-gray-100 font-mono">
                                                         {#each filteredLogs as log}
                                                                 <div class="{log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARN' ? 'text-yellow-400' : 'text-blue-400'}">
                                                                         [{log.timestamp}] [{log.level}] {log.message}
@@ -210,7 +211,7 @@
                                         <Trash2 size={16} /> {isClearing ? 'Clearing...' : 'Clear Logs'}
                                 </button>
                         </div>
-                        <p class="text-xs text-gray-200 px-6 pb-4">Log file: {logFilePath}</p>
+                        <p class="text-xs text-gray-100 px-6 pb-4">Log file: {logFilePath}</p>
                 </div>
         </div>
 {/if}

@@ -46,19 +46,19 @@
         <div class="w-3 h-3 bg-green-500 rounded-full"></div>
         <div>
           <h3 class="text-base font-medium text-white">Connected</h3>
-          <p class="text-xs text-gray-400">-</p>
+          <p class="text-xs text-gray-300">-</p>
         </div>
       {:else if status === "CONNECTING"}
         <div class="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
         <div>
           <h3 class="text-base font-medium text-white">Connecting</h3>
-          <p class="text-xs text-gray-400">-</p>
+          <p class="text-xs text-gray-300">-</p>
         </div>
       {:else}
         <div class="w-3 h-3 bg-red-500 rounded-full"></div>
         <div>
           <h3 class="text-base font-medium text-white">Disconnected</h3>
-          <p class="text-xs text-gray-400 ml-2">-</p>
+          <p class="text-xs text-gray-300 ml-2">-</p>
         </div>
       {/if}
     </div>
@@ -97,7 +97,7 @@
         {#if pingMs !== undefined && pingMs >= 0}
           <span class="text-xs text-white font-medium">{pingMs} ms</span>
         {:else}
-          <span class="text-xs text-gray-200">- ms</span>
+          <span class="text-xs text-gray-100">- ms</span>
         {/if}
       </div>
 

@@ -112,7 +112,7 @@
 		
 		<!-- New Circuit Button -->
                 <button
-                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm {isConnected && !isCreatingCircuit ? 'bg-black/50 text-white hover:bg-black/60 cursor-pointer transform hover:scale-105' : 'bg-black/30 text-gray-500 cursor-not-allowed opacity-50'}"
+                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm {isConnected && !isCreatingCircuit ? 'bg-black/50 text-white hover:bg-black/60 cursor-pointer transform hover:scale-105' : 'bg-black/30 text-gray-400 cursor-not-allowed opacity-50'}"
                         on:click={handleNewCircuit}
                         disabled={!isConnected || isCreatingCircuit}
                         aria-label="Request new circuit"
