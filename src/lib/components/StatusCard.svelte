@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Activity, Zap } from "lucide-svelte";
+  import { invoke } from "@tauri-apps/api/tauri";
 
   export let status;
   export let totalTrafficMB = 0;
@@ -17,15 +18,16 @@
     return `${mb} MB`;
   }
 
-  // Ping-Funktion - 5 Pings an google.com
+  // Ping function - execute backend ping command
   async function performPing() {
     if (isPinging) return;
     isPinging = true;
     try {
-      // Hier würde die echte Ping-Implementierung stehen
-      // Simuliere 5 Pings und berechne Durchschnitt
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      pingMs = Math.floor(Math.random() * 100) + 20; // Simulierter Ping 20-120ms
+      const result: number = await invoke("ping_host", {
+        host: "google.com",
+        count: 5
+      });
+      pingMs = result;
     } catch (error) {
       console.error("Ping failed:", error);
       pingMs = -1;
