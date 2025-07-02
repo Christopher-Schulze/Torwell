@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Torwell84",
-    "version": "2.0.0"
+    "version": "2.2.2"
   },
   "tauri": {
     "bundle": {
