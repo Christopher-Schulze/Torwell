@@ -14,10 +14,10 @@
       <img src="https://img.shields.io/badge/Tor-Enabled-7D4698?logo=tor" alt="Tor Network">
     </a>
     <a href="https://www.rust-lang.org/">
-      <img src="https://img.shields.io/badge/Rust-1.70+-000000?logo=rust" alt="Rust">
+      <img src="https://img.shields.io/badge/Rust-1.77+-000000?logo=rust" alt="Rust">
     </a>
     <a href="https://tauri.app/">
-      <img src="https://img.shields.io/badge/Tauri-1.5-FFC131?logo=tauri" alt="Tauri">
+      <img src="https://img.shields.io/badge/Tauri-1.6-FFC131?logo=tauri" alt="Tauri">
     </a>
     <a href="https://svelte.dev/">
       <img src="https://img.shields.io/badge/Svelte-4.0+-FF3E00?logo=svelte" alt="Svelte">
@@ -139,7 +139,7 @@ cd src-tauri && cargo test
 ### Built With
 - **Backend**: Rust with arti (Tor implementation in Rust)
 - **Frontend**: Svelte + TypeScript
-- **Desktop**: Tauri 1.5+
+- **Desktop**: Tauri 1.6+
 - **Tor Version**: arti-client 0.31.0
 
 ### Error States
