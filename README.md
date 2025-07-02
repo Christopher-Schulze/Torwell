@@ -108,6 +108,9 @@ Torwell84/
 git clone https://github.com/Christopher-Schulze/Torwell.git
 cd Torwell
 
+# Install the Rust toolchain (provides `rustup` and `cargo`)
+curl https://sh.rustup.rs -sSf | sh
+
 # Install dependencies
 bun install  # Install Node.js dependencies
 
@@ -117,6 +120,14 @@ bun tauri dev
 # Build the application
 bun tauri build
 ```
+
+- Run backend tests:
+
+```bash
+cd src-tauri && cargo test
+```
+
+> The first build will download many Rust crates and may take several minutes.
 
 ### Prerequisites
 - Node.js 18+ and bun
