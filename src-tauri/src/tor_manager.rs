@@ -204,7 +204,8 @@ impl<C: TorClientBehavior> TorManager<C> {
 
     async fn build_config(&self) -> Result<TorClientConfig> {
         let bridges = self.bridges.lock().await.clone();
-        if bridges.is_empty() {
+        let exit_country = self.exit_country.lock().await.clone();
+        if bridges.is_empty() && exit_country.is_none() {
             Ok(TorClientConfig::default())
         } else {
             use arti_client::config::{
@@ -212,7 +213,10 @@ impl<C: TorClientBehavior> TorManager<C> {
             };
 
             let mut builder = TorClientConfigBuilder::default();
-            {
+            if let Some(cc) = exit_country {
+                builder.exit_country(cc);
+            }
+            if !bridges.is_empty() {
                 let mut bridge_builder = BridgesConfigBuilder::default();
                 bridge_builder.enabled(BoolOrAuto::Explicit(true));
                 for line in bridges {
