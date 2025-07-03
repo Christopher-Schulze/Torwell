@@ -5,13 +5,11 @@
 ### 1.1 Transport Layer Security
 
 #### 1.1.1 Certificate Pinning
-- **Issue**: Currently lacks certificate pinning, making the application vulnerable to MITM attacks
-- **Solution**: Implement certificate pinning using Rust's `rustls` with custom trust anchors
-- **Implementation Steps**:
-  1. Create a pinned certificate store
-  2. Configure `reqwest` to use custom TLS settings
-  3. Implement certificate rotation strategy
-  4. Add fallback mechanisms for certificate updates
+- **Current State**: `SecureHttpClient` already pins certificates via `rustls`, protecting all HTTPS
+  connections from MITM attacks
+- **Enhancements**:
+  1. Document the certificate rotation strategy
+  2. Add fallback mechanisms for certificate updates
 
 #### 1.1.2 TLS Configuration Hardening
 - **Current State**: Uses default TLS settings which may include weak ciphers
