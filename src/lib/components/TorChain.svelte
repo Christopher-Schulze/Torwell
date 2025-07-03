@@ -92,27 +92,37 @@
 							{getCountryFlag(country)} {country}
 						</option>
 					{/each}
-				</select>
-				<div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-					<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                </div>
+                        </div>
+                </div>
+
+                <!-- Middle Node Dropdown -->
+                <div class="flex items-center h-8">
+                        <div class="relative w-full h-8">
+                                <select
                                         class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
                                         value={middleCountry}
                                         aria-label="Middle node country"
                                         on:change={(e) => handleCountryChange('middle', e)}
                                 >
-					{#each countries as country}
-						<option value={country} class="bg-gray-800 text-xs">
-							{getCountryFlag(country)} {country}
-						</option>
-					{/each}
-				</select>
-				<div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-					<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</div>
-			</div>
-		</div>
+                                        {#each countries as country}
+                                                <option value={country} class="bg-gray-800 text-xs">
+                                                        {getCountryFlag(country)} {country}
+                                                </option>
+                                        {/each}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                </div>
+                        </div>
+                </div>
 		
 		<!-- Exit Node Dropdown -->
 		<div class="flex items-center h-8">
@@ -340,4 +350,3 @@
                 </ul>
         </div>
 {/if}
-</div>
