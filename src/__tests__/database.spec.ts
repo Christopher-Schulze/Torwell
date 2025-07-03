@@ -9,6 +9,7 @@ function openRaw() {
   raw.version(1).stores({
     settings: '++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines',
   });
+  raw.version(2).stores({ meta: '&id' });
   return raw.open().then(() => raw);
 }
 

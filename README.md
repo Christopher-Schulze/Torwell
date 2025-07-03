@@ -66,7 +66,7 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 ### 📊 Status
 - **Stable**: Core Tor functionality is working
 - **Active Development**: Regular updates and improvements
-- **Cross-Platform**: Currently supports macOS, with Windows and Linux support planned
+- **Cross-Platform**: macOS and Linux supported, Windows coming soon
 
 ## 🛠️ Development Status
 
@@ -137,9 +137,14 @@ installed (`libglib2.0-dev` on Debian/Ubuntu) before running the tests.
 
 ### Updating Certificates
 The pinned certificate location is configured in `src-tauri/certs/cert_config.json`.
-Change the `cert_url` value to your own server or set the environment variable
-`TORWELL_CERT_URL` to override it at runtime. The minimum TLS version can also
+Change the `cert_url` value to your own server or set the environment variables
+`TORWELL_CERT_URL` or `TORWELL_CERT_PATH` to override the URL and local path at runtime. The minimum TLS version can also
 be configured via the `min_tls_version` field ("1.2" or "1.3").
+
+### Runtime Configuration
+You can influence certain backend parameters via environment variables:
+
+- `TORWELL_SESSION_TTL` &ndash; lifetime of authentication tokens in seconds (default `3600`).
 
 > The first build will download many Rust crates and may take several minutes.
 
@@ -188,8 +193,8 @@ The backend emits detailed error messages via the `tor-status-update` event. Pos
 - [ ] Improved connection stability
 - [ ] Better system tray integration
 
-### Upcoming Features
-- [ ] Windows & Linux support
+-### Upcoming Features
+- [ ] Windows support
 - [ ] Advanced circuit management
 - [ ] Network monitoring tools
 

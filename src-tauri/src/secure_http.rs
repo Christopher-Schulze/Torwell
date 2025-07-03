@@ -203,6 +203,9 @@ impl SecureHttpClient {
         if let Ok(env_url) = std::env::var("TORWELL_CERT_URL") {
             cfg.cert_url = env_url;
         }
+        if let Ok(env_path) = std::env::var("TORWELL_CERT_PATH") {
+            cfg.cert_path = env_path;
+        }
 
         if let Some(path) = cert_path {
             cfg.cert_path = path;

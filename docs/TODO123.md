@@ -2,13 +2,10 @@
 
 ## High Priority
 1. Implement GeoIP integration for country detection in Tor relays
-2. Add real traffic metrics to StatusCard component
-3. Create persistent log storage (file-based)
 
 ## Medium Priority
 1. Refactor TorManager error handling for better diagnostics
 2. Add unit tests for critical backend functions
-3. // Darkmode entfernt
 
 ## Future Ideas
 - Integration with hardware security modules

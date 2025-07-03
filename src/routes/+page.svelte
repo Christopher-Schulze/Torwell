@@ -104,8 +104,6 @@
     <StatusCard
       status={$torStore.status}
       {totalTrafficMB}
-      memoryMB={$torStore.memoryUsageMB}
-      circuitCount={$torStore.circuitCount}
       pingMs={$torStore.pingMs}
     />
 

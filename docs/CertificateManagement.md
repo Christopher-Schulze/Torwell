@@ -65,6 +65,7 @@ let client = SecureHttpClient::init(
 1. On startup `SecureHttpClient::init` reads the configuration file and pins the
    certificate from `cert_path`. Optional parameters allow overriding these
    values without modifying the file.
+   Zusätzlich kann `TORWELL_CERT_PATH` den Pfad überschreiben.
 2. The client downloads a new PEM from `cert_url` using the pinned certificate
    for validation.
 3. The file at `cert_path` is replaced and the HTTP client reloads the
@@ -82,7 +83,8 @@ Alternativ können Sie beim Aufruf von `SecureHttpClient::init` einen abweichend
 Ab Version 2.2.2 kann der Update-Endpunkt auch per Umgebungsvariable gesetzt werden.
 Wird `TORWELL_CERT_URL` definiert, überschreibt dieser Wert die Einstellung aus
 `cert_config.json`, sofern kein Parameter in `SecureHttpClient::init` gesetzt
-wird.
+wird. Ebenso kann der Dateipfad durch die Umgebungsvariable
+`TORWELL_CERT_PATH` angepasst werden.
 
 ## Geplante Zertifikatsrotation
 
