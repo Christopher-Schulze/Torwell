@@ -12,6 +12,7 @@
   let torrcConfig = "";
   let workerListString = "";
   let maxLogLines = 1000;
+  let exitCountry: string | null = null;
   // import TorrcEditorModal from './TorrcEditorModal.svelte';
 
   export let show: boolean;
@@ -25,6 +26,8 @@
     torrcConfig = $uiStore.settings.torrcConfig;
     workerListString = $uiStore.settings.workerList.join("\n");
     maxLogLines = $uiStore.settings.maxLogLines;
+    exitCountry = $uiStore.settings.exitCountry ?? null;
+    uiStore.actions.setExitCountry(exitCountry);
     tick().then(() => closeButton && closeButton.focus());
   }
 
@@ -52,6 +55,10 @@
     if (!isNaN(limit) && limit > 0) {
       uiStore.actions.setLogLimit(limit);
     }
+  }
+
+  function saveExitCountry() {
+    uiStore.actions.setExitCountry(exitCountry);
   }
 </script>
 
@@ -130,6 +137,36 @@
           >
             Apply
           </button>
+        </div>
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            Preferred Exit Country
+          </h3>
+          <select
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+            bind:value={exitCountry}
+            aria-label="Exit country"
+          >
+            <option value="">Auto</option>
+            <option value="DE">Germany</option>
+            <option value="US">USA</option>
+            <option value="FR">France</option>
+            <option value="GB">UK</option>
+            <option value="NL">Netherlands</option>
+          </select>
+          <button
+            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={saveExitCountry}
+            aria-label="Save exit country"
+          >
+            Save
+          </button>
+          {#if !exitCountry}
+            <p class="text-xs text-yellow-400 mt-2">
+              No exit country selected. A random exit node will be used.
+            </p>
+          {/if}
         </div>
 
         <div class="mb-8">
