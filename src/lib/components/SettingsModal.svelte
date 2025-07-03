@@ -114,11 +114,12 @@
           </p>
           {#each availableBridges as bridge}
             <label class="flex items-center gap-2 mb-2">
-              <input
-                type="checkbox"
-                value={bridge}
-                bind:group={selectedBridges}
-              />
+          <input
+            type="checkbox"
+            value={bridge}
+            bind:group={selectedBridges}
+            aria-label={bridge}
+          />
               <span class="text-sm">{bridge}</span>
             </label>
           {/each}
@@ -160,6 +161,7 @@
             min="1"
             class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
             bind:value={maxLogLines}
+            aria-label="Maximum log lines"
           />
           <button
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
