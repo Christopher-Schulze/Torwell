@@ -12,8 +12,7 @@ struct MockTorClient {
 
 static CONNECT_RESULTS: Lazy<Mutex<VecDeque<Result<MockTorClient, String>>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));
-static CAPTURED_CONFIGS: Lazy<Mutex<Vec<TorClientConfig>>> =
-    Lazy::new(|| Mutex::new(Vec::new()));
+static CAPTURED_CONFIGS: Lazy<Mutex<Vec<TorClientConfig>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 impl MockTorClient {
     fn push_result(res: Result<MockTorClient, String>) {

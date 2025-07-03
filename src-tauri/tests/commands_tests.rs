@@ -10,6 +10,7 @@ use log::Level;
 use torwell84::commands;
 use torwell84::error::Error;
 use torwell84::secure_http::SecureHttpClient;
+use torwell84::session::SessionManager;
 use torwell84::state::{AppState, LogEntry};
 use torwell84::tor_manager::{TorClientBehavior, TorClientConfig, TorManager};
 
@@ -79,6 +80,7 @@ fn mock_state() -> AppState<MockTorClient> {
         circuit_count: Arc::new(Mutex::new(0)),
         max_memory_mb: 1024,
         max_circuits: 20,
+        session: SessionManager::new(std::time::Duration::from_secs(60)),
     }
 }
 
