@@ -114,6 +114,9 @@ curl https://sh.rustup.rs -sSf | sh
 # Install dependencies (using Bun as the package manager)
 bun install
 
+# Verify the frontend builds correctly
+bun run check
+
 # Start development server
 bun tauri dev
 
