@@ -111,8 +111,8 @@ cd Torwell
 # Install the Rust toolchain (provides `rustup` and `cargo`)
 curl https://sh.rustup.rs -sSf | sh
 
-# Install dependencies
-bun install  # Install Node.js dependencies
+# Install dependencies (using Bun as the package manager)
+bun install
 
 # Start development server
 bun tauri dev
