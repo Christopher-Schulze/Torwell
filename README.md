@@ -134,7 +134,8 @@ cd src-tauri && cargo test
 ### Updating Certificates
 The pinned certificate location is configured in `src-tauri/certs/cert_config.json`.
 Change the `cert_url` value to your own server or set the environment variable
-`TORWELL_CERT_URL` to override it at runtime.
+`TORWELL_CERT_URL` to override it at runtime. The minimum TLS version can also
+be configured via the `min_tls_version` field ("1.2" or "1.3").
 
 > The first build will download many Rust crates and may take several minutes.
 
