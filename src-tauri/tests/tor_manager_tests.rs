@@ -12,6 +12,8 @@ struct MockTorClient {
 
 static CONNECT_RESULTS: Lazy<Mutex<VecDeque<Result<MockTorClient, String>>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));
+static CAPTURED_CONFIGS: Lazy<Mutex<Vec<TorClientConfig>>> =
+    Lazy::new(|| Mutex::new(Vec::new()));
 
 impl MockTorClient {
     fn push_result(res: Result<MockTorClient, String>) {
@@ -21,7 +23,8 @@ impl MockTorClient {
 
 #[async_trait::async_trait]
 impl TorClientBehavior for MockTorClient {
-    async fn create_bootstrapped(_config: TorClientConfig) -> std::result::Result<Self, String> {
+    async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String> {
+        CAPTURED_CONFIGS.lock().unwrap().push(config);
         CONNECT_RESULTS
             .lock()
             .unwrap()
