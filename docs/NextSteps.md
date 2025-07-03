@@ -59,7 +59,7 @@
   - Isolation tokens are now cleaned up automatically
   - Add support for custom exit policies
   - Improve circuit build timeout handling
-  - Circuit metrics (count and age) cannot be collected: arti-client does not expose circuit listings.
+  - Circuit metrics will be implemented once arti-client exposes APIs to list circuits.
 
 #### 2.1.3 GeoIP Handling
 - Country codes are now resolved using the embedded Tor GeoIP database.

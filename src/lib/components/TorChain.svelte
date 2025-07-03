@@ -9,7 +9,8 @@
 	export let cloudflareEnabled = false;
 
 	// Node data with IPs and names
-	export let nodeData: { nickname: string; ip_address: string; country: string }[] = [];
+        export let nodeData: { nickname: string; ip_address: string; country: string }[] = [];
+        export let isolatedCircuits: { domain: string; nodes: { nickname: string; ip_address: string; country: string }[] }[] = [];
 
         const getCountryFlag = (countryCode: string) => {
         if (!countryCode || countryCode === '??' || countryCode === 'XX') return '🏳️';
@@ -94,16 +95,6 @@
 				</select>
 				<div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
 					<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</div>
-			</div>
-		</div>
-		
-		<!-- Middle Node Dropdown -->
-		<div class="flex items-center h-8">
-			<div class="relative w-full h-8">
-                                <select
                                         class="w-full h-8 bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/40 hover:bg-black/60 transition-all appearance-none cursor-pointer"
                                         value={middleCountry}
                                         aria-label="Middle node country"
@@ -333,4 +324,20 @@
 			</div>
 		</div>
 	</div>
+</div>
+{#if isolatedCircuits.length > 0}
+        <div class="mt-4">
+                <h4 class="text-sm font-semibold text-white mb-2">Isolated Circuits</h4>
+                <ul class="text-xs text-gray-100 space-y-1">
+                        {#each isolatedCircuits as circ}
+                                <li>
+                                        <span class="font-medium">{circ.domain}</span>:
+                                        {#each circ.nodes as node, i}
+                                                {node.nickname} ({node.country}){#if i < circ.nodes.length - 1} &rarr; {/if}
+                                        {/each}
+                                </li>
+                        {/each}
+                </ul>
+        </div>
+{/if}
 </div>

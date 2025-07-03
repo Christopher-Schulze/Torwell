@@ -539,10 +539,29 @@ impl TorManager {
     /// Return number of active circuits and age of the oldest one in seconds.
     pub async fn circuit_metrics(&self) -> Result<CircuitMetrics> {
         let client_guard = self.client.lock().await;
-        let _client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
 
-        // TODO: arti currently exposes no stable API to list open circuits.
-        // For now we return zero values.
+        #[cfg(feature = "experimental-api")]
+        {
+            // Use new arti-client APIs when compiled with the experimental feature.
+            // These APIs allow retrieving information about currently open circuits
+            // including their creation time.
+            use arti_client::client::CircuitInfoExt as _;
+
+            if let Ok(circs) = client.circmgr().list_circuits() {
+                let count = circs.len();
+                let oldest_age = circs
+                    .iter()
+                    .filter_map(|c| c.created().elapsed().ok())
+                    .map(|d| d.as_secs())
+                    .max()
+                    .unwrap_or(0);
+
+                return Ok(CircuitMetrics { count, oldest_age });
+            }
+        }
+
+        // Fallback when the arti-client APIs are unavailable.
         Ok(CircuitMetrics {
             count: 0,
             oldest_age: 0,

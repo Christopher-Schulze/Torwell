@@ -12,6 +12,8 @@
   import { onMount } from "svelte";
 
   let activeCircuit: any[] = [];
+  let isolatedCircuits: { domain: string; nodes: any[] }[] = [];
+  const isolatedDomain = "example.com";
   let circuitInterval: any = null;
   let trafficInterval: any = null;
   let totalTrafficMB = 0;
@@ -26,6 +28,20 @@
       }
     } else {
       activeCircuit = [];
+    }
+  }
+
+  async function fetchIsolatedCircuit() {
+    if ($torStore.status === "CONNECTED") {
+      try {
+        const nodes = await invoke<any>("get_isolated_circuit", { domain: isolatedDomain });
+        isolatedCircuits = [{ domain: isolatedDomain, nodes }];
+      } catch (e) {
+        console.error("Failed to get isolated circuit:", e);
+        isolatedCircuits = [];
+      }
+    } else {
+      isolatedCircuits = [];
     }
   }
 
@@ -47,11 +63,16 @@
   // Fetch circuit info periodically when connected
   $: if ($torStore.status === "CONNECTED" && !circuitInterval) {
     fetchCircuit();
-    circuitInterval = setInterval(fetchCircuit, 5000);
+    fetchIsolatedCircuit();
+    circuitInterval = setInterval(() => {
+      fetchCircuit();
+      fetchIsolatedCircuit();
+    }, 5000);
   } else if ($torStore.status !== "CONNECTED" && circuitInterval) {
     clearInterval(circuitInterval);
     circuitInterval = null;
     activeCircuit = [];
+    isolatedCircuits = [];
   }
 
   $: if ($torStore.status === "CONNECTED" && !trafficInterval) {
@@ -71,6 +92,7 @@
       if (trafficInterval) {
         clearInterval(trafficInterval);
       }
+      isolatedCircuits = [];
     };
   });
 </script>
@@ -91,6 +113,7 @@
       isConnected={$torStore.status === "CONNECTED"}
       isActive={$torStore.status === "CONNECTED"}
       nodeData={activeCircuit}
+      isolatedCircuits={isolatedCircuits}
       cloudflareEnabled={false}
     />
 
