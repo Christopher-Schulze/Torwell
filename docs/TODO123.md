@@ -20,4 +20,4 @@
 - Each failed attempt increments `AppState.retry_counter` and is logged.
 
 ## Limitations
-- Circuit metrics (active circuit count and age) cannot be implemented because the arti-client library does not expose a way to list circuits.
+- Circuit metrics (active circuit count and age) will be added when arti-client provides a circuit listing API.
