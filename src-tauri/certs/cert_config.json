@@ -1,4 +1,4 @@
 {
   "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://example.com/certs/server.pem"
+  "cert_url": "https://raw.githubusercontent.com/Christopher-Schulze/Torwell/main/src-tauri/certs/server.pem"
 }
