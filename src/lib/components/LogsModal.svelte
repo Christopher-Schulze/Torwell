@@ -1,7 +1,7 @@
 <script lang="ts">
         import { X, Download, Copy, Trash2, FolderOpen } from 'lucide-svelte';
         import { createEventDispatcher, onMount, tick } from 'svelte';
-        import { invoke } from '@tauri-apps/api';
+        import { invoke } from '$lib/api';
         import { open } from '@tauri-apps/api/shell';
 
 	export let show = false;

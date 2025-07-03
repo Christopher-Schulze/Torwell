@@ -71,6 +71,16 @@ async fn track_call(name: &'static str) -> usize {
 }
 
 #[tauri::command]
+pub async fn request_token(state: State<'_, AppState>) -> Result<String> {
+    check_api_rate()?;
+    if let Some(tok) = state.session.take_startup_token().await {
+        Ok(tok)
+    } else {
+        Ok(state.create_session().await)
+    }
+}
+
+#[tauri::command]
 pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     track_call("connect").await;
     check_api_rate()?;
@@ -292,9 +302,12 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
     Ok(())
 }
 #[tauri::command]
-pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<LogEntry>> {
+pub async fn get_logs(state: State<'_, AppState>, token: String) -> Result<Vec<LogEntry>> {
     track_call("get_logs").await;
     check_api_rate()?;
+    if !state.validate_session(&token).await {
+        return Err(Error::InvalidToken);
+    }
     if LOG_LIMITER.check().is_err() {
         return Err(Error::RateLimited("get_logs".into()));
     }
@@ -302,16 +315,22 @@ pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<LogEntry>> {
 }
 
 #[tauri::command]
-pub async fn clear_logs(state: State<'_, AppState>) -> Result<()> {
+pub async fn clear_logs(state: State<'_, AppState>, token: String) -> Result<()> {
     track_call("clear_logs").await;
     check_api_rate()?;
+    if !state.validate_session(&token).await {
+        return Err(Error::InvalidToken);
+    }
     state.clear_log_file().await
 }
 
 #[tauri::command]
-pub async fn get_log_file_path(state: State<'_, AppState>) -> Result<String> {
+pub async fn get_log_file_path(state: State<'_, AppState>, token: String) -> Result<String> {
     track_call("get_log_file_path").await;
     check_api_rate()?;
+    if !state.validate_session(&token).await {
+        return Err(Error::InvalidToken);
+    }
     Ok(state.log_file_path())
 }
 
@@ -322,9 +341,17 @@ pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<(
 }
 
 #[tauri::command]
-pub async fn ping_host(host: Option<String>, count: Option<u8>) -> Result<u64> {
+pub async fn ping_host(
+    state: State<'_, AppState>,
+    token: String,
+    host: Option<String>,
+    count: Option<u8>,
+) -> Result<u64> {
     track_call("ping_host").await;
     check_api_rate()?;
+    if !state.validate_session(&token).await {
+        return Err(Error::InvalidToken);
+    }
     let host = host.unwrap_or_else(|| "google.com".to_string());
     let count = count.unwrap_or(5).to_string();
     let mut cmd = if cfg!(target_os = "windows") {

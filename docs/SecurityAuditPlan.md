@@ -39,3 +39,11 @@ Penetration testing should cover:
 - Lead Auditor: coordinates the review
 - Developers: provide code context and implement fixes
 
+## Session Tokens
+
+The backend issues a random session token on startup. High‑risk commands such as
+log retrieval and network diagnostics require this token. The audit should
+verify that tokens are generated securely, expire after the configured TTL and
+that the front‑end supplies the token via the `token` argument in `tauri::invoke`
+calls.
+

@@ -38,6 +38,9 @@ pub enum Error {
 
     #[error("Rate limit exceeded for {0}")]
     RateLimited(String),
+
+    #[error("Invalid session token")]
+    InvalidToken,
 }
 
 impl From<arti_client::Error> for Error {
