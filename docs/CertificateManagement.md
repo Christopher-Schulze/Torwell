@@ -39,7 +39,7 @@ locations during development.
 ```json
 {
   "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://example.com/certs/server.pem",
+  "cert_url": "https://certs.torwell.com/server.pem",
   "min_tls_version": "1.2"
 }
 ```
@@ -75,7 +75,7 @@ let client = SecureHttpClient::init(
 
 ## Konfiguration
 
-Der Standardwert für `cert_url` verweist auf `https://example.com/certs/server.pem` und dient lediglich als Platzhalter.
+Der Standardwert für `cert_url` verweist auf `https://certs.torwell.com/server.pem` und dient lediglich als Platzhalter.
 Für produktive Einsätze muss dieser Wert auf den eigenen Update-Server zeigen.
 Dazu öffnen Sie `src-tauri/certs/cert_config.json` und ersetzen die URL durch den gewünschten Endpunkt.
 Alternativ können Sie beim Aufruf von `SecureHttpClient::init` einen abweichenden Wert übergeben, ohne die Datei zu verändern.

@@ -66,7 +66,7 @@ describe('log limit propagation', () => {
     expect(fileLines[0]).toContain('m3');
 
     const { invoke } = await import('@tauri-apps/api/tauri');
-    const loaded = await invoke('get_logs');
+    const loaded = await invoke<any[]>('get_logs');
     expect(loaded.length).toBe(3);
     expect(loaded[0].message).toBe('m3');
   });
