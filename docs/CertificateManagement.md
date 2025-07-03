@@ -77,3 +77,7 @@ Der Standardwert für `cert_url` verweist auf `https://example.com/certs/server.
 Für produktive Einsätze muss dieser Wert auf den eigenen Update-Server zeigen.
 Dazu öffnen Sie `src-tauri/certs/cert_config.json` und ersetzen die URL durch den gewünschten Endpunkt.
 Alternativ können Sie beim Aufruf von `SecureHttpClient::init` einen abweichenden Wert übergeben, ohne die Datei zu verändern.
+Ab Version 2.2.2 kann der Update-Endpunkt auch per Umgebungsvariable gesetzt werden.
+Wird `TORWELL_CERT_URL` definiert, überschreibt dieser Wert die Einstellung aus
+`cert_config.json`, sofern kein Parameter in `SecureHttpClient::init` gesetzt
+wird.

@@ -130,6 +130,12 @@ bun tauri build
 cd src-tauri && cargo test
 ```
 
+
+### Updating Certificates
+The pinned certificate location is configured in `src-tauri/certs/cert_config.json`.
+Change the `cert_url` value to your own server or set the environment variable
+`TORWELL_CERT_URL` to override it at runtime.
+
 > The first build will download many Rust crates and may take several minutes.
 
 ### Prerequisites
