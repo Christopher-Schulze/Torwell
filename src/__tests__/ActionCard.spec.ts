@@ -19,6 +19,7 @@ describe('ActionCard', () => {
       retryDelay: 0,
       memoryUsageMB: 0,
       circuitCount: 0,
+      pingMs: undefined,
     });
 
     const { getByRole } = render(ActionCard);
@@ -43,6 +44,7 @@ describe('ActionCard', () => {
       retryDelay: 0,
       memoryUsageMB: 0,
       circuitCount: 0,
+      pingMs: undefined,
     });
 
     const { getByRole } = render(ActionCard);

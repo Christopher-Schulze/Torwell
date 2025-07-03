@@ -23,10 +23,10 @@
     if (isPinging) return;
     isPinging = true;
     try {
-      const result: number = await invoke("ping_host", {
+      const result = (await invoke("ping_host", {
         host: "google.com",
         count: 5
-      });
+      })) as number;
       pingMs = result;
     } catch (error) {
       console.error("Ping failed:", error);

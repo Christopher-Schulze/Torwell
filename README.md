@@ -130,6 +130,10 @@ bun tauri build
 cd src-tauri && cargo test
 ```
 
+On Linux systems you may need additional development packages for the
+Rust build to succeed. Ensure `glib-2.0` development headers are
+installed (`libglib2.0-dev` on Debian/Ubuntu) before running the tests.
+
 
 ### Updating Certificates
 The pinned certificate location is configured in `src-tauri/certs/cert_config.json`.
@@ -215,3 +219,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - The Arti team for their Rust implementation of Tor
 - The Tauri team for the amazing desktop framework
 - The open-source community for their invaluable contributions
+

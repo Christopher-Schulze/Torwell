@@ -76,6 +76,7 @@
     <section
       class="bg-black/40 backdrop-blur-3xl rounded-2xl border border-white/10 w-[90%] max-w-2xl min-h-[500px] p-6 flex flex-col"
       on:click|stopPropagation
+      on:keydown={handleKeyDown}
       role="document"
     >
       <div class="flex justify-between items-center mb-4 shrink-0">

@@ -35,8 +35,8 @@
         async function loadLogs() {
                 isLoading = true;
                 try {
-                        const response: any[] = await invoke('get_logs');
-			logs = response.map(entry => ({
+                        const response = (await invoke('get_logs')) as LogEntry[];
+                        logs = response.map(entry => ({
 				type: entry.level.toLowerCase() === 'info' ? 'connection' : 'system',
 				timestamp: new Date(entry.timestamp).toLocaleString(),
 				message: entry.message,
@@ -54,7 +54,7 @@
 
         async function fetchLogFilePath() {
                 try {
-                        logFilePath = await invoke('get_log_file_path');
+                        logFilePath = (await invoke('get_log_file_path')) as string;
                 } catch (error) {
                         console.error('Failed to get log file path', error);
                 }

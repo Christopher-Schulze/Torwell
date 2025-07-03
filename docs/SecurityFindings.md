@@ -4,15 +4,15 @@ This report summarizes security issues discovered during a brief review of the r
 
 ## 1. Example Certificate URL
 - **File:** `src-tauri/certs/cert_config.json`
-- **Issue:** `cert_url` defaults to an example domain.
-- **Risk:** Using the placeholder URL may allow an attacker to replace the pinned certificate if the domain is not updated.
-- **Recommendation:** Update `cert_url` to a trusted location before deployment.
+- **Issue:** `cert_url` points to the default update endpoint `https://certs.torwell.com/server.pem`.
+- **Risk:** Deployments using a different update server must change this value; otherwise certificate updates could be fetched from an untrusted source.
+- **Recommendation:** Replace `cert_url` with your own HTTPS endpoint before release or override it via `TORWELL_CERT_URL`.
 
-## 2. Unencrypted Local Storage
+## 2. Weak Local Storage Encryption
 - **File:** `src/lib/database.ts`
-- **Issue:** Application settings are stored unencrypted in IndexedDB.
-- **Risk:** Local attackers could read configuration values such as bridge lists or exit-country preferences.
-- **Recommendation:** Consider encrypting sensitive fields or protecting access with OS-level permissions.
+- **Issue:** Settings are obfuscated using a simple XOR function before being stored in IndexedDB.
+- **Risk:** This provides minimal protection; a local attacker could still recover bridge lists or exit-country preferences.
+- **Recommendation:** Use stronger encryption or rely on OS-level permissions to restrict access.
 
 ## 3. External `ping` Command
 - **File:** `src-tauri/src/commands.rs`
