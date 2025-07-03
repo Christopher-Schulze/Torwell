@@ -102,3 +102,34 @@ Torwell84 adheres to WCAG 2.1 AA where possible. All interactive controls now in
 
 All buttons and form controls declare `aria-label` values so assistive technologies can accurately describe their purpose. When a modal becomes visible, the close button receives focus using Svelte's `tick` helper, enabling keyboard users to dismiss dialogs without hunting for focus. Text colours across the UI were lightened to improve contrast against the dark theme, meeting WCAG AA requirements.
 
+## 11. Architekturdiagramme
+
+Die folgende Mermaid-Grafik zeigt die grobe Struktur von Torwell84 V2. Der SvelteKit-Frontendcode läuft innerhalb der Tauri-Shell und kommuniziert ausschließlich über IPC mit dem Rust-Backend.
+
+```mermaid
+graph TD
+    User((Benutzer)) -->|UI-Aktionen| Frontend
+    Frontend -->|invoke| Backend
+    Backend -->|Commands| TorManager
+    TorManager -->|arti-client| TorNetz
+    Backend -->|Events| Frontend
+```
+
+## 12. Datenfluss
+
+Der typische Ablauf einer Verbindung sieht wie folgt aus:
+
+```mermaid
+sequenceDiagram
+    participant UI
+    participant Store
+    participant Backend
+    participant Tor
+
+    UI->>Backend: `connect()` aufrufen
+    Backend->>Tor: Verbindung aufbauen
+    Tor-->>Backend: Status-Updates
+    Backend-->>Store: `tor-status-update`
+    Store-->>UI: Reaktive Anzeige
+```
+
