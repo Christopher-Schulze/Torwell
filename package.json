@@ -23,6 +23,7 @@
     "@testing-library/svelte": "^5.2.8",
     "@types/node": "^20.10.0",
     "autoprefixer": "^10.4.16",
+    "fake-indexeddb": "^6.0.1",
     "jsdom": "^26.1.0",
     "postcss": "^8.4.32",
     "prettier": "^3.6.2",
