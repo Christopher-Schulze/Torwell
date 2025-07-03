@@ -50,7 +50,21 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: bun run tauri build
-      - uses: actions/upload-artifact@v4
+      - name: Upload MSI
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
         with:
-          name: bundle-${{ matrix.os }}
-          path: src-tauri/target/release/bundle
+          name: windows-msi
+          path: src-tauri/target/release/bundle/msi/*.msi
+      - name: Upload DEB
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+      - name: Upload AppImage
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
