@@ -5,8 +5,10 @@
 ### 1.1 Transport Layer Security
 
 #### 1.1.1 Certificate Pinning
-- **Current State**: `SecureHttpClient` already pins certificates via `rustls`, protecting all HTTPS
-  connections from MITM attacks
+- **Current State**: Certificate pinning is already implemented. The
+  `SecureHttpClient` uses `rustls` with a pinned certificate store so all HTTPS
+  connections are validated against the known certificate, preventing MITM
+  attacks.
 - **Enhancements**:
   1. Document the certificate rotation strategy
   2. Add fallback mechanisms for certificate updates
