@@ -3,6 +3,7 @@ use crate::secure_http::SecureHttpClient;
 use crate::tor_manager::{TorClientBehavior, TorManager};
 use arti_client::TorClient;
 use chrono::Utc;
+use directories::ProjectDirs;
 use log::Level;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -69,12 +70,21 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
 
 impl<C: TorClientBehavior> Default for AppState<C> {
     fn default() -> Self {
-        let log_file = std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join("torwell.log");
-        if let Some(parent) = log_file.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
+        let log_file = if let Some(proj) = ProjectDirs::from("", "", "torwell84") {
+            let path = proj.data_dir().join("torwell.log");
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            path
+        } else {
+            let path = std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join("torwell.log");
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            path
+        };
 
         let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
         let mut max_log_lines = cfg.max_log_lines;
@@ -109,12 +119,21 @@ impl<C: TorClientBehavior> Default for AppState<C> {
 
 impl<C: TorClientBehavior> AppState<C> {
     pub fn new(http_client: Arc<SecureHttpClient>) -> Self {
-        let log_file = std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join("torwell.log");
-        if let Some(parent) = log_file.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
+        let log_file = if let Some(proj) = ProjectDirs::from("", "", "torwell84") {
+            let path = proj.data_dir().join("torwell.log");
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            path
+        } else {
+            let path = std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join("torwell.log");
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            path
+        };
 
         let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
         let mut max_log_lines = cfg.max_log_lines;

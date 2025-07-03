@@ -195,7 +195,7 @@ async fn command_log_retrieval() {
     let logs = commands::get_logs(state).await.unwrap();
     assert!(logs.is_empty());
     let path = commands::get_log_file_path(state).await.unwrap();
-    assert!(path.ends_with("test.log"));
+    assert_eq!(path, state.log_file_path());
 }
 
 #[tokio::test]
