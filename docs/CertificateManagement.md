@@ -89,3 +89,17 @@ Serverzertifikate alle 90 Tage erneuert. `SecureHttpClient` ruft das
 aktuelle PEM automatisch vom konfigurierten Endpunkt ab und ersetzt die
 lokale Datei. So bleibt der Zertifikatspool stets aktuell, ohne dass ein
 Neustart der Anwendung erforderlich ist.
+
+### Rotation Workflow
+
+1. Lege das neue Zertifikat auf dem Produktionsserver unter
+   `https://certs.torwell.com/server.pem` ab.
+2. Beim Start liest `SecureHttpClient` `cert_config.json` ein und
+   verwendet `cert_url`, sofern keine Umgebungsvariable gesetzt ist.
+   Wird `TORWELL_CERT_URL` definiert, hat dieser Wert Vorrang.
+3. Der Client lädt das neue PEM herunter und ersetzt die Datei unter
+   `cert_path`. Anschließend werden die Zertifikate im laufenden Prozess
+   neu geladen.
+4. Überprüfe die Logdatei auf Meldungen wie
+   `certificate update failed` oder erfolgreiche Aktualisierungen, um
+   sicherzustellen, dass der Wechsel stattgefunden hat.
