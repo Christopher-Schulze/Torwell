@@ -21,7 +21,13 @@
 <div class="bg-black/20 rounded-xl p-6">
 	<div class="flex flex-col items-center gap-3">
 		<!-- Progress Bar -->
-                <div class="w-full bg-gray-700/50 rounded-full h-2">
+                <div
+                        class="w-full bg-gray-700/50 rounded-full h-2"
+                        role="progressbar"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow={connectionProgress}
+                >
                         <div
                                 class="bg-white h-2 rounded-full transition-all duration-500 ease-out"
                                 style="width: {connectionProgress}%"
