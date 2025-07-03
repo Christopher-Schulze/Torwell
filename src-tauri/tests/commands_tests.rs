@@ -286,3 +286,16 @@ async fn command_clear_bridges() {
     commands::set_bridges(state, Vec::new()).await.unwrap();
     assert!(state.tor_manager.get_bridges().await.is_empty());
 }
+
+#[tokio::test]
+async fn ping_host_invalid_hostname() {
+    let res = commands::ping_host(Some("bad host$".into()), Some(1)).await;
+    assert!(matches!(res, Err(Error::Io(_))));
+}
+
+#[tokio::test]
+async fn ping_host_count_capped() {
+    // should succeed using localhost even when count exceeds limit
+    let res = commands::ping_host(Some("127.0.0.1".into()), Some(100)).await;
+    assert!(res.is_ok());
+}
