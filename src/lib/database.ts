@@ -1,22 +1,16 @@
 // lib/database.ts
 import Dexie, { type Table } from "dexie";
+import CryptoJS from "crypto-js";
 
 const SECRET = "torwell-key";
 
-function xor(str: string): string {
-  return Array.from(str)
-    .map((c, i) =>
-      String.fromCharCode(c.charCodeAt(0) ^ SECRET.charCodeAt(i % SECRET.length))
-    )
-    .join("");
-}
-
 function encryptString(value: string): string {
-  return btoa(xor(value));
+  return CryptoJS.AES.encrypt(value, SECRET).toString();
 }
 
 function decryptString(value: string): string {
-  return xor(atob(value));
+  const bytes = CryptoJS.AES.decrypt(value, SECRET);
+  return bytes.toString(CryptoJS.enc.Utf8);
 }
 
 function encryptFields(obj: Partial<Settings>): void {

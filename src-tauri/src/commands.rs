@@ -232,6 +232,11 @@ pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String
 }
 
 #[tauri::command]
+pub async fn get_exit_country(state: State<'_, AppState>) -> Option<String> {
+    state.tor_manager.get_exit_country().await
+}
+
+#[tauri::command]
 pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Result<()> {
     track_call("set_bridges").await;
     check_api_rate()?;

@@ -299,3 +299,15 @@ async fn ping_host_count_capped() {
     let res = commands::ping_host(Some("127.0.0.1".into()), Some(100)).await;
     assert!(res.is_ok());
 }
+
+#[tokio::test]
+async fn command_get_exit_country() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_exit_country(state, Some("us".into())).await.unwrap();
+    let cc = commands::get_exit_country(state).await;
+    assert_eq!(cc.as_deref(), Some("US"));
+}

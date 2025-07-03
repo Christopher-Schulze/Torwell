@@ -78,6 +78,7 @@
       on:click|stopPropagation
       on:keydown={handleKeyDown}
       role="document"
+      tabindex="-1"
     >
       <div class="flex justify-between items-center mb-4 shrink-0">
         <h2 id="settings-modal-title" class="text-2xl font-semibold">
