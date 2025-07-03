@@ -10,8 +10,8 @@ This project welcomes community contributions. Please follow the guidelines belo
 
 ## Testing
 
-1. Install dependencies with `bun install` (or `pnpm install`).
-2. Run `pnpm run check` to verify the Svelte frontend.
+1. Install dependencies with `bun install`.
+2. Run `bun run check` to verify the Svelte frontend.
 3. Run `cargo check` in `src-tauri` to ensure the backend builds.
 
 ## Pull Request Process
