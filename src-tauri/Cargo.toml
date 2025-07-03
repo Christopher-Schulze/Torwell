@@ -18,7 +18,7 @@ log = "0.4"
 thiserror = "1.0"
 futures = "0.3"
 once_cell = "1"
-tauri = { version = "1.6.0", features = [] }
+tauri = { version = "1.6.0", features = ["system-tray", "updater"] }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 regex = "1"
 arti-client = { version = "0.31.0", features = ["tokio", "rpc", "full", "experimental-api", "geoip"] }

@@ -41,6 +41,16 @@
         "maximizable": false,
         "minimizable": true
       }
-    ]
+    ],
+    "systemTray": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    },
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://example.com/updates/{platform}/{arch}"
+      ]
+    }
   }
 }
