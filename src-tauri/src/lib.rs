@@ -31,6 +31,8 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            let state = app.state::<AppState>();
+            state.clone().start_metrics_task(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

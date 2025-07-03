@@ -106,7 +106,7 @@
       {totalTrafficMB}
       memoryMB={$torStore.memoryUsageMB}
       circuitCount={$torStore.circuitCount}
-      pingMs={undefined}
+      pingMs={$torStore.pingMs}
     />
 
     <TorChain

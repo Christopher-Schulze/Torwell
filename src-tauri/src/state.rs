@@ -6,13 +6,17 @@ use arti_client::TorClient;
 use chrono::Utc;
 use directories::ProjectDirs;
 use log::Level;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
+use sysinfo::{PidExt, System, SystemExt};
+use tauri::AppHandle;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
 use tokio::sync::Mutex;
 use tor_rtcompat::PreferredRuntime;
 
@@ -66,6 +70,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub memory_usage: Arc<Mutex<u64>>,
     /// Current number of circuits
     pub circuit_count: Arc<Mutex<usize>>,
+    /// Last recorded network latency in milliseconds
+    pub latency_ms: Arc<Mutex<u64>>,
     /// Maximum memory usage before warning (in MB)
     pub max_memory_mb: u64,
     /// Maximum number of circuits before warning
@@ -111,6 +117,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
+            latency_ms: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -159,6 +166,7 @@ impl<C: TorClientBehavior> AppState<C> {
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
+            latency_ms: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -218,6 +226,15 @@ impl<C: TorClientBehavior> AppState<C> {
         let mut lines: Vec<&str> = contents.lines().collect();
         let limit = *self.max_log_lines.lock().await;
         if lines.len() > limit {
+            let archive_dir = self
+                .log_file
+                .parent()
+                .map(|p| p.join("archive"))
+                .unwrap_or_else(|| PathBuf::from("archive"));
+            fs::create_dir_all(&archive_dir).await?;
+            let ts = Utc::now().format("%Y%m%d%H%M%S");
+            let archive_path = archive_dir.join(format!("torwell-{}.log", ts));
+            fs::rename(&self.log_file, &archive_path).await?;
             lines = lines[lines.len() - limit..].to_vec();
             fs::write(&self.log_file, lines.join("\n")).await?;
         }
@@ -259,10 +276,103 @@ impl<C: TorClientBehavior> AppState<C> {
         *self.circuit_count.lock().await = circuits;
     }
 
+    /// Update network latency metric
+    pub async fn update_latency(&self, latency: u64) {
+        *self.latency_ms.lock().await = latency;
+    }
+
     /// Retrieve current metrics
     pub async fn metrics(&self) -> (u64, usize) {
         let mem = *self.memory_usage.lock().await;
         let circ = *self.circuit_count.lock().await;
         (mem, circ)
+    }
+
+    /// Retrieve current latency
+    pub async fn latency(&self) -> u64 {
+        *self.latency_ms.lock().await
+    }
+
+    /// Start periodic collection of performance metrics and emit events
+    pub fn start_metrics_task(self: Arc<Self>, handle: AppHandle) {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(30));
+            loop {
+                interval.tick().await;
+
+                let circ = match self.tor_manager.circuit_metrics().await {
+                    Ok(c) => c,
+                    Err(_) => crate::tor_manager::CircuitMetrics {
+                        count: 0,
+                        oldest_age: 0,
+                    },
+                };
+
+                let mut sys = System::new();
+                let pid = match sysinfo::get_current_pid() {
+                    Ok(p) => p,
+                    Err(_) => continue,
+                };
+                sys.refresh_process(pid);
+                let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
+
+                let latency = match Self::measure_ping_latency().await {
+                    Ok(v) => v,
+                    Err(_) => 0,
+                };
+
+                self.update_metrics(mem, circ.count).await;
+                self.update_latency(latency).await;
+
+                let _ = handle.emit_all(
+                    "metrics-update",
+                    serde_json::json!({
+                        "memory_bytes": mem,
+                        "circuit_count": circ.count,
+                        "latency_ms": latency
+                    }),
+                );
+            }
+        });
+    }
+
+    /// Measure latency to a well-known host using the system ping command
+    async fn measure_ping_latency() -> Result<u64> {
+        let host = "google.com";
+        let count = "1";
+        let mut cmd = if cfg!(target_os = "windows") {
+            let mut c = Command::new("ping");
+            c.arg("-n").arg(count).arg(host);
+            c
+        } else {
+            let mut c = Command::new("ping");
+            c.arg("-c").arg(count).arg(host);
+            c
+        };
+
+        let output = cmd.output().await?;
+        if !output.status.success() {
+            return Ok(0);
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        if cfg!(target_os = "windows") {
+            let re = Regex::new(r"Average = (\d+)ms").unwrap();
+            if let Some(caps) = re.captures(&stdout) {
+                if let Some(avg) = caps.get(1) {
+                    return Ok(avg.as_str().parse().unwrap_or(0));
+                }
+            }
+        } else {
+            let re = Regex::new(r"= ([^/]+)/([^/]+)/([^/]+)/").unwrap();
+            if let Some(caps) = re.captures(&stdout) {
+                if let Some(avg) = caps.get(2) {
+                    let avg_f: f64 = avg.as_str().parse().unwrap_or(0.0);
+                    return Ok(avg_f.round() as u64);
+                }
+            }
+        }
+
+        Ok(0)
     }
 }

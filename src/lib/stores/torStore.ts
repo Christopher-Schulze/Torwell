@@ -19,6 +19,7 @@ export interface TorState {
   retryDelay: number;
   memoryUsageMB: number;
   circuitCount: number;
+  pingMs: number | undefined;
 }
 
 function createTorStore() {
@@ -31,40 +32,20 @@ function createTorStore() {
     retryDelay: 0,
     memoryUsageMB: 0,
     circuitCount: 0,
+    pingMs: undefined,
   };
 
   const { subscribe, update, set } = writable<TorState>(initialState);
 
-  // Periodic metrics polling
-  let metricsInterval: ReturnType<typeof setInterval> | null = null;
-
-  async function fetchMetrics() {
-    try {
-      const metrics = await invoke<any>("get_metrics");
-      update((state) => ({
-        ...state,
-        memoryUsageMB: Math.round(metrics.memory_bytes / 1_000_000),
-        circuitCount: metrics.circuit_count,
-      }));
-    } catch (err) {
-      console.error("Failed to get metrics", err);
-    }
-  }
-
-  function startMetrics() {
-    if (!metricsInterval) {
-      fetchMetrics();
-      metricsInterval = setInterval(fetchMetrics, 5000);
-    }
-  }
-
-  function stopMetrics() {
-    if (metricsInterval) {
-      clearInterval(metricsInterval);
-      metricsInterval = null;
-    }
-    update((state) => ({ ...state, memoryUsageMB: 0, circuitCount: 0 }));
-  }
+  // Listen for metrics updates from the Rust backend
+  listen<any>("metrics-update", (event) => {
+    update((state) => ({
+      ...state,
+      memoryUsageMB: Math.round(event.payload.memory_bytes / 1_000_000),
+      circuitCount: event.payload.circuit_count,
+      pingMs: event.payload.latency_ms,
+    }));
+  });
 
   // Listen for status updates from the Rust backend
   listen<TorState>("tor-status-update", (event) => {
@@ -96,10 +77,13 @@ function createTorStore() {
 
     const newStatus =
       (event.payload.status as TorStatus) ?? initialState.status;
-    if (newStatus === "CONNECTED") {
-      startMetrics();
-    } else {
-      stopMetrics();
+    if (newStatus !== "CONNECTED") {
+      update((state) => ({
+        ...state,
+        memoryUsageMB: 0,
+        circuitCount: 0,
+        pingMs: undefined,
+      }));
     }
   });
 
