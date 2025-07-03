@@ -39,7 +39,7 @@
                 {/if}
 		
 		<!-- Animated Status Text -->
-                <div class="text-center relative h-4 flex items-center justify-center">
+                <div class="text-center relative h-4 flex items-center justify-center" aria-live="polite">
                         <p
                                 class="text-xs font-medium text-white absolute transition-all duration-300 {isAnimating ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100'}"
                         >
