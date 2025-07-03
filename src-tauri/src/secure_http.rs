@@ -1,14 +1,18 @@
-use reqwest::{Client, ClientBuilder};
+use reqwest::{Client, ClientBuilder, Url};
+use rustls::crypto::ring::{self, cipher_suite};
+use rustls::crypto::{self, CryptoProvider};
 use rustls::pki_types::CertificateDer;
+use rustls::suites::CipherSuite;
 use rustls::version::{TLS12, TLS13};
 use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
 /// Location of the pinned server certificate. The path is relative to the
@@ -57,9 +61,33 @@ impl Default for CertConfig {
     }
 }
 
+fn parse_max_age(header: &str) -> Option<u64> {
+    header.split(';').find_map(|part| {
+        let part = part.trim();
+        part.strip_prefix("max-age=")?.parse().ok()
+    })
+}
+
+fn strong_provider() -> CryptoProvider {
+    let mut provider = ring::default_provider();
+    provider.cipher_suites.retain(|suite| {
+        matches!(
+            suite.common().suite,
+            CipherSuite::TLS13_AES_256_GCM_SHA384
+                | CipherSuite::TLS13_CHACHA20_POLY1305_SHA256
+                | CipherSuite::TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+                | CipherSuite::TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+                | CipherSuite::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+                | CipherSuite::TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+        )
+    });
+    provider
+}
+
 pub struct SecureHttpClient {
     client: Arc<Mutex<Client>>,
     cert_path: String,
+    hsts: Arc<Mutex<HashMap<String, Instant>>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -67,6 +95,7 @@ impl Clone for SecureHttpClient {
         Self {
             client: self.client.clone(),
             cert_path: self.cert_path.clone(),
+            hsts: self.hsts.clone(),
         }
     }
 }
@@ -81,10 +110,8 @@ impl SecureHttpClient {
             pemfile::certs(&mut reader).collect::<Result<_, _>>()?;
         store.add_parsable_certificates(certs);
 
-        let mut config = ClientConfig::builder()
-            .with_safe_default_cipher_suites()
-            .with_safe_default_kx_groups()
-            .with_protocol_versions(&[&TLS13, &TLS12])?
+        let mut config = ClientConfig::builder_with_provider(Arc::new(strong_provider()))
+            .with_safe_default_protocol_versions()?
             .with_root_certificates(store)
             .with_no_client_auth();
 
@@ -100,10 +127,8 @@ impl SecureHttpClient {
             pemfile::certs(&mut reader).collect::<Result<_, _>>()?;
         store.add_parsable_certificates(certs);
 
-        let mut config = ClientConfig::builder()
-            .with_safe_default_cipher_suites()
-            .with_safe_default_kx_groups()
-            .with_protocol_versions(&[&TLS13, &TLS12])?
+        let mut config = ClientConfig::builder_with_provider(Arc::new(strong_provider()))
+            .with_safe_default_protocol_versions()?
             .with_root_certificates(store)
             .with_no_client_auth();
         config.enable_ocsp_stapling = true;
@@ -122,6 +147,7 @@ impl SecureHttpClient {
         Ok(Self {
             client: Arc::new(Mutex::new(client)),
             cert_path: path.to_string_lossy().to_string(),
+            hsts: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -172,15 +198,42 @@ update cert_url in cert_config.json"
     }
 
     async fn get_with_hsts_check(&self, url: &str) -> reqwest::Result<reqwest::Response> {
+        let mut parsed = Url::parse(url)?;
+
+        if parsed.scheme() == "http" {
+            if let Some(host) = parsed.host_str() {
+                let upgrade = {
+                    let map = self.hsts.lock().await;
+                    map.get(host)
+                        .map(|exp| *exp > Instant::now())
+                        .unwrap_or(false)
+                };
+                if upgrade {
+                    parsed.set_scheme("https").ok();
+                }
+            }
+        }
+
         // clone the client to avoid holding the lock while awaiting network I/O
         let client = {
             let guard = self.client.lock().await;
             guard.clone()
         };
 
-        let resp = client.get(url).send().await?;
-        if resp.headers().get("strict-transport-security").is_none() {
-            log::warn!("HSTS header missing for {}", url);
+        let resp = client.get(parsed.clone()).send().await?;
+
+        if let Some(hsts) = resp.headers().get("strict-transport-security") {
+            if let Ok(val) = hsts.to_str() {
+                if let Some(max_age) = parse_max_age(val) {
+                    if let Some(host) = resp.url().host_str() {
+                        let expiry = Instant::now() + Duration::from_secs(max_age);
+                        let mut map = self.hsts.lock().await;
+                        map.insert(host.to_string(), expiry);
+                    }
+                }
+            }
+        } else {
+            log::warn!("HSTS header missing for {}", resp.url());
         }
         Ok(resp)
     }
