@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tempfile::tempdir;
+use serial_test::serial;
 use torwell84::secure_http::{SecureHttpClient, DEFAULT_CONFIG_PATH};
 
 const CA_PEM: &str = include_str!("../tests_data/ca.pem");
@@ -231,6 +232,40 @@ async fn init_using_default_constant() {
     .unwrap();
 
     let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
+#[serial]
+async fn env_var_overrides_config() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cfg_cert_path = dir.path().join("cfg.pem");
+    fs::write(&cfg_cert_path, CA_PEM).unwrap();
+
+    let config_path = dir.path().join("config.json");
+    let config = serde_json::json!({
+        "cert_path": cfg_cert_path.to_string_lossy(),
+        "cert_url": "https://invalid.example/cert.pem"
+    });
+    fs::write(&config_path, config.to_string()).unwrap();
+
+    std::env::set_var("TORWELL_CERT_URL", server.url("/cert.pem"));
+
+    let _client = SecureHttpClient::init(&config_path, None, None, None)
+        .await
+        .unwrap();
+
+    std::env::remove_var("TORWELL_CERT_URL");
+
+    let updated = fs::read_to_string(&cfg_cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
 }
 

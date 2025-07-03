@@ -138,6 +138,11 @@ impl SecureHttpClient {
         interval: Option<Duration>,
     ) -> anyhow::Result<Arc<Self>> {
         let mut cfg = CertConfig::load(config_path);
+
+        if let Ok(env_url) = std::env::var("TORWELL_CERT_URL") {
+            cfg.cert_url = env_url;
+        }
+
         if let Some(path) = cert_path {
             cfg.cert_path = path;
         }
