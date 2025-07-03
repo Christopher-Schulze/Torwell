@@ -1,4 +1,5 @@
 {
   "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://raw.githubusercontent.com/Christopher-Schulze/Torwell/main/src-tauri/certs/server.pem"
+  "cert_url": "https://raw.githubusercontent.com/Christopher-Schulze/Torwell/main/src-tauri/certs/server.pem",
+  "note": "Replace cert_url with your own certificate URL"
 }
