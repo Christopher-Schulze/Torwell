@@ -126,7 +126,10 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
-            session: SessionManager::new(Duration::from_secs(DEFAULT_SESSION_TTL)),
+            session: SessionManager::new(Duration::from_secs(std::env::var("TORWELL_SESSION_TTL")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(DEFAULT_SESSION_TTL))),
         }
     }
 }
@@ -175,7 +178,10 @@ impl<C: TorClientBehavior> AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
-            session: SessionManager::new(Duration::from_secs(DEFAULT_SESSION_TTL)),
+            session: SessionManager::new(Duration::from_secs(std::env::var("TORWELL_SESSION_TTL")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(DEFAULT_SESSION_TTL))),
         }
     }
 

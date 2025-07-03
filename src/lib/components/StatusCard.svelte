@@ -4,9 +4,13 @@
 
   export let status;
   export let totalTrafficMB = 0;
-  export let memoryMB = 0;
-  export let circuitCount = 0;
   export let pingMs: number | undefined = undefined;
+
+  import { torStore } from "$lib/stores/torStore";
+  $: memoryMB = $torStore.memoryUsageMB;
+  $: circuitCount = $torStore.circuitCount;
+  let memoryMB: number;
+  let circuitCount: number;
 
   let isPinging = false;
 

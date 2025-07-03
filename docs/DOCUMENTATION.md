@@ -133,3 +133,9 @@ sequenceDiagram
     Store-->>UI: Reaktive Anzeige
 ```
 
+## 13. Environment Variables
+
+Das Backend akzeptiert verschiedene Umgebungsvariablen zur Laufzeitkonfiguration.
+
+- `TORWELL_SESSION_TTL` – Lebensdauer eines Session-Tokens in Sekunden (Standard `3600`)
+

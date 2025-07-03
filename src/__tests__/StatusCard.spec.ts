@@ -12,8 +12,6 @@ describe('StatusCard', () => {
       props: {
         status: 'CONNECTED',
         totalTrafficMB: 1500,
-        memoryMB: 50,
-        circuitCount: 2,
         pingMs: undefined
       }
     });
@@ -26,8 +24,6 @@ describe('StatusCard', () => {
       props: {
         status: 'CONNECTED',
         totalTrafficMB: 10,
-        memoryMB: 5,
-        circuitCount: 1,
         pingMs: undefined
       }
     });
@@ -40,5 +36,16 @@ describe('StatusCard', () => {
       count: 5
     });
     await findByText('42 ms');
+  });
+
+  it('reacts to torStore metric changes', async () => {
+    const { getByText } = render(StatusCard, {
+      props: { status: 'CONNECTED', totalTrafficMB: 0, pingMs: undefined }
+    });
+    const { torStore } = await import('../lib/stores/torStore');
+    torStore.update((s) => ({ ...s, memoryUsageMB: 55, circuitCount: 3 }));
+    await Promise.resolve();
+    expect(getByText('55 MB')).toBeInTheDocument();
+    expect(getByText('3')).toBeInTheDocument();
   });
 });
