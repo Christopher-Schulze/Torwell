@@ -143,6 +143,28 @@ Change the `cert_url` value to your own server or set the environment variable
 - Rust and Cargo (via rustup)
 - System dependencies for Tauri (see [Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites))
 
+## Installation
+
+### Windows
+Download the latest `msi` installer from the [releases page](https://github.com/Christopher-Schulze/Torwell84/releases) and run it.
+
+### Linux
+For Debian-based distributions, install the `.deb` package:
+
+```bash
+sudo dpkg -i torwell84_<version>_amd64.deb
+```
+
+AppImage users can run the file directly:
+
+```bash
+chmod +x Torwell84-<version>.AppImage
+./Torwell84-<version>.AppImage
+```
+
+### macOS
+Open the `.dmg` file from the releases page and drag **Torwell84** to your Applications folder.
+
 ## 🛠️ Technical Details
 
 ### Built With

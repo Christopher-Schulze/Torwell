@@ -15,11 +15,11 @@
         "identifier": "com.torwell84.v2.app",
         "active": true,
         "targets": [
-            "app",
-            "dmg",
             "msi",
+            "deb",
             "appimage",
-            "deb"
+            "dmg",
+            "app"
         ],
         "icon": [
             "icons/32x32.png",
@@ -48,6 +48,7 @@
     },
     "updater": {
       "active": true,
+      "pubkey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       "endpoints": [
         "https://example.com/updates/{platform}/{arch}"
       ]
