@@ -31,6 +31,8 @@ struct CertConfig {
     cert_path: String,
     #[serde(default = "default_cert_url")]
     cert_url: String,
+    #[serde(default = "default_min_tls_version")]
+    min_tls_version: Option<String>,
 }
 
 fn default_cert_path() -> String {
@@ -39,6 +41,10 @@ fn default_cert_path() -> String {
 
 fn default_cert_url() -> String {
     DEFAULT_CERT_URL.to_string()
+}
+
+fn default_min_tls_version() -> Option<String> {
+    Some("1.2".to_string())
 }
 
 impl CertConfig {
@@ -57,6 +63,7 @@ impl Default for CertConfig {
         Self {
             cert_path: DEFAULT_CERT_PATH.to_string(),
             cert_url: DEFAULT_CERT_URL.to_string(),
+            min_tls_version: default_min_tls_version(),
         }
     }
 }
@@ -68,10 +75,17 @@ fn parse_max_age(header: &str) -> Option<u64> {
     })
 }
 
-fn strong_provider() -> CryptoProvider {
+fn parse_tls_version(v: Option<&str>) -> reqwest::tls::Version {
+    match v.unwrap_or("1.2") {
+        "1.3" => reqwest::tls::Version::TLS_1_3,
+        _ => reqwest::tls::Version::TLS_1_2,
+    }
+}
+
+fn strong_provider(min_tls: reqwest::tls::Version) -> CryptoProvider {
     let mut provider = ring::default_provider();
     provider.cipher_suites.retain(|suite| {
-        matches!(
+        let allowed = matches!(
             suite.common().suite,
             CipherSuite::TLS13_AES_256_GCM_SHA384
                 | CipherSuite::TLS13_CHACHA20_POLY1305_SHA256
@@ -79,7 +93,15 @@ fn strong_provider() -> CryptoProvider {
                 | CipherSuite::TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
                 | CipherSuite::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
                 | CipherSuite::TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
-        )
+        );
+        if !allowed {
+            return false;
+        }
+        if matches!(min_tls, reqwest::tls::Version::TLS_1_3) {
+            suite.common().versions.contains(&TLS13)
+        } else {
+            true
+        }
     });
     provider
 }
@@ -88,6 +110,7 @@ pub struct SecureHttpClient {
     client: Arc<Mutex<Client>>,
     cert_path: String,
     hsts: Arc<Mutex<HashMap<String, Instant>>>,
+    min_tls: reqwest::tls::Version,
 }
 
 impl Clone for SecureHttpClient {
@@ -96,6 +119,7 @@ impl Clone for SecureHttpClient {
             client: self.client.clone(),
             cert_path: self.cert_path.clone(),
             hsts: self.hsts.clone(),
+            min_tls: self.min_tls,
         }
     }
 }
@@ -103,6 +127,13 @@ impl Clone for SecureHttpClient {
 impl SecureHttpClient {
     #[cfg(test)]
     pub(crate) fn build_tls_config<P: AsRef<Path>>(path: P) -> anyhow::Result<ClientConfig> {
+        Self::build_tls_config_with_min_tls(path, reqwest::tls::Version::TLS_1_2)
+    }
+
+    fn build_tls_config_with_min_tls<P: AsRef<Path>>(
+        path: P,
+        min_tls: reqwest::tls::Version,
+    ) -> anyhow::Result<ClientConfig> {
         let mut store = RootCertStore::empty();
         let file = File::open(&path)?;
         let mut reader = BufReader::new(file);
@@ -110,44 +141,48 @@ impl SecureHttpClient {
             pemfile::certs(&mut reader).collect::<Result<_, _>>()?;
         store.add_parsable_certificates(certs);
 
-        let mut config = ClientConfig::builder_with_provider(Arc::new(strong_provider()))
-            .with_safe_default_protocol_versions()?
-            .with_root_certificates(store)
-            .with_no_client_auth();
+        let builder = ClientConfig::builder_with_provider(Arc::new(strong_provider(min_tls)));
+        let builder = if matches!(min_tls, reqwest::tls::Version::TLS_1_3) {
+            builder.with_protocol_versions(&[&TLS13])?
+        } else {
+            builder.with_protocol_versions(&[&TLS12, &TLS13])?
+        };
+
+        let mut config = builder.with_root_certificates(store).with_no_client_auth();
 
         config.enable_ocsp_stapling = true;
         Ok(config)
     }
 
-    fn build_client<P: AsRef<Path>>(path: P) -> anyhow::Result<Client> {
-        let mut store = RootCertStore::empty();
-        let file = File::open(&path)?;
-        let mut reader = BufReader::new(file);
-        let certs: Vec<CertificateDer<'static>> =
-            pemfile::certs(&mut reader).collect::<Result<_, _>>()?;
-        store.add_parsable_certificates(certs);
-
-        let mut config = ClientConfig::builder_with_provider(Arc::new(strong_provider()))
-            .with_safe_default_protocol_versions()?
-            .with_root_certificates(store)
-            .with_no_client_auth();
-        config.enable_ocsp_stapling = true;
+    fn build_client<P: AsRef<Path>>(
+        path: P,
+        min_tls: reqwest::tls::Version,
+    ) -> anyhow::Result<Client> {
+        let config = Self::build_tls_config_with_min_tls(&path, min_tls)?;
 
         let client = ClientBuilder::new()
             .use_preconfigured_tls(config)
             .https_only(true)
-            .min_tls_version(reqwest::tls::Version::TLS_1_2)
+            .min_tls_version(min_tls)
             .build()?;
         Ok(client)
     }
 
     pub fn new<P: AsRef<Path>>(cert_path: P) -> anyhow::Result<Self> {
+        Self::new_with_min_tls(cert_path, reqwest::tls::Version::TLS_1_2)
+    }
+
+    pub fn new_with_min_tls<P: AsRef<Path>>(
+        cert_path: P,
+        min_tls: reqwest::tls::Version,
+    ) -> anyhow::Result<Self> {
         let path = cert_path.as_ref().to_owned();
-        let client = Self::build_client(&path)?;
+        let client = Self::build_client(&path, min_tls)?;
         Ok(Self {
             client: Arc::new(Mutex::new(client)),
             cert_path: path.to_string_lossy().to_string(),
             hsts: Arc::new(Mutex::new(HashMap::new())),
+            min_tls,
         })
     }
 
@@ -178,11 +213,11 @@ impl SecureHttpClient {
 
         if cfg.cert_url.contains("example.com") {
             log::warn!(
-                "certificate update URL still points to example.com; \
-update cert_url in cert_config.json"
+                "certificate update URL still points to example.com; update cert_url in cert_config.json"
             );
         }
-        let client = Arc::new(Self::new(&cfg.cert_path)?);
+        let min_tls = parse_tls_version(cfg.min_tls_version.as_deref());
+        let client = Arc::new(Self::new_with_min_tls(&cfg.cert_path, min_tls)?);
 
         // Always try to refresh certificates on startup using the currently
         // pinned certificate for validation.
@@ -244,7 +279,7 @@ update cert_url in cert_config.json"
     }
 
     pub async fn reload_certificates(&self) -> anyhow::Result<()> {
-        let client = Self::build_client(&self.cert_path)?;
+        let client = Self::build_client(&self.cert_path, self.min_tls)?;
         let mut guard = self.client.lock().await;
         *guard = client;
         Ok(())
