@@ -1,5 +1,6 @@
 use crate::error::Result;
 use crate::secure_http::SecureHttpClient;
+use crate::session::SessionManager;
 use crate::tor_manager::{TorClientBehavior, TorManager};
 use arti_client::TorClient;
 use chrono::Utc;
@@ -9,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
@@ -19,6 +21,8 @@ pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/app_config.json";
 
 /// Default number of log lines retained if no configuration is provided
 pub const DEFAULT_MAX_LOG_LINES: usize = 1000;
+/// Default session token lifetime in seconds
+pub const DEFAULT_SESSION_TTL: u64 = 3600;
 
 #[derive(Deserialize, Default)]
 struct AppConfig {
@@ -66,6 +70,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub max_memory_mb: u64,
     /// Maximum number of circuits before warning
     pub max_circuits: usize,
+    /// Session manager for authentication tokens
+    pub session: Arc<SessionManager>,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -113,6 +119,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
+            session: SessionManager::new(Duration::from_secs(DEFAULT_SESSION_TTL)),
         }
     }
 }
@@ -160,6 +167,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
+            session: SessionManager::new(Duration::from_secs(DEFAULT_SESSION_TTL)),
         }
     }
 
@@ -173,6 +181,16 @@ impl<C: TorClientBehavior> AppState<C> {
     pub async fn reset_retry_counter(&self) {
         let mut guard = self.retry_counter.lock().await;
         *guard = 0;
+    }
+
+    /// Create and return a new session token
+    pub async fn create_session(&self) -> String {
+        self.session.create_session().await
+    }
+
+    /// Validate an existing session token
+    pub async fn validate_session(&self, token: &str) -> bool {
+        self.session.validate(token).await
     }
 
     pub async fn add_log(&self, level: Level, message: String) -> Result<()> {

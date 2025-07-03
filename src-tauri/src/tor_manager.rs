@@ -38,6 +38,7 @@ use tor_rtcompat::PreferredRuntime;
 const INITIAL_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
 const MAX_BACKOFF: std::time::Duration = std::time::Duration::from_secs(30);
 const CONNECT_RATE_LIMIT: u32 = 5;
+const CIRCUIT_RATE_LIMIT: u32 = 10;
 
 /// Simple traffic statistics returned from [`TorManager::traffic_stats`].
 #[derive(Debug, Clone)]
@@ -152,6 +153,7 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     bridges: Arc<Mutex<Vec<String>>>,
     country_cache: Arc<Mutex<HashMap<String, String>>>,
     connect_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
+    circuit_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
 }
 
 impl<C> Clone for TorManager<C> {
@@ -163,6 +165,7 @@ impl<C> Clone for TorManager<C> {
             bridges: Arc::clone(&self.bridges),
             country_cache: Arc::clone(&self.country_cache),
             connect_limiter: Arc::clone(&self.connect_limiter),
+            circuit_limiter: Arc::clone(&self.circuit_limiter),
         }
     }
 }
@@ -177,6 +180,9 @@ impl<C: TorClientBehavior> TorManager<C> {
             country_cache: Arc::new(Mutex::new(HashMap::new())),
             connect_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
                 NonZeroU32::new(CONNECT_RATE_LIMIT).unwrap(),
+            ))),
+            circuit_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
+                NonZeroU32::new(CIRCUIT_RATE_LIMIT).unwrap(),
             ))),
         };
 
@@ -362,6 +368,10 @@ impl<C: TorClientBehavior> TorManager<C> {
     pub async fn new_identity(&self) -> Result<()> {
         let client_guard = self.client.lock().await;
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+
+        if self.circuit_limiter.check().is_err() {
+            return Err(Error::RateLimited("new_identity".into()));
+        }
 
         // Force new configuration and circuits
         let config = self.build_config().await?;

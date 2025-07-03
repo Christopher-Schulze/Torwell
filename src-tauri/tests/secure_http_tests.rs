@@ -1,11 +1,11 @@
 use httpmock::prelude::*;
 use logtest::Logger;
+use serial_test::serial;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tempfile::tempdir;
-use serial_test::serial;
 use torwell84::secure_http::{SecureHttpClient, DEFAULT_CONFIG_PATH};
 
 const CA_PEM: &str = include_str!("../tests_data/ca.pem");
