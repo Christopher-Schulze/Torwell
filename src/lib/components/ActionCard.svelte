@@ -57,8 +57,8 @@
 
 <div class="bg-black/20 rounded-xl p-6">
 	<!-- Error Message -->
-        {#if $torStore.errorMessage}
-                <div class="mb-4 p-3 bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg flex items-center gap-2">
+{#if $torStore.errorMessage}
+                <div class="mb-4 p-3 bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg flex items-center gap-2" role="alert" aria-live="assertive">
                         <AlertCircle size={16} />
                         <span>
                                 {$torStore.errorMessage}
@@ -67,7 +67,7 @@
                                 {/if}
                         </span>
                 </div>
-        {/if}
+{/if}
 
 	<!-- Four Buttons Layout -->
 	<div class="grid grid-cols-4 gap-3">

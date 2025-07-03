@@ -153,8 +153,8 @@
                                 </select>
                         </div>
 
-			<!-- Log Content -->
-			<div class="p-6 max-h-96 overflow-y-auto">
+                        <!-- Log Content -->
+                        <div class="p-6 max-h-96 overflow-y-auto" role="log" aria-live="polite">
                                 {#if isLoading}
                                         <div class="text-center text-gray-100 py-8">
 						<div class="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-2"></div>
