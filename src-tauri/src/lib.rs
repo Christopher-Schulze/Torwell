@@ -24,7 +24,9 @@ pub fn run() {
 
     let quit = CustomMenuItem::new("quit", "Quit");
     let show = CustomMenuItem::new("show", "Show");
-    let tray_menu = SystemTrayMenu::new().add_item(show.clone()).add_item(quit.clone());
+    let tray_menu = SystemTrayMenu::new()
+        .add_item(show.clone())
+        .add_item(quit.clone());
     let tray = SystemTray::new().with_menu(tray_menu);
 
     tauri::Builder::default()

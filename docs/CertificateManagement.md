@@ -1,7 +1,7 @@
 # Certificate Management
 
 Torwell84 uses certificate pinning to defend against man-in-the-middle attacks. The pinned certificates are stored in `src-tauri/certs`. A helper module (`secure_http.rs`) loads these certificates into a custom `RootCertStore` for `reqwest`.
-All HTTPS connections enforce TLS&nbsp;1.2 or newer. `rustls` is configured to request OCSP stapling so revocation status is delivered with the server certificate when available.
+All HTTPS connections enforce a configurable minimum TLS version (TLS&nbsp;1.2 by default). `rustls` is configured to request OCSP stapling so revocation status is delivered with the server certificate when available.
 
 ## Hardened TLS Configuration
 
@@ -39,12 +39,14 @@ locations during development.
 ```json
 {
   "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://example.com/certs/server.pem"
+  "cert_url": "https://example.com/certs/server.pem",
+  "min_tls_version": "1.2"
 }
 ```
 
 `cert_path` is where the PEM file is written. `cert_url` specifies the HTTPS
-endpoint used to retrieve updates.
+endpoint used to retrieve updates. `min_tls_version` defines the minimum TLS
+protocol version the client will accept (either `1.2` or `1.3`).
 
 When calling `SecureHttpClient::init` you can override these values without
 modifying the file:
