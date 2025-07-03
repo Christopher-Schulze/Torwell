@@ -55,6 +55,9 @@ const API_LIMIT: u32 = 60;
 static API_LIMITER: Lazy<RateLimiter<NotKeyed, InMemoryState, DefaultClock>> =
     Lazy::new(|| RateLimiter::direct(Quota::per_minute(NonZeroU32::new(API_LIMIT).unwrap())));
 
+const MAX_PING_COUNT: u8 = 10;
+static HOST_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9.-]+$").unwrap());
+
 fn check_api_rate() -> Result<()> {
     API_LIMITER
         .check()
@@ -353,7 +356,10 @@ pub async fn ping_host(
         return Err(Error::InvalidToken);
     }
     let host = host.unwrap_or_else(|| "google.com".to_string());
-    let count = count.unwrap_or(5).to_string();
+    if !HOST_RE.is_match(&host) {
+        return Err(Error::Io("invalid host".into()));
+    }
+    let count = count.unwrap_or(5).min(MAX_PING_COUNT).to_string();
     let mut cmd = if cfg!(target_os = "windows") {
         let mut c = Command::new("ping");
         c.arg("-n").arg(&count).arg(&host);
