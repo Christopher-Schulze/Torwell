@@ -69,7 +69,8 @@ pub fn run() {
             commands::clear_logs,
             commands::get_log_file_path,
             commands::set_log_limit,
-            commands::ping_host
+            commands::ping_host,
+            commands::request_token
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

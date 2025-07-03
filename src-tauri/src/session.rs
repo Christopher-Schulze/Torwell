@@ -8,15 +8,31 @@ use tokio::sync::Mutex;
 pub struct SessionManager {
     sessions: Mutex<HashMap<String, Instant>>,
     ttl: Duration,
+    startup_token: Mutex<Option<String>>,
 }
 
 impl SessionManager {
     /// Create a new session manager with the given time-to-live in seconds.
+    /// A startup token is generated immediately and can be retrieved using
+    /// [`take_startup_token`].
     pub fn new(ttl: Duration) -> Arc<Self> {
+        let token = Self::generate_token();
+        let expiry = Instant::now() + ttl;
+        let mut map = HashMap::new();
+        map.insert(token.clone(), expiry);
         Arc::new(Self {
-            sessions: Mutex::new(HashMap::new()),
+            sessions: Mutex::new(map),
             ttl,
+            startup_token: Mutex::new(Some(token)),
         })
+    }
+
+    fn generate_token() -> String {
+        rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect()
     }
 
     /// Generate a new random session token and store it with an expiry time.
@@ -29,6 +45,11 @@ impl SessionManager {
         let expiry = Instant::now() + self.ttl;
         self.sessions.lock().await.insert(token.clone(), expiry);
         token
+    }
+
+    /// Retrieve the startup token if it hasn't been taken yet.
+    pub async fn take_startup_token(&self) -> Option<String> {
+        self.startup_token.lock().await.take()
     }
 
     /// Validate a session token. Expired tokens are removed.

@@ -34,7 +34,11 @@ describe('StatusCard', () => {
 
     await fireEvent.click(getByRole('button', { name: /run ping test/i }));
 
-    expect(invoke).toHaveBeenCalledWith('ping_host', { host: 'google.com', count: 5 });
+    expect(invoke).toHaveBeenNthCalledWith(2, 'ping_host', {
+      token: 42,
+      host: 'google.com',
+      count: 5
+    });
     await findByText('42 ms');
   });
 });

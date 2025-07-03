@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Activity, Zap } from "lucide-svelte";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "$lib/api";
 
   export let status;
   export let totalTrafficMB = 0;
