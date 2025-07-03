@@ -81,3 +81,11 @@ Ab Version 2.2.2 kann der Update-Endpunkt auch per Umgebungsvariable gesetzt wer
 Wird `TORWELL_CERT_URL` definiert, überschreibt dieser Wert die Einstellung aus
 `cert_config.json`, sofern kein Parameter in `SecureHttpClient::init` gesetzt
 wird.
+
+## Geplante Zertifikatsrotation
+
+Um eine durchgehende Vertrauenskette sicherzustellen, werden die
+Serverzertifikate alle 90 Tage erneuert. `SecureHttpClient` ruft das
+aktuelle PEM automatisch vom konfigurierten Endpunkt ab und ersetzt die
+lokale Datei. So bleibt der Zertifikatspool stets aktuell, ohne dass ein
+Neustart der Anwendung erforderlich ist.
