@@ -234,6 +234,10 @@ function createUIStore() {
         }));
       }
     },
+
+    setError: (message: string) =>
+      update((state) => ({ ...state, error: message })),
+    clearError: () => update((state) => ({ ...state, error: null })),
   };
 
   // Load settings on initialization
