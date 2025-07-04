@@ -8,6 +8,7 @@ use governor::{
 use log::Level;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use keyring;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
@@ -363,4 +364,22 @@ pub async fn ping_host(
     icmp::ping_host(&host, count)
         .await
         .map_err(|e| Error::Io(e.to_string()))
+}
+
+#[tauri::command]
+pub async fn get_secure_key() -> Result<Option<String>> {
+    let entry = keyring::Entry::new("torwell84", "aes-key")
+        .map_err(|e| Error::Io(e.to_string()))?;
+    match entry.get_password() {
+        Ok(v) => Ok(Some(v)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(Error::Io(e.to_string())),
+    }
+}
+
+#[tauri::command]
+pub async fn set_secure_key(value: String) -> Result<()> {
+    let entry = keyring::Entry::new("torwell84", "aes-key")
+        .map_err(|e| Error::Io(e.to_string()))?;
+    entry.set_password(&value).map_err(|e| Error::Io(e.to_string()))
 }

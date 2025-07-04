@@ -7,10 +7,10 @@
   export let pingMs: number | undefined = undefined;
 
   import { torStore } from "$lib/stores/torStore";
-  $: memoryMB = $torStore.memoryUsageMB;
-  $: circuitCount = $torStore.circuitCount;
   let memoryMB: number;
   let circuitCount: number;
+  $: memoryMB = $torStore.memoryUsageMB;
+  $: circuitCount = $torStore.circuitCount;
 
   let isPinging = false;
 
