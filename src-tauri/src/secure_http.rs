@@ -115,6 +115,8 @@ pub struct SecureHttpClient {
     cert_path: String,
     hsts: Arc<Mutex<HashMap<String, Instant>>>,
     min_tls: reqwest::tls::Version,
+    warning_cb: Arc<Mutex<Option<Box<dyn Fn(String) + Send + Sync>>>>,
+    pending_warnings: Arc<Mutex<Vec<String>>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -124,6 +126,8 @@ impl Clone for SecureHttpClient {
             cert_path: self.cert_path.clone(),
             hsts: self.hsts.clone(),
             min_tls: self.min_tls,
+            warning_cb: self.warning_cb.clone(),
+            pending_warnings: self.pending_warnings.clone(),
         }
     }
 }
@@ -187,11 +191,36 @@ impl SecureHttpClient {
             cert_path: path.to_string_lossy().to_string(),
             hsts: Arc::new(Mutex::new(HashMap::new())),
             min_tls,
+            warning_cb: Arc::new(Mutex::new(None)),
+            pending_warnings: Arc::new(Mutex::new(Vec::new())),
         })
     }
 
     pub fn new_default() -> anyhow::Result<Self> {
         Self::new(DEFAULT_CERT_PATH)
+    }
+
+    /// Provide a callback to emit security warnings
+    pub async fn set_warning_callback<F>(&self, cb: F)
+    where
+        F: Fn(String) + Send + Sync + 'static,
+    {
+        let mut guard = self.warning_cb.lock().await;
+        *guard = Some(Box::new(cb));
+        if let Some(callback) = guard.as_ref() {
+            let mut pending = self.pending_warnings.lock().await;
+            for msg in pending.drain(..) {
+                callback(msg);
+            }
+        }
+    }
+
+    async fn emit_warning(&self, msg: String) {
+        if let Some(cb) = self.warning_cb.lock().await.as_ref() {
+            cb(msg);
+        } else {
+            self.pending_warnings.lock().await.push(msg);
+        }
     }
 
     /// Initialize a client using settings from a configuration file and
@@ -232,6 +261,14 @@ impl SecureHttpClient {
         }
         let min_tls = parse_tls_version(cfg.min_tls_version.as_deref());
         let client = Arc::new(Self::new_with_min_tls(&cfg.cert_path, min_tls)?);
+
+        if cfg.cert_url.contains("example.com") {
+            client
+                .emit_warning(
+                    "Certificate URL still points to example.com; update cert_url in cert_config.json".to_string(),
+                )
+                .await;
+        }
 
         // Always try to refresh certificates on startup using the currently
         // pinned certificate for validation.
@@ -287,6 +324,9 @@ impl SecureHttpClient {
             }
         } else {
             log::warn!("HSTS header missing for {}", resp.url());
+            self
+                .emit_warning(format!("HSTS header missing for {}", resp.url()))
+                .await;
         }
         Ok(resp)
     }

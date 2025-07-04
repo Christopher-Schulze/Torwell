@@ -21,7 +21,7 @@ pub fn run() {
         )
         .expect("failed to initialize http client")
     });
-    let app_state = AppState::new(http_client);
+    let app_state = AppState::new(http_client.clone());
 
     let quit = CustomMenuItem::new("quit", "Quit");
     let show = CustomMenuItem::new("show", "Show");
@@ -55,7 +55,21 @@ pub fn run() {
                 )?;
             }
             let state = app.state::<AppState>();
-            state.clone().start_metrics_task(app.handle());
+            let handle = app.handle();
+            let http_client = state.http_client.clone();
+            let state_clone = state.clone();
+            tauri::async_runtime::block_on(async move {
+                state_clone.register_handle(handle.clone()).await;
+                http_client
+                    .set_warning_callback(move |msg| {
+                        let st = state.clone();
+                        tauri::async_runtime::spawn(async move {
+                            st.emit_security_warning(msg).await;
+                        });
+                    })
+                    .await;
+            });
+            state.start_metrics_task(handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
