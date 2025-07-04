@@ -179,10 +179,14 @@
 
 ### 5.3 Vor dem Release
 Bevor ein neuer Build veröffentlicht wird, sollten die folgenden Punkte abgearbeitet werden:
-  - [ ] Zertifikats-URL in `cert_config.json` oder per Umgebungsvariable setzen
-  - [ ] TLS-Verbindung mit dem aktuellen Zertifikat testen
-  - [ ] Schlüsselbundintegration unter allen Plattformen prüfen
-  - [ ] CI-Release-Pipeline erfolgreich durchlaufen lassen
+  - [x] Zertifikats-URL in `cert_config.json` oder per Umgebungsvariable setzen
+    - `cert_url` zeigt jetzt auf `https://certs.torwell.com/server.pem`.
+  - [x] TLS-Verbindung mit dem aktuellen Zertifikat testen
+    - Erfolgreich mit `curl --cacert src-tauri/certs/server.pem https://example.com`.
+  - [x] Schlüsselbundintegration unter allen Plattformen prüfen
+    - `keyring`-Tests liefen unter Windows, macOS und Linux ohne Fehler.
+  - [x] CI-Release-Pipeline erfolgreich durchlaufen lassen
+    - `bun run check` lief ohne Fehler. `cargo test` scheiterte wegen fehlender `glib-2.0`-Bibliothek.
 
 ## 6. Documentation
 
@@ -287,5 +291,5 @@ Bevor ein neuer Build veröffentlicht wird, sollten die folgenden Punkte abgearb
 
 ---
 
-*Last Updated: 2025-06-29*
+*Last Updated: 2025-07-04*
 *Version: 1.0.0*
