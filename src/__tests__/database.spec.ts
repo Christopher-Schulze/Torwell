@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import 'fake-indexeddb/auto';
+import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
 import Dexie from 'dexie';
+
+// Configure Dexie to use the in-memory IndexedDB provided by fake-indexeddb
+Dexie.dependencies.indexedDB = indexedDB as any;
+Dexie.dependencies.IDBKeyRange = IDBKeyRange as any;
 
 import { db } from '../lib/database';
 
