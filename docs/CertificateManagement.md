@@ -40,13 +40,16 @@ locations during development.
 {
   "cert_path": "src-tauri/certs/server.pem",
   "cert_url": "https://certs.torwell.com/server.pem",
+  "fallback_cert_url": null,
   "min_tls_version": "1.2"
 }
 ```
 
 `cert_path` is where the PEM file is written. `cert_url` specifies the HTTPS
-endpoint used to retrieve updates. `min_tls_version` defines the minimum TLS
-protocol version the client will accept (either `1.2` or `1.3`).
+endpoint used to retrieve updates. If the primary endpoint fails, an optional
+`fallback_cert_url` can provide an alternative location. `min_tls_version`
+defines the minimum TLS protocol version the client will accept (either `1.2`
+or `1.3`).
 
 When calling `SecureHttpClient::init` you can override these values without
 modifying the file:
@@ -56,6 +59,7 @@ let client = SecureHttpClient::init(
     "src-tauri/certs/cert_config.json",
     Some("/tmp/dev.pem".into()),
     Some("https://localhost/dev_cert.pem".into()),
+    None,
     None,
 ).await?;
 ```
@@ -84,7 +88,8 @@ Ab Version 2.2.2 kann der Update-Endpunkt auch per Umgebungsvariable gesetzt wer
 Wird `TORWELL_CERT_URL` definiert, überschreibt dieser Wert die Einstellung aus
 `cert_config.json`, sofern kein Parameter in `SecureHttpClient::init` gesetzt
 wird. Ebenso kann der Dateipfad durch die Umgebungsvariable
-`TORWELL_CERT_PATH` angepasst werden.
+`TORWELL_CERT_PATH` angepasst werden. Für einen alternativen Update-Server kann
+`TORWELL_FALLBACK_CERT_URL` verwendet werden.
 
 ## Geplante Zertifikatsrotation
 

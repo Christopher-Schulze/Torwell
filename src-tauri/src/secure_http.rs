@@ -1,4 +1,5 @@
 use reqwest::{Client, ClientBuilder, Url};
+use anyhow::anyhow;
 use rustls::crypto::ring::{self, cipher_suite};
 use rustls::crypto::{self, CryptoProvider};
 use rustls::pki_types::CertificateDer;
@@ -31,6 +32,8 @@ struct CertConfig {
     cert_path: String,
     #[serde(default = "default_cert_url")]
     cert_url: String,
+    #[serde(default)]
+    fallback_cert_url: Option<String>,
     #[serde(default = "default_min_tls_version")]
     min_tls_version: Option<String>,
 }
@@ -63,6 +66,7 @@ impl Default for CertConfig {
         Self {
             cert_path: DEFAULT_CERT_PATH.to_string(),
             cert_url: DEFAULT_CERT_URL.to_string(),
+            fallback_cert_url: None,
             min_tls_version: default_min_tls_version(),
         }
     }
@@ -196,6 +200,7 @@ impl SecureHttpClient {
         config_path: P,
         cert_path: Option<String>,
         cert_url: Option<String>,
+        fallback_cert_url: Option<String>,
         interval: Option<Duration>,
     ) -> anyhow::Result<Arc<Self>> {
         let mut cfg = CertConfig::load(config_path);
@@ -206,12 +211,18 @@ impl SecureHttpClient {
         if let Ok(env_path) = std::env::var("TORWELL_CERT_PATH") {
             cfg.cert_path = env_path;
         }
+        if let Ok(env_fallback) = std::env::var("TORWELL_FALLBACK_CERT_URL") {
+            cfg.fallback_cert_url = Some(env_fallback);
+        }
 
         if let Some(path) = cert_path {
             cfg.cert_path = path;
         }
         if let Some(url) = cert_url {
             cfg.cert_url = url;
+        }
+        if let Some(fallback) = fallback_cert_url {
+            cfg.fallback_cert_url = Some(fallback);
         }
 
         if cfg.cert_url.contains("example.com") {
@@ -224,13 +235,17 @@ impl SecureHttpClient {
 
         // Always try to refresh certificates on startup using the currently
         // pinned certificate for validation.
-        let url = cfg.cert_url.clone();
-        if let Err(e) = client.update_certificates(&url).await {
+        let mut urls = vec![cfg.cert_url.clone()];
+        if let Some(ref fb) = cfg.fallback_cert_url {
+            urls.push(fb.clone());
+        }
+
+        if let Err(e) = client.update_certificates_from(&urls).await {
             log::error!("initial certificate update failed: {}", e);
         }
 
         if let Some(int) = interval {
-            client.clone().schedule_updates(url, int);
+            client.clone().schedule_updates(urls, int);
         }
         Ok(client)
     }
@@ -289,26 +304,32 @@ impl SecureHttpClient {
     }
 
     pub async fn update_certificates(&self, url: &str) -> anyhow::Result<()> {
-        match self.get_with_hsts_check(url).await {
-            Ok(resp) => {
-                let pem = resp.bytes().await?;
-                if let Some(parent) = Path::new(&self.cert_path).parent() {
-                    std::fs::create_dir_all(parent)?;
-                }
-                std::fs::write(&self.cert_path, &pem)?;
-                self.reload_certificates().await?;
-            }
-            Err(e) => {
-                log::error!("failed to fetch new certificate: {}", e);
-            }
+        let resp = self.get_with_hsts_check(url).await?;
+        let pem = resp.bytes().await?;
+        if let Some(parent) = Path::new(&self.cert_path).parent() {
+            std::fs::create_dir_all(parent)?;
         }
+        std::fs::write(&self.cert_path, &pem)?;
+        self.reload_certificates().await?;
         Ok(())
     }
 
-    pub fn schedule_updates(self: Arc<Self>, url: String, interval: Duration) {
+    pub async fn update_certificates_from(&self, urls: &[String]) -> anyhow::Result<()> {
+        for url in urls {
+            match self.update_certificates(url).await {
+                Ok(_) => return Ok(()),
+                Err(e) => {
+                    log::error!("failed to fetch new certificate from {}: {}", url, e);
+                }
+            }
+        }
+        Err(anyhow::anyhow!("all certificate update attempts failed"))
+    }
+
+    pub fn schedule_updates(self: Arc<Self>, urls: Vec<String>, interval: Duration) {
         tokio::spawn(async move {
             loop {
-                if let Err(e) = self.update_certificates(&url).await {
+                if let Err(e) = self.update_certificates_from(&urls).await {
                     log::error!("certificate update failed: {}", e);
                 }
                 tokio::time::sleep(interval).await;

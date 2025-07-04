@@ -33,7 +33,7 @@ async fn init_fetches_new_certificate() {
     });
     fs::write(&config_path, config.to_string()).unwrap();
 
-    let _client = SecureHttpClient::init(&config_path, None, None, None)
+    let _client = SecureHttpClient::init(&config_path, None, None, None, None)
         .await
         .unwrap();
 
@@ -106,9 +106,41 @@ async fn schedule_updates_fetches_certificate() {
     let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
     client
         .clone()
-        .schedule_updates(server.url("/cert.pem"), Duration::from_millis(50));
+        .schedule_updates(vec![server.url("/cert.pem")], Duration::from_millis(50));
 
     tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
+async fn update_uses_fallback_when_primary_fails() {
+    let primary = MockServer::start_async().await;
+    primary
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(500);
+        })
+        .await;
+
+    let fallback = MockServer::start_async().await;
+    fallback
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+    client
+        .update_certificates_from(&[primary.url("/cert.pem"), fallback.url("/cert.pem")])
+        .await
+        .unwrap();
 
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
@@ -142,6 +174,7 @@ async fn init_overrides_config_values() {
         Some(override_path.to_string_lossy().to_string()),
         Some(server.url("/cert.pem")),
         None,
+        None,
     )
     .await
     .unwrap();
@@ -172,6 +205,7 @@ async fn init_with_repo_config() {
         Some(cert_path.to_string_lossy().to_string()),
         Some(server.url("/cert.pem")),
         None,
+        None,
     )
     .await
     .unwrap();
@@ -201,6 +235,7 @@ async fn init_with_missing_config() {
         Some(cert_path.to_string_lossy().to_string()),
         Some(server.url("/cert.pem")),
         None,
+        None,
     )
     .await
     .unwrap();
@@ -226,6 +261,7 @@ async fn init_using_default_constant() {
         DEFAULT_CONFIG_PATH,
         Some(cert_path.to_string_lossy().to_string()),
         Some(server.url("/cert.pem")),
+        None,
         None,
     )
     .await
@@ -259,7 +295,7 @@ async fn env_var_overrides_config() {
 
     std::env::set_var("TORWELL_CERT_URL", server.url("/cert.pem"));
 
-    let _client = SecureHttpClient::init(&config_path, None, None, None)
+    let _client = SecureHttpClient::init(&config_path, None, None, None, None)
         .await
         .unwrap();
 
