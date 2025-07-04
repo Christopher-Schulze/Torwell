@@ -137,5 +137,11 @@ sequenceDiagram
 
 Das Backend akzeptiert verschiedene Umgebungsvariablen zur Laufzeitkonfiguration.
 
-- `TORWELL_SESSION_TTL` – Lebensdauer eines Session-Tokens in Sekunden (Standard `3600`)
+- `TORWELL_CERT_URL` – HTTPS-Endpunkt zum Abrufen des Serverzertifikats.
+- `TORWELL_CERT_PATH` – Lokaler Pfad zum abgelegten Zertifikat.
+- `TORWELL_FALLBACK_CERT_URL` – Optionale Ausweich-URL für Zertifikatsupdates.
+- `TORWELL_SESSION_TTL` – Lebensdauer eines Session-Tokens in Sekunden (Standard `3600`).
+- `TORWELL_MAX_LOG_LINES` – Maximale Anzahl von Logzeilen, die in `torwell.log` aufbewahrt werden (Standard `1000`).
+- `TORWELL_MAX_MEMORY_MB` – Schwellenwert für Speichernutzung, ab dem Warnungen ausgegeben werden (Standard `1024`).
+- `TORWELL_MAX_CIRCUITS` – Maximale Anzahl erlaubter paralleler Tor-Circuits (Standard `20`).
 
