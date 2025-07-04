@@ -1,5 +1,6 @@
 // lib/database.ts
 import Dexie, { type Table } from "dexie";
+import { invoke } from "@tauri-apps/api/tauri";
 
 interface MetaEntry {
   id: string;
@@ -23,23 +24,43 @@ function b64ToBuf(b64: string): ArrayBuffer {
 
 // Load or create the persistent AES key
 async function loadKey(db: AppDatabase): Promise<CryptoKey> {
-  const entry = await db.meta.get("aes-key");
-  if (entry) {
-    return crypto.subtle.importKey(
-      "raw",
-      b64ToBuf(entry.value),
-      "AES-GCM",
-      true,
-      ["encrypt", "decrypt"]
-    );
+  let keyB64: string | null = null;
+  try {
+    keyB64 = await invoke<string | null>("get_secure_key");
+  } catch {
+    // command may not be available
   }
-  const raw = crypto.getRandomValues(new Uint8Array(32));
-  const key = await crypto.subtle.importKey("raw", raw, "AES-GCM", true, [
-    "encrypt",
-    "decrypt",
-  ]);
-  await db.meta.put({ id: "aes-key", value: bufToB64(raw.buffer) });
-  return key;
+
+  if (!keyB64) {
+    const entry = await db.meta.get("aes-key");
+    if (entry) {
+      keyB64 = entry.value;
+      try {
+        await invoke("set_secure_key", { value: keyB64 });
+        await db.meta.delete("aes-key");
+      } catch {
+        // fallback: keep key in IndexedDB if secure storage fails
+      }
+    }
+  }
+
+  if (!keyB64) {
+    const raw = crypto.getRandomValues(new Uint8Array(32));
+    keyB64 = bufToB64(raw.buffer);
+    try {
+      await invoke("set_secure_key", { value: keyB64 });
+    } catch {
+      await db.meta.put({ id: "aes-key", value: keyB64 });
+    }
+  }
+
+  return crypto.subtle.importKey(
+    "raw",
+    b64ToBuf(keyB64),
+    "AES-GCM",
+    true,
+    ["encrypt", "decrypt"]
+  );
 }
 
 async function encryptString(db: AppDatabase, value: string): Promise<string> {

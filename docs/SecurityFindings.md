@@ -10,9 +10,9 @@ This report summarizes security issues discovered during a brief review of the r
 
 ## 2. Local Storage Encryption
 - **File:** `src/lib/database.ts`
-- **Issue:** Settings are encrypted with AES‑GCM using a 256‑bit key. The key is generated on first run and stored (base64 encoded) in the `meta` table of IndexedDB.
-- **Risk:** Because the AES key is saved alongside the encrypted values, an attacker with access to local files can still decrypt the data. The mechanism mainly protects against casual inspection and tampering.
-- **Recommendation:** Consider storing the key in a platform keystore or rely on OS‑level permissions to prevent unauthorized access. Local storage remains vulnerable to malware or physical compromise.
+- **Issue:** Settings are encrypted with AES‑GCM using a 256‑bit key. Earlier versions stored this key (base64 encoded) in the `meta` table of IndexedDB.
+- **Risk:** Storing the key in the database meant an attacker with local file access could decrypt the data.
+- **Resolution:** The key is now saved in the operating system keychain via the Tauri keychain plugin and removed from IndexedDB on first launch after the update.
 
 ## 3. External `ping` Command
 - **File:** `src-tauri/src/commands.rs`

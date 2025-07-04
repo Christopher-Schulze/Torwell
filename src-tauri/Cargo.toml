@@ -38,6 +38,7 @@ anyhow = "1"
 sysinfo = "0.30"
 governor = "0.10.0"
 directories = "6.0"
+keyring = "2"
 rand = "0.8"
 surge-ping = "0.8"
 

@@ -87,6 +87,8 @@ pub fn run() {
             commands::get_log_file_path,
             commands::set_log_limit,
             commands::ping_host,
+            commands::get_secure_key,
+            commands::set_secure_key,
             commands::request_token
         ])
         .run(tauri::generate_context!())
