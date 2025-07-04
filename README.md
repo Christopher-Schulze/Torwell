@@ -130,9 +130,6 @@ bun tauri build
 cd src-tauri && cargo test
 ```
 
-On Linux systems you may need additional development packages for the
-Rust build to succeed. Ensure `glib-2.0` development headers are
-installed (`libglib2.0-dev` on Debian/Ubuntu) before running the tests.
 
 
 ### Updating Certificates
@@ -167,6 +164,21 @@ You can influence certain backend parameters via environment variables:
 - Node.js 18+ and bun
 - Rust and Cargo (via rustup)
 - System dependencies for Tauri (see [Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites))
+
+### Systemvoraussetzungen
+**Linux**
+- `libglib2.0-dev`, `pkg-config` und GTK-Entwicklungsbibliotheken
+
+**Frontend**
+- [Svelte-CLI](https://github.com/sveltejs/cli) global installiert (`bun add -g svelte`)
+
+Ohne diese Pakete schlagen `cargo test` und `bun run check` fehl. Ein Beispiel für einen fehlgeschlagenen Build findet sich in `/tmp/cargo_test.log`:
+
+```text
+error: failed to run custom build command for `glib-sys v0.15.10`
+...
+The system library `glib-2.0` required by crate `glib-sys` was not found.
+```
 
 ### Windows Build
 On Windows you also need the **Desktop development with C++** workload from the
