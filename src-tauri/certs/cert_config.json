@@ -1,6 +1,7 @@
 {
   "cert_path": "src-tauri/certs/server.pem",
   "cert_url": "https://certs.torwell.com/server.pem",
+  "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "note": "Production certificate update endpoint"
 }
