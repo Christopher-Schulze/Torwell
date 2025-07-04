@@ -15,6 +15,7 @@ export interface TorState {
   bootstrapProgress: number;
   bootstrapMessage: string;
   errorMessage: string | null;
+  securityWarning: string | null;
   retryCount: number;
   retryDelay: number;
   memoryUsageMB: number;
@@ -28,6 +29,7 @@ function createTorStore() {
     bootstrapProgress: 0,
     bootstrapMessage: "",
     errorMessage: null,
+    securityWarning: null,
     retryCount: 0,
     retryDelay: 0,
     memoryUsageMB: 0,
@@ -45,6 +47,10 @@ function createTorStore() {
       circuitCount: event.payload.circuit_count,
       pingMs: event.payload.latency_ms,
     }));
+  });
+
+  listen<string>("security-warning", (event) => {
+    update((state) => ({ ...state, securityWarning: event.payload }));
   });
 
   // Listen for status updates from the Rust backend

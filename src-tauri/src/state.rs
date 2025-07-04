@@ -78,6 +78,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub max_circuits: usize,
     /// Session manager for authentication tokens
     pub session: Arc<SessionManager>,
+    /// Handle used to emit frontend events
+    pub app_handle: Arc<Mutex<Option<AppHandle>>>,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -130,6 +132,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
                 .unwrap_or(DEFAULT_SESSION_TTL))),
+            app_handle: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -182,6 +185,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
                 .unwrap_or(DEFAULT_SESSION_TTL))),
+            app_handle: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -340,6 +344,18 @@ impl<C: TorClientBehavior> AppState<C> {
                 );
             }
         });
+    }
+
+    /// Store the application handle for emitting events
+    pub async fn register_handle(&self, handle: AppHandle) {
+        *self.app_handle.lock().await = Some(handle);
+    }
+
+    /// Emit a security warning event to the frontend
+    pub async fn emit_security_warning(&self, message: String) {
+        if let Some(handle) = self.app_handle.lock().await.as_ref() {
+            let _ = handle.emit_all("security-warning", message);
+        }
     }
 
     /// Measure latency to a well-known host using an ICMP ping
