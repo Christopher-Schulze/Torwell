@@ -39,6 +39,15 @@ pub enum Error {
     #[error("Rate limit exceeded for {0}")]
     RateLimited(String),
 
+    #[error("connection failed after {attempts} retries: {error}")]
+    RetriesExceeded { attempts: u32, error: String },
+
+    #[error("bridge parsing failed: {0}")]
+    BridgeParse(String),
+
+    #[error("country lookup failed: {0}")]
+    Lookup(String),
+
     #[error("Invalid session token")]
     InvalidToken,
 }
