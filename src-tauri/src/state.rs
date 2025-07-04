@@ -16,7 +16,7 @@ use sysinfo::{PidExt, System, SystemExt};
 use tauri::AppHandle;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
-use tokio::process::Command;
+use crate::icmp;
 use tokio::sync::Mutex;
 use tor_rtcompat::PreferredRuntime;
 
@@ -342,43 +342,11 @@ impl<C: TorClientBehavior> AppState<C> {
         });
     }
 
-    /// Measure latency to a well-known host using the system ping command
+    /// Measure latency to a well-known host using an ICMP ping
     async fn measure_ping_latency() -> Result<u64> {
-        let host = "google.com";
-        let count = "1";
-        let mut cmd = if cfg!(target_os = "windows") {
-            let mut c = Command::new("ping");
-            c.arg("-n").arg(count).arg(host);
-            c
-        } else {
-            let mut c = Command::new("ping");
-            c.arg("-c").arg(count).arg(host);
-            c
-        };
-
-        let output = cmd.output().await?;
-        if !output.status.success() {
-            return Ok(0);
+        match icmp::ping_host("google.com", 1).await {
+            Ok(v) => Ok(v),
+            Err(_) => Ok(0),
         }
-        let stdout = String::from_utf8_lossy(&output.stdout);
-
-        if cfg!(target_os = "windows") {
-            let re = Regex::new(r"Average = (\d+)ms").unwrap();
-            if let Some(caps) = re.captures(&stdout) {
-                if let Some(avg) = caps.get(1) {
-                    return Ok(avg.as_str().parse().unwrap_or(0));
-                }
-            }
-        } else {
-            let re = Regex::new(r"= ([^/]+)/([^/]+)/([^/]+)/").unwrap();
-            if let Some(caps) = re.captures(&stdout) {
-                if let Some(avg) = caps.get(2) {
-                    let avg_f: f64 = avg.as_str().parse().unwrap_or(0.0);
-                    return Ok(avg_f.round() as u64);
-                }
-            }
-        }
-
-        Ok(0)
     }
 }
