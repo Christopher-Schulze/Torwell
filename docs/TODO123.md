@@ -5,7 +5,6 @@
 
 ## Medium Priority
 1. Refactor TorManager error handling for better diagnostics
-2. Add unit tests for critical backend functions
 
 ## Future Ideas
 - Integration with hardware security modules
@@ -15,6 +14,7 @@
 - Multiple simultaneous circuits per domain
 - Connection retries use exponential backoff with a maximum total time.
 - Each failed attempt increments `AppState.retry_counter` and is logged.
+- Unit tests cover TorManager metrics functions
 
 ## Limitations
 - Circuit metrics (active circuit count and age) will be added when arti-client provides a circuit listing API.
