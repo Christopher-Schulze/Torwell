@@ -153,7 +153,13 @@ TORWELL_CERT_PATH=src-tauri/certs/custom.pem bun tauri dev
 ### Runtime Configuration
 You can influence certain backend parameters via environment variables:
 
-- `TORWELL_SESSION_TTL` &ndash; lifetime of authentication tokens in seconds (default `3600`).
+- `TORWELL_CERT_URL` – HTTPS endpoint to download the pinned server certificate.
+- `TORWELL_CERT_PATH` – Local path where the certificate is stored.
+- `TORWELL_FALLBACK_CERT_URL` – Optional backup URL for certificate updates.
+- `TORWELL_SESSION_TTL` – Lifetime of authentication tokens in seconds (default `3600`).
+- `TORWELL_MAX_LOG_LINES` – Maximum number of log lines kept in `torwell.log` (default `1000`).
+- `TORWELL_MAX_MEMORY_MB` – Memory usage threshold before warnings (default `1024`).
+- `TORWELL_MAX_CIRCUITS` – Maximum allowed parallel circuits (default `20`).
 
 > The first build will download many Rust crates and may take several minutes.
 
