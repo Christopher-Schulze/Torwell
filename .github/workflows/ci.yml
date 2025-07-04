@@ -32,6 +32,25 @@ jobs:
       - run: bun install
       - run: bun run check
 
+  windows-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run check
+      - name: Run cargo test
+        working-directory: src-tauri
+        run: cargo test
+
   bundle:
     runs-on: ${{ matrix.os }}
     strategy:

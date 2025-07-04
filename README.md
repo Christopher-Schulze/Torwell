@@ -162,6 +162,20 @@ You can influence certain backend parameters via environment variables:
 - Rust and Cargo (via rustup)
 - System dependencies for Tauri (see [Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites))
 
+### Windows Build
+On Windows you also need the **Desktop development with C++** workload from the
+Visual Studio Build Tools. After installing it, install Rust with the MSVC
+toolchain and ensure Node.js and Bun are available.
+
+To build locally:
+
+```bash
+bun install
+bun run check
+cd src-tauri && cargo test && cd ..
+bun run tauri build
+```
+
 ## Installation
 
 ### Windows
