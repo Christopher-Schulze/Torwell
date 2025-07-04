@@ -177,6 +177,13 @@
   - Log aggregation
   - Alerting on critical errors
 
+### 5.3 Vor dem Release
+Bevor ein neuer Build veröffentlicht wird, sollten die folgenden Punkte abgearbeitet werden:
+  - [ ] Zertifikats-URL in `cert_config.json` oder per Umgebungsvariable setzen
+  - [ ] TLS-Verbindung mit dem aktuellen Zertifikat testen
+  - [ ] Schlüsselbundintegration unter allen Plattformen prüfen
+  - [ ] CI-Release-Pipeline erfolgreich durchlaufen lassen
+
 ## 6. Documentation
 
 ### 6.1 Technical Documentation
