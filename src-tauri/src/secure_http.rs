@@ -21,7 +21,7 @@ use tokio::sync::Mutex;
 pub const DEFAULT_CERT_PATH: &str = "src-tauri/certs/server.pem";
 
 /// Default URL for retrieving updated certificates
-pub const DEFAULT_CERT_URL: &str = "https://example.com/certs/server.pem";
+pub const DEFAULT_CERT_URL: &str = "https://internal.torwell.local/certs/server.pem";
 
 /// Default location of the certificate configuration file
 pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/certs/cert_config.json";
@@ -166,12 +166,21 @@ impl SecureHttpClient {
         path: P,
         min_tls: reqwest::tls::Version,
     ) -> anyhow::Result<Client> {
-        let config = Self::build_tls_config_with_min_tls(&path, min_tls)?;
+        // Enforce TLS 1.2 as the minimum supported protocol regardless of
+        // external configuration. Lower values are bumped to TLS 1.2.
+        let enforced = match min_tls {
+            reqwest::tls::Version::TLS_1_0 | reqwest::tls::Version::TLS_1_1 => {
+                reqwest::tls::Version::TLS_1_2
+            }
+            _ => min_tls,
+        };
+
+        let config = Self::build_tls_config_with_min_tls(&path, enforced)?;
 
         let client = ClientBuilder::new()
             .use_preconfigured_tls(config)
             .https_only(true)
-            .min_tls_version(min_tls)
+            .min_tls_version(enforced)
             .build()?;
         Ok(client)
     }

@@ -137,9 +137,9 @@ installed (`libglib2.0-dev` on Debian/Ubuntu) before running the tests.
 
 ### Updating Certificates
 The pinned certificate location is configured in `src-tauri/certs/cert_config.json`.
-By default this file points `cert_url` to `https://certs.torwell.com/server.pem` as a
-placeholder. Change the value to your own server or set the environment variables
-`TORWELL_CERT_URL` or `TORWELL_CERT_PATH` to override the URL and local path at runtime.
+By default this file points `cert_url` to `https://internal.torwell.local/certs/server.pem` as a
+placeholder. **Provide your own update endpoint for production.** Adjust the value
+or set the environment variables `TORWELL_CERT_URL` or `TORWELL_CERT_PATH` to override the URL and local path at runtime.
 The minimum TLS version can also be configured via the `min_tls_version` field
 ("1.2" or "1.3").
 
