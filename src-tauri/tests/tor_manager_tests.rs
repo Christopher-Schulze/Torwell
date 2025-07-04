@@ -143,7 +143,10 @@ async fn bridge_parse_error() {
 async fn lookup_country_error() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager.lookup_country_code("?.?.?.?").await;
-    assert!(matches!(res, Err(Error::Lookup(_))));
+    match res {
+        Err(Error::Lookup(msg)) => assert!(msg.contains("?.?.?.?")),
+        _ => panic!("expected lookup error"),
+    }
 }
 
 #[tokio::test]
@@ -173,7 +176,10 @@ async fn new_identity_reconfigure_error() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
-    assert!(matches!(res, Err(Error::Identity(_))));
+    match res {
+        Err(Error::Identity(msg)) => assert!(msg.contains("reconf")),
+        _ => panic!("expected identity error"),
+    }
 }
 
 #[tokio::test]
@@ -185,5 +191,8 @@ async fn new_identity_build_error() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
-    assert!(matches!(res, Err(Error::Circuit(_))));
+    match res {
+        Err(Error::Circuit(msg)) => assert!(msg.contains("build")),
+        _ => panic!("expected circuit error"),
+    }
 }
