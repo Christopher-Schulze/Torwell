@@ -16,6 +16,7 @@ pub fn run() {
             secure_http::DEFAULT_CONFIG_PATH,
             None,
             None,
+            None,
             Some(Duration::from_secs(60 * 60 * 24)),
         )
         .expect("failed to initialize http client")

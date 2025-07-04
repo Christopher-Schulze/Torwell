@@ -11,7 +11,7 @@
   attacks.
 - **Enhancements**:
   1. Document the certificate rotation strategy
-  2. Add fallback mechanisms for certificate updates
+  2. Add fallback mechanisms for certificate updates **implemented**
 
 #### 1.1.2 TLS Configuration Hardening
 - **Current State**: Uses default TLS settings which may include weak ciphers
