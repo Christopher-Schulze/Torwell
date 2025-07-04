@@ -91,6 +91,14 @@ wird. Ebenso kann der Dateipfad durch die Umgebungsvariable
 `TORWELL_CERT_PATH` angepasst werden. Für einen alternativen Update-Server kann
 `TORWELL_FALLBACK_CERT_URL` verwendet werden.
 
+Beispiel für eine abweichende Konfiguration im Entwicklungsmodus:
+
+```bash
+export TORWELL_CERT_URL=https://example.org/certs/server.pem
+export TORWELL_CERT_PATH=src-tauri/certs/custom.pem
+bun tauri dev
+```
+
 ## Geplante Zertifikatsrotation
 
 Um eine durchgehende Vertrauenskette sicherzustellen, werden die
