@@ -14,11 +14,11 @@ This report summarizes security issues discovered during a brief review of the r
 - **Risk:** Storing the key in the database meant an attacker with local file access could decrypt the data.
 - **Resolution:** The key is now saved in the operating system keychain via the Tauri keychain plugin and removed from IndexedDB on first launch after the update.
 
-## 3. External `ping` Command
+## 3. Ping Command Implementation
 - **File:** `src-tauri/src/commands.rs`
-- **Issue:** The `ping_host` command spawns the system `ping` binary.
-- **Risk:** Although arguments are passed directly, excessive calls could be abused for resource consumption.
-- **Recommendation:** Validate input and limit invocations or implement an internal ICMP check instead of spawning a process.
+- **Issue:** The `ping_host` command now calls `icmp::ping_host`, which relies on the `surge_ping` crate to send ICMP packets rather than spawning an external `ping` binary.
+- **Risk:** Excessive calls could still be used for resource consumption, but no external process is executed.
+- **Recommendation:** Continue validating input and capping the invocation count to mitigate abuse.
 
 No critical vulnerabilities were found, but the above issues should be addressed to improve the overall security posture.
 
