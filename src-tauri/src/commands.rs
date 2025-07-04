@@ -15,7 +15,7 @@ use std::time::Duration;
 use std::time::Instant;
 use sysinfo::{PidExt, System, SystemExt};
 use tauri::{Manager, State};
-use tokio::process::Command;
+use crate::icmp;
 use tokio::sync::Mutex;
 
 /// Total bytes sent and received through Tor.
@@ -359,42 +359,8 @@ pub async fn ping_host(
     if !HOST_RE.is_match(&host) {
         return Err(Error::Io("invalid host".into()));
     }
-    let count = count.unwrap_or(5).min(MAX_PING_COUNT).to_string();
-    let mut cmd = if cfg!(target_os = "windows") {
-        let mut c = Command::new("ping");
-        c.arg("-n").arg(&count).arg(&host);
-        c
-    } else {
-        let mut c = Command::new("ping");
-        c.arg("-c").arg(&count).arg(&host);
-        c
-    };
-
-    let output = cmd.output().await?;
-    if !output.status.success() {
-        return Err(Error::Io(format!(
-            "ping failed with status {}",
-            output.status
-        )));
-    }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    if cfg!(target_os = "windows") {
-        let re = Regex::new(r"Average = (\d+)ms").unwrap();
-        if let Some(caps) = re.captures(&stdout) {
-            if let Some(avg) = caps.get(1) {
-                return Ok(avg.as_str().parse().unwrap_or(0));
-            }
-        }
-    } else {
-        let re = Regex::new(r"= ([^/]+)/([^/]+)/([^/]+)/").unwrap();
-        if let Some(caps) = re.captures(&stdout) {
-            if let Some(avg) = caps.get(2) {
-                let avg_f: f64 = avg.as_str().parse().unwrap_or(0.0);
-                return Ok(avg_f.round() as u64);
-            }
-        }
-    }
-
-    Err(Error::Io("failed to parse ping output".into()))
+    let count = count.unwrap_or(5).min(MAX_PING_COUNT);
+    icmp::ping_host(&host, count)
+        .await
+        .map_err(|e| Error::Io(e.to_string()))
 }

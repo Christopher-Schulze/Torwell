@@ -39,6 +39,7 @@ sysinfo = "0.30"
 governor = "0.10.0"
 directories = "6.0"
 rand = "0.8"
+surge-ping = "0.8"
 
 [dev-dependencies]
 async-trait = "0.1"
