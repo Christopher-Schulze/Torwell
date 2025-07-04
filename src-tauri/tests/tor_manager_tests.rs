@@ -93,7 +93,7 @@ async fn connect_with_backoff_error() {
             |_| {},
         )
         .await;
-    assert!(matches!(res, Err(Error::Bootstrap(_))));
+    assert!(matches!(res, Err(Error::RetriesExceeded { .. })));
 }
 
 #[tokio::test]
@@ -126,6 +126,24 @@ async fn connect_with_backoff_timeout() {
         )
         .await;
     assert!(matches!(res, Err(Error::Timeout)));
+}
+
+#[tokio::test]
+async fn bridge_parse_error() {
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager
+        .set_bridges(vec!["bad bridge".into()])
+        .await
+        .unwrap();
+    let res = manager.connect().await;
+    assert!(matches!(res, Err(Error::BridgeParse(_))));
+}
+
+#[tokio::test]
+async fn lookup_country_error() {
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.lookup_country_code("?.?.?.?").await;
+    assert!(matches!(res, Err(Error::Lookup(_))));
 }
 
 #[tokio::test]

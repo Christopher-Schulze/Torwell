@@ -226,8 +226,9 @@ impl<C: TorClientBehavior> TorManager<C> {
                 let mut bridge_builder = BridgesConfigBuilder::default();
                 bridge_builder.enabled(BoolOrAuto::Explicit(true));
                 for line in bridges {
-                    let b: BridgeConfigBuilder =
-                        line.parse().map_err(|e| Error::Tor(e.to_string()))?;
+                    let b: BridgeConfigBuilder = line
+                        .parse()
+                        .map_err(|e| Error::BridgeParse(e.to_string()))?;
                     bridge_builder.bridges().push(b);
                 }
                 builder.bridges(bridge_builder);
@@ -283,7 +284,10 @@ impl<C: TorClientBehavior> TorManager<C> {
                     attempt += 1;
                     on_retry(attempt, delay, &e);
                     if attempt > max_retries {
-                        return Err(e);
+                        return Err(Error::RetriesExceeded {
+                            attempts: attempt,
+                            error: e.to_string(),
+                        });
                     }
                     if start.elapsed() + delay > max_total_time {
                         return Err(Error::Timeout);
@@ -304,14 +308,14 @@ impl<C: TorClientBehavior> TorManager<C> {
         Ok(())
     }
 
-    async fn lookup_country_code(&self, ip: &str) -> Option<String> {
+    pub(crate) async fn lookup_country_code(&self, ip: &str) -> Result<String> {
         if ip.contains('?') {
-            return None;
+            return Err(Error::Lookup("invalid address".into()));
         }
 
         let mut cache = self.country_cache.lock().await;
         if let Some(code) = cache.get(ip) {
-            return Some(code.clone());
+            return Ok(code.clone());
         }
 
         let addr = ip
@@ -319,15 +323,16 @@ impl<C: TorClientBehavior> TorManager<C> {
             .map(|sa| sa.ip().to_string())
             .unwrap_or_else(|_| ip.split(':').next().unwrap_or(ip).to_string());
 
-        if let Ok(ip_addr) = addr.parse::<IpAddr>() {
-            if let Some(cc) = GEOIP_DB.lookup_country_code(ip_addr) {
-                let code = cc.as_ref().to_string();
-                cache.insert(ip.to_string(), code.clone());
-                return Some(code);
-            }
+        let ip_addr = addr
+            .parse::<IpAddr>()
+            .map_err(|_| Error::Lookup(format!("invalid address: {}", addr)))?;
+        if let Some(cc) = GEOIP_DB.lookup_country_code(ip_addr) {
+            let code = cc.as_ref().to_string();
+            cache.insert(ip.to_string(), code.clone());
+            Ok(code)
+        } else {
+            Err(Error::Lookup(format!("not found: {}", addr)))
         }
-
-        None
     }
 
     pub async fn set_exit_country(&self, country: Option<String>) -> Result<()> {
@@ -432,7 +437,7 @@ impl TorManager {
                 let country = self
                     .lookup_country_code(&ip_address)
                     .await
-                    .unwrap_or_else(|| "??".to_string());
+                    .unwrap_or_else(|_| "??".to_string());
                 relays.push(RelayInfo {
                     nickname,
                     ip_address,
@@ -506,7 +511,7 @@ impl TorManager {
                 let country = self
                     .lookup_country_code(&ip_address)
                     .await
-                    .unwrap_or_else(|| "??".to_string());
+                    .unwrap_or_else(|_| "??".to_string());
                 relays.push(RelayInfo {
                     nickname,
                     ip_address,
@@ -612,12 +617,12 @@ mod tests {
 
         let init_before = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
 
-        let first = manager.lookup_country_code(ip).await;
+        let first = manager.lookup_country_code(ip).await.unwrap();
         let after_first = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
-        assert!(first.is_some());
+        assert!(!first.is_empty());
         assert_eq!(manager.country_cache.lock().await.len(), 1);
 
-        let second = manager.lookup_country_code(ip).await;
+        let second = manager.lookup_country_code(ip).await.unwrap();
         let after_second = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
         assert_eq!(first, second);
         assert_eq!(manager.country_cache.lock().await.len(), 1);
@@ -631,7 +636,7 @@ mod tests {
         let init_before = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
         let res = manager.lookup_country_code("?.?.?.?").await;
         let init_after = GEOIP_INIT_COUNT.load(std::sync::atomic::Ordering::SeqCst);
-        assert!(res.is_none());
+        assert!(matches!(res, Err(Error::Lookup(_))));
         assert!(manager.country_cache.lock().await.is_empty());
         assert_eq!(init_before, init_after);
     }
