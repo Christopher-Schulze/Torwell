@@ -39,7 +39,7 @@ locations during development.
 ```json
 {
   "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://certs.torwell.com/server.pem",
+  "cert_url": "https://internal.torwell.local/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2"
 }
@@ -80,7 +80,7 @@ let client = SecureHttpClient::init(
 
 ## Konfiguration
 
-Der Standardwert für `cert_url` verweist auf `https://certs.torwell.com/server.pem` und dient lediglich als Platzhalter.
+Der Standardwert für `cert_url` verweist auf `https://internal.torwell.local/certs/server.pem` und dient lediglich als Platzhalter.
 Für produktive Einsätze muss dieser Wert auf den eigenen Update-Server zeigen.
 Dazu öffnen Sie `src-tauri/certs/cert_config.json` und ersetzen die URL durch den gewünschten Endpunkt.
 Alternativ können Sie beim Aufruf von `SecureHttpClient::init` einen abweichenden Wert übergeben, ohne die Datei zu verändern.
@@ -110,7 +110,7 @@ Neustart der Anwendung erforderlich ist.
 ### Rotation Workflow
 
 1. Lege das neue Zertifikat auf dem Produktionsserver unter
-   `https://certs.torwell.com/server.pem` ab.
+   `https://internal.torwell.local/certs/server.pem` ab.
 2. Beim Start liest `SecureHttpClient` `cert_config.json` ein und
    verwendet `cert_url`, sofern keine Umgebungsvariable gesetzt ist.
    Wird `TORWELL_CERT_URL` definiert, hat dieser Wert Vorrang.
@@ -120,3 +120,11 @@ Neustart der Anwendung erforderlich ist.
 4. Überprüfe die Logdatei auf Meldungen wie
    `certificate update failed` oder erfolgreiche Aktualisierungen, um
    sicherzustellen, dass der Wechsel stattgefunden hat.
+
+### Zeitplan
+
+- **alle 90 Tage** – neues Zertifikat ausstellen und auf dem Server
+  bereitstellen.
+- **2 Tage vor Ablauf** – Testabruf des neuen PEMs mit `SecureHttpClient`.
+- **1 Tag vor Ablauf** – manuelle Kontrolle der Logmeldungen und ggf.
+  Wiederholung des Downloads.
