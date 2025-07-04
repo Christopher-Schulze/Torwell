@@ -3,6 +3,7 @@
   import TorChain from "$lib/components/TorChain.svelte";
   import ActionCard from "$lib/components/ActionCard.svelte";
   import IdlePanel from "$lib/components/IdlePanel.svelte";
+  import SecurityBanner from "$lib/components/SecurityBanner.svelte";
   import LogsModal from "$lib/components/LogsModal.svelte";
   import SettingsModal from "$lib/components/SettingsModal.svelte";
   import { uiStore } from "$lib/stores/uiStore";
@@ -101,6 +102,7 @@
   <div
     class="bg-white/20 backdrop-blur-xl rounded-[32px] border border-white/20 p-6 flex flex-col gap-2"
   >
+    <SecurityBanner />
     <StatusCard
       status={$torStore.status}
       {totalTrafficMB}
