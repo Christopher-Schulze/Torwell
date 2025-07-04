@@ -182,6 +182,18 @@ cd src-tauri && cargo test && cd ..
 bun run tauri build
 ```
 
+## Deployment
+
+Für automatisierte Builds steht die `Taskfile.yml` zur Verfügung. Der Befehl
+`task build` ruft intern den Tauri Bundler über `bun tauri build` auf und erzeugt
+plattformabhängige Pakete. Folgende Umgebungsvariablen sind für den Release-Bau
+relevant:
+
+- `TORWELL_CERT_URL` – Serverpfad für das pinned Zertifikat
+- `TORWELL_CERT_PATH` – Lokaler Speicherort der Zertifikatsdatei
+- `TORWELL_FALLBACK_CERT_URL` – Optionale Ausweich-URL für Updates
+- `TORWELL_SESSION_TTL` – Lebensdauer der Authentifizierungstokens
+
 ## Installation
 
 ### Windows
