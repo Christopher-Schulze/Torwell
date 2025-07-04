@@ -8,11 +8,11 @@ This report summarizes security issues discovered during a brief review of the r
 - **Risk:** Deployments using a different update server must change this value; otherwise certificate updates could be fetched from an untrusted source.
 - **Recommendation:** Replace `cert_url` with your own HTTPS endpoint before release or override it via `TORWELL_CERT_URL`.
 
-## 2. Weak Local Storage Encryption
+## 2. Local Storage Encryption
 - **File:** `src/lib/database.ts`
-- **Issue:** Settings are obfuscated using a simple XOR function before being stored in IndexedDB.
-- **Risk:** This provides minimal protection; a local attacker could still recover bridge lists or exit-country preferences.
-- **Recommendation:** Use stronger encryption or rely on OS-level permissions to restrict access.
+- **Issue:** Settings are encrypted with AES‑GCM using a 256‑bit key. The key is generated on first run and stored (base64 encoded) in the `meta` table of IndexedDB.
+- **Risk:** Because the AES key is saved alongside the encrypted values, an attacker with access to local files can still decrypt the data. The mechanism mainly protects against casual inspection and tampering.
+- **Recommendation:** Consider storing the key in a platform keystore or rely on OS‑level permissions to prevent unauthorized access. Local storage remains vulnerable to malware or physical compromise.
 
 ## 3. External `ping` Command
 - **File:** `src-tauri/src/commands.rs`
