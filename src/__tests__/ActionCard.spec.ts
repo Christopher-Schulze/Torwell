@@ -25,6 +25,7 @@ describe("ActionCard", () => {
     });
 
     const { getByRole } = render(ActionCard);
+    expect(getByRole("region")).toHaveAttribute("aria-label", "Tor controls");
     expect(
       getByRole("button", { name: /connect to tor/i }),
     ).toBeInTheDocument();

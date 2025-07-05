@@ -17,4 +17,11 @@ describe('Modal focus trapping', () => {
     await fireEvent.keyDown(modal, { key: 'Tab', shiftKey: true });
     expect(document.activeElement).toBe(last);
   });
+
+  it('focuses the close button when opened', async () => {
+    const { getByLabelText } = render(LogsModal, { props: { show: true } });
+    await Promise.resolve();
+    const close = getByLabelText('Close logs');
+    expect(document.activeElement).toBe(close);
+  });
 });

@@ -8,7 +8,7 @@ import { invoke } from '@tauri-apps/api/tauri';
 
 describe('StatusCard', () => {
   it('formats traffic as GB', () => {
-    const { getByText } = render(StatusCard, {
+    const { getByText, getByRole } = render(StatusCard, {
       props: {
         status: 'CONNECTED',
         totalTrafficMB: 1500,
@@ -17,6 +17,7 @@ describe('StatusCard', () => {
     });
 
     expect(getByText('1.5 GB')).toBeInTheDocument();
+    expect(getByRole('region')).toHaveAttribute('aria-label', 'Status information');
   });
 
   it('invokes ping_host when ping button clicked', async () => {

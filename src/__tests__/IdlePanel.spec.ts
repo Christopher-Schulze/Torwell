@@ -12,6 +12,8 @@ describe('IdlePanel', () => {
 
     const bar = getByRole('progressbar');
     expect(bar).toHaveAttribute('aria-valuenow', '30');
+    const region = getByRole('region');
+    expect(region).toHaveAttribute('aria-label', 'Connection progress');
   });
 
   it('shows bootstrap message and retry info', () => {

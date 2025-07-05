@@ -23,7 +23,7 @@
   $: agePath = buildPath(metrics, "oldestAge");
 </script>
 
-<svg {width} {height} class="text-green-400">
+<svg {width} {height} class="text-green-400" role="img" aria-label="Tor metrics chart">
   {#if memoryPath}
     <path
       d={memoryPath}

@@ -18,7 +18,7 @@
 	}
 </script>
 
-<div class="glass-md rounded-xl p-6" tabindex="0" role="region">
+<div class="glass-md rounded-xl p-6" tabindex="0" role="region" aria-label="Connection progress">
 	<div class="flex flex-col items-center gap-3">
 		<!-- Progress Bar -->
                 <div
