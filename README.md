@@ -140,6 +140,9 @@ or set the environment variables `TORWELL_CERT_URL` or `TORWELL_CERT_PATH` to ov
 The minimum TLS version can also be configured via the `min_tls_version` field
 ("1.2" or "1.3").
 
+For a detailed description of the certificate rotation process, see
+[docs/CertificateManagement.md#rotation-workflow](docs/CertificateManagement.md#rotation-workflow).
+
 Example for development:
 
 ```bash

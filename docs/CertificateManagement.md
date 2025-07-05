@@ -128,3 +128,30 @@ Neustart der Anwendung erforderlich ist.
 - **2 Tage vor Ablauf** – Testabruf des neuen PEMs mit `SecureHttpClient`.
 - **1 Tag vor Ablauf** – manuelle Kontrolle der Logmeldungen und ggf.
   Wiederholung des Downloads.
+
+## Rotation Workflow
+
+Der folgende Ablauf beschreibt detailliert, wie die PEM-Datei erneuert wird und
+sicherstellt, dass immer ein gültiges Zertifikat vorliegt.
+
+1. **Quellserver**
+   Das frische Zertifikat wird von der unternehmensinternen PKI erzeugt und auf
+   dem Update-Server unter `https://certs.torwell.com/server.pem` abgelegt. Der
+   Pfad ist in `cert_config.json` hinterlegt und kann über
+   `TORWELL_CERT_URL` überschrieben werden.
+2. **Zeitplan**
+   Alle 90 Tage steht ein neues PEM bereit. Zwei Tage vor Ablauf erfolgt ein
+   Testabruf mit `SecureHttpClient`, einen Tag zuvor werden die Logmeldungen
+   kontrolliert. So kann auf Fehler rechtzeitig reagiert werden.
+3. **Manuelle Prüfschritte**
+   Nach dem Austausch wird die Logdatei auf Meldungen wie
+   `certificate update failed` untersucht. Zusätzlich kann mit
+   `openssl x509 -in src-tauri/certs/server.pem -noout -dates` das
+   Gültigkeitsdatum des neuen Zertifikats geprüft werden.
+4. **Aktualisierung**
+   Beim nächsten Start oder durch die periodische Hintergrundaufgabe lädt
+   `SecureHttpClient` das Zertifikat und ersetzt die Datei unter `cert_path`.
+   Ein Neustart der Anwendung ist nicht notwendig.
+
+Dieser Workflow stellt sicher, dass die Zertifikate regelmäßig erneuert werden
+und Probleme frühzeitig erkannt werden.
