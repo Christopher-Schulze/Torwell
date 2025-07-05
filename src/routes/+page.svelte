@@ -36,7 +36,9 @@
   async function fetchIsolatedCircuit() {
     if ($torStore.status === "CONNECTED") {
       try {
-        const nodes = await invoke<any>("get_isolated_circuit", { domain: isolatedDomain });
+        const nodes = await invoke<any>("get_isolated_circuit", {
+          domain: isolatedDomain,
+        });
         isolatedCircuits = [{ domain: isolatedDomain, nodes }];
       } catch (e) {
         console.error("Failed to get isolated circuit:", e);
@@ -111,37 +113,44 @@
   }
 </script>
 
-<div class="p-6 max-w-6xl mx-auto">
+<div class="p-4 sm:p-6 max-w-6xl mx-auto">
   <div
-    class="bg-white/20 backdrop-blur-xl rounded-[32px] border border-white/20 p-6 flex flex-col gap-2"
+    class="bg-white/10 sm:bg-white/20 backdrop-blur-md sm:backdrop-blur-xl rounded-[32px] border border-white/10 sm:border-white/20 p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4"
   >
-    <SecurityBanner />
-    <StatusCard
-      status={$torStore.status}
-      {totalTrafficMB}
-      pingMs={$torStore.pingMs}
-    />
-
-    <TorChain
-      isConnected={$torStore.status === "CONNECTED"}
-      isActive={$torStore.status === "CONNECTED"}
-      nodeData={activeCircuit}
-      isolatedCircuits={isolatedCircuits}
-      cloudflareEnabled={false}
-    />
-
-    <ActionCard
-      on:openLogs={() => uiStore.actions.openLogsModal()}
-      on:openSettings={() => uiStore.actions.openSettingsModal()}
-    />
-
-    <IdlePanel
-      connectionProgress={$torStore.bootstrapProgress}
-      bootstrapMessage={$torStore.bootstrapMessage}
-      currentStatus={$torStore.status}
-      retryCount={$torStore.retryCount}
-      retryDelay={$torStore.retryDelay}
-    />
+    <div class="md:col-span-2">
+      <SecurityBanner />
+    </div>
+    <div>
+      <StatusCard
+        status={$torStore.status}
+        {totalTrafficMB}
+        pingMs={$torStore.pingMs}
+      />
+    </div>
+    <div class="md:col-span-2">
+      <TorChain
+        isConnected={$torStore.status === "CONNECTED"}
+        isActive={$torStore.status === "CONNECTED"}
+        nodeData={activeCircuit}
+        {isolatedCircuits}
+        cloudflareEnabled={false}
+      />
+    </div>
+    <div class="md:col-span-2">
+      <ActionCard
+        on:openLogs={() => uiStore.actions.openLogsModal()}
+        on:openSettings={() => uiStore.actions.openSettingsModal()}
+      />
+    </div>
+    <div>
+      <IdlePanel
+        connectionProgress={$torStore.bootstrapProgress}
+        bootstrapMessage={$torStore.bootstrapMessage}
+        currentStatus={$torStore.status}
+        retryCount={$torStore.retryCount}
+        retryDelay={$torStore.retryDelay}
+      />
+    </div>
   </div>
 </div>
 
