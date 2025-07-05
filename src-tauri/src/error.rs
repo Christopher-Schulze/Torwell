@@ -43,7 +43,13 @@ pub enum Error {
     Identity { step: String, source: String },
 
     #[error("Rate limit exceeded for {0}")]
-    RateLimited(String),
+    RateLimitExceeded(String),
+
+    #[error("configuration error during {step}: {source}")]
+    ConfigError { step: String, source: String },
+
+    #[error("network failure during {step}: {source}")]
+    NetworkFailure { step: String, source: String },
 
     #[error("connection failed after {attempts} retries: {error}")]
     RetriesExceeded { attempts: u32, error: String },

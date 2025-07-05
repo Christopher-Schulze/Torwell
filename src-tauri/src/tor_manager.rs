@@ -279,7 +279,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                 }
                 builder.bridges(bridge_builder);
             }
-            builder.build().map_err(|e| Error::ConnectionFailed {
+            builder.build().map_err(|e| Error::ConfigError {
                 step: "config_build".into(),
                 source: e.to_string(),
             })
@@ -296,8 +296,8 @@ impl<C: TorClientBehavior> TorManager<C> {
         }
         progress(0, "starting".into());
         let config = self.build_config().await.map_err(|e| {
-            log::error!("connect_once: build_config failed: {}", e);
-            Error::ConnectionFailed {
+            log::error!("connect_once: build_config failed: {e}");
+            Error::ConfigError {
                 step: "build_config".into(),
                 source: e.to_string(),
             }
@@ -305,8 +305,8 @@ impl<C: TorClientBehavior> TorManager<C> {
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
             .map_err(|e| {
-                log::error!("connect_once: bootstrap failed: {}", e);
-                Error::ConnectionFailed {
+                log::error!("connect_once: bootstrap failed: {e}");
+                Error::NetworkFailure {
                     step: "bootstrap".into(),
                     source: e,
                 }
@@ -332,7 +332,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     {
         if self.connect_limiter.check().is_err() {
             log::error!("connect_with_backoff: rate limit exceeded");
-            return Err(Error::RateLimited("connect".into()));
+            return Err(Error::RateLimitExceeded("connect".into()));
         }
         let start = std::time::Instant::now();
         let mut attempt = 0;
@@ -413,8 +413,8 @@ impl<C: TorClientBehavior> TorManager<C> {
         let mut guard = self.exit_country.lock().await;
         if let Some(cc) = country {
             let code = CountryCode::new(&cc).map_err(|e| {
-                log::error!("set_exit_country: invalid code {} - {}", cc, e);
-                Error::ConnectionFailed {
+                log::error!("set_exit_country: invalid code {cc} - {e}");
+                Error::ConfigError {
                     step: "set_exit_country".into(),
                     source: e.to_string(),
                 }
@@ -459,7 +459,7 @@ impl<C: TorClientBehavior> TorManager<C> {
 
         if self.circuit_limiter.check().is_err() {
             log::error!("new_identity: rate limit exceeded");
-            return Err(Error::RateLimited("new_identity".into()));
+            return Err(Error::RateLimitExceeded("new_identity".into()));
         }
 
         // Force new configuration and circuits

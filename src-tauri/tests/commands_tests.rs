@@ -266,8 +266,8 @@ async fn command_set_exit_country_invalid() {
     let state = app.state::<AppState<MockTorClient>>();
     let res = commands::set_exit_country(state, Some("zzz".into())).await;
     match res {
-        Err(Error::ConnectionFailed { step, .. }) => assert_eq!(step, "set_exit_country"),
-        _ => panic!("expected connection failed"),
+        Err(Error::ConfigError { step, .. }) => assert_eq!(step, "set_exit_country"),
+        _ => panic!("expected config error"),
     }
 }
 
@@ -331,7 +331,7 @@ async fn ping_host_rate_limited() {
     for _ in 0..65 {
         last = commands::ping_host(Some("127.0.0.1".into()), Some(1)).await;
     }
-    assert!(matches!(last, Err(Error::RateLimited(_))));
+    assert!(matches!(last, Err(Error::RateLimitExceeded(_))));
 }
 
 #[tokio::test]
