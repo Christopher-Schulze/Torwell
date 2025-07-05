@@ -128,9 +128,9 @@
 <svelte:window on:keydown={handleKeydown} />
 
 {#if show}
-       <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" on:click={() => dispatch('close')} tabindex="-1">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" on:click={() => dispatch('close')} tabindex="-1">
                <div
-                       class="glass-lg rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden"
+                       class="bg-black/80 backdrop-blur-3xl rounded-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] overflow-hidden"
                        role="dialog"
                        aria-modal="true"
                        aria-labelledby="logs-modal-title"

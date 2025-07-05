@@ -12,7 +12,8 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "backup:ui": "bash scripts/backup_ui.sh"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.1",
@@ -41,6 +42,7 @@
     "dexie": "^4.0.11",
     "lucide-svelte": "^0.294.0",
     "svelte-error-boundary": "^1.0.2",
+    "tailwindcss-glassmorphism": "^0.1.0",
     "tauri-plugin-keychain": "^2.0.1"
   }
 }

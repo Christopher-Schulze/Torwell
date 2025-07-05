@@ -130,6 +130,16 @@ bun tauri build
 cd src-tauri && cargo test
 ```
 
+### UI Backup
+To back up the current Svelte components before experimenting with new designs,
+run:
+
+```bash
+scripts/backup_ui.sh
+```
+The script copies `src/lib/components` to `src/lib/components_backup` so you can
+easily restore the previous UI.
+
 
 
 ### Updating Certificates
@@ -246,6 +256,7 @@ Open the `.dmg` file from the releases page and drag **Torwell84** to your Appli
 - **Frontend**: Svelte + TypeScript
 - **Desktop**: Tauri 1.6+
 - **Tor Version**: arti-client 0.31.0
+- **UI Library**: Tailwind CSS with `tailwindcss-glassmorphism`
 
 ### Error States
 The backend emits detailed error messages via the `tor-status-update` event. Possible values include `NotConnected`, `AlreadyConnected`, `Bootstrap`, `NetDir`, `Circuit`, and `Identity`.
