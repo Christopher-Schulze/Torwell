@@ -44,6 +44,8 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: bun run check
+      - name: Run svelte-check
+        run: bunx svelte-check
       - run: bun audit
       - run: bun run lint:a11y
 
@@ -64,7 +66,12 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: bun run check
+      - name: Run svelte-check
+        run: bunx svelte-check
       - run: bun run lint:a11y
+      - name: Run cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
       - name: Run cargo test
         working-directory: src-tauri
         run: cargo test

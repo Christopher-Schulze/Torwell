@@ -36,6 +36,15 @@ Ein neues Testskript `src-tauri/tests/fuzz_commands.rs` führt zufällige Aufruf
 
 Bei ersten Durchläufen traten keine Abstürze auf. Ungültige Eingaben wurden korrekt mit Fehlermeldungen beantwortet und das Rate Limiting griff wie erwartet.
 
+## 5. Penetration Tests
+
+Ein weiteres Skript `src-tauri/tests/pentest.rs` simuliert unautorisierte Anfragen
+und einen massiven Aufruf von Befehlen.
+Ungültige Tokens werden konsequent mit `Error::InvalidToken` abgelehnt. Nach mehr
+als 60 gültigen Aufrufen greift der globale Rate Limiter und liefert
+`Error::RateLimited`. Somit funktionieren die Sitzungsprüfung und das
+Rate‑Limiting wie vorgesehen.
+
 ## Aktueller Stand (2025-07-05)
 
 Aktuell sind keine weiteren offenen Findings bekannt.
