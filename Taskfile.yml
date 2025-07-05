@@ -24,3 +24,13 @@ tasks:
     desc: "Builds the application for production."
     cmds:
       - bun tauri build
+
+  mobile:android:
+    desc: "Build the Android app using Capacitor"
+    cmds:
+      - ./mobile/scripts/build_android.sh
+
+  mobile:ios:
+    desc: "Build the iOS app using Capacitor"
+    cmds:
+      - ./mobile/scripts/build_ios.sh

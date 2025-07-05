@@ -355,6 +355,9 @@ The connection code already implements backoff with a maximum total time and log
 ## ⚠ Known Limitations
 See [docs/Limitations.md](docs/Limitations.md) for features that are currently impossible to implement, including per-circuit metrics.
 
+## 📱 Mobile
+Experimental Capacitor configuration is provided in [docs/Mobile.md](docs/Mobile.md). Use `task mobile:android` or `task mobile:ios` to build the mobile apps. The mobile build communicates with the Rust backend over a small HTTP bridge running on port 1421 when compiled with the `mobile` feature.
+
 ## 🔐 Security Findings
 Aktuelle Erkenntnisse aus Audits sind im Dokument [docs/SecurityFindings.md](docs/SecurityFindings.md) zusammengefasst.
 
