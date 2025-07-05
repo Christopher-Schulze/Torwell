@@ -297,7 +297,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         progress(0, "starting".into());
         let config = self.build_config().await.map_err(|e| {
             log::error!("connect_once: build_config failed: {e}");
-            Error::ConfigError {
+            Error::ConnectionFailed {
                 step: "build_config".into(),
                 source: e.to_string(),
             }
@@ -306,7 +306,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             .await
             .map_err(|e| {
                 log::error!("connect_once: bootstrap failed: {e}");
-                Error::NetworkFailure {
+                Error::ConnectionFailed {
                     step: "bootstrap".into(),
                     source: e,
                 }
