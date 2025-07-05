@@ -183,3 +183,17 @@ und Probleme frühzeitig erkannt werden.
 - Sollte keine Hintergrundaufgabe laufen, kann `schedule_updates` nach dem
   Austausch manuell angestoßen werden, um den neuen PEM-Inhalt sofort
   einzulesen.
+
+## Optionaler HSM/TPM-Speicher
+
+Ab Version 2.2.3 kann der AES-Schlüssel für die lokale Datenbank auch in einem Hardware-Security-Modul (HSM) bzw. TPM 2.0 hinterlegt werden. Standardmäßig nutzt Torwell84 die Betriebssystem-Keychain. Sobald jedoch die Umgebungsvariable `TORWELL_KEY_BACKEND` auf `tpm` gesetzt ist, werden die Befehle `tpm2_nvread` und `tpm2_nvwrite` verwendet. Der zu nutzende NV-Index wird mit `TORWELL_TPM_NV_INDEX` angegeben.
+
+Beispiel zur Aktivierung unter Linux:
+
+```bash
+export TORWELL_KEY_BACKEND=tpm
+export TORWELL_TPM_NV_INDEX=0x1500016
+bun tauri dev
+```
+
+Fehlen diese Variablen, bleibt das bisherige Verhalten erhalten und der Schlüssel landet in der Keychain. Auf Windows und macOS ist derzeit kein TPM-Support implementiert.

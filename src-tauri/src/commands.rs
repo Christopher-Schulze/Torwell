@@ -8,7 +8,7 @@ use governor::{
 use log::Level;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use keyring;
+use crate::secure_store;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
@@ -373,13 +373,7 @@ pub async fn get_secure_key(state: State<'_, AppState>, token: String) -> Result
     if !state.validate_session(&token).await {
         return Err(Error::InvalidToken);
     }
-    let entry = keyring::Entry::new("torwell84", "aes-key")
-        .map_err(|e| Error::Io(e.to_string()))?;
-    match entry.get_password() {
-        Ok(v) => Ok(Some(v)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(Error::Io(e.to_string())),
-    }
+    secure_store::get_key()
 }
 
 #[tauri::command]
@@ -389,7 +383,5 @@ pub async fn set_secure_key(state: State<'_, AppState>, token: String, value: St
     if !state.validate_session(&token).await {
         return Err(Error::InvalidToken);
     }
-    let entry = keyring::Entry::new("torwell84", "aes-key")
-        .map_err(|e| Error::Io(e.to_string()))?;
-    entry.set_password(&value).map_err(|e| Error::Io(e.to_string()))
+    secure_store::set_key(&value)
 }
