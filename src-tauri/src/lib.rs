@@ -143,6 +143,10 @@ pub fn run() {
             commands::get_log_file_path,
             commands::set_log_limit,
             commands::ping_host,
+            #[cfg(feature = "dns_lookup")]
+            commands::dns_lookup,
+            #[cfg(feature = "traceroute")]
+            commands::traceroute_host,
             commands::get_secure_key,
             commands::set_secure_key,
             commands::request_token

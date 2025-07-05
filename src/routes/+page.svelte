@@ -3,6 +3,7 @@
   import TorChain from "$lib/components/TorChain.svelte";
   import ActionCard from "$lib/components/ActionCard.svelte";
   import IdlePanel from "$lib/components/IdlePanel.svelte";
+  import NetworkTools from "$lib/components/NetworkTools.svelte";
   import SecurityBanner from "$lib/components/SecurityBanner.svelte";
   import { browser } from "$app/environment";
   let LogsModalComponent: any = null;
@@ -134,6 +135,8 @@
       on:openLogs={() => uiStore.actions.openLogsModal()}
       on:openSettings={() => uiStore.actions.openSettingsModal()}
     />
+
+    <NetworkTools />
 
     <IdlePanel
       connectionProgress={$torStore.bootstrapProgress}

@@ -408,6 +408,66 @@ pub async fn ping_host(
         .map_err(|e| Error::Io(e.to_string()))
 }
 
+#[cfg(feature = "dns_lookup")]
+#[tauri::command]
+pub async fn dns_lookup(
+    state: State<'_, AppState>,
+    token: String,
+    host: String,
+) -> Result<Vec<String>> {
+    track_call("dns_lookup").await;
+    check_api_rate()?;
+    if !state.validate_session(&token).await {
+        log::error!("dns_lookup: invalid token");
+        return Err(Error::InvalidToken);
+    }
+    if !HOST_RE.is_match(&host) {
+        log::error!("dns_lookup: invalid host '{}'", host);
+        return Err(Error::Io("invalid host".into()));
+    }
+    let entries = tokio::net::lookup_host((&host[..], 0))
+        .await
+        .map_err(|e| Error::Io(e.to_string()))?;
+    Ok(entries.map(|a| a.ip().to_string()).collect())
+}
+
+#[cfg(feature = "traceroute")]
+#[tauri::command]
+pub async fn traceroute_host(
+    state: State<'_, AppState>,
+    token: String,
+    host: String,
+    max_hops: Option<u8>,
+) -> Result<Vec<String>> {
+    use traceroute::TraceResult;
+    track_call("traceroute_host").await;
+    check_api_rate()?;
+    if !state.validate_session(&token).await {
+        log::error!("traceroute_host: invalid token");
+        return Err(Error::InvalidToken);
+    }
+    if !HOST_RE.is_match(&host) {
+        log::error!("traceroute_host: invalid host '{}'", host);
+        return Err(Error::Io("invalid host".into()));
+    }
+    let host_clone = host.clone();
+    let limit = max_hops.unwrap_or(30) as usize;
+    let hops = tokio::task::spawn_blocking(move || {
+        let addr = format!("{}:0", host_clone);
+        let trace: TraceResult = traceroute::execute(addr.as_str())
+            .map_err(|e| e.to_string())?;
+        let mut out = Vec::new();
+        for hop in trace.take(limit) {
+            let hop = hop.map_err(|e| e.to_string())?;
+            out.push(hop.host.ip().to_string());
+        }
+        Ok::<_, String>(out)
+    })
+    .await
+    .map_err(|e| Error::Io(e.to_string()))??;
+    Ok(hops)
+}
+
 #[tauri::command]
 pub async fn get_secure_key(state: State<'_, AppState>, token: String) -> Result<Option<String>> {
     track_call("get_secure_key").await;
