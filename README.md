@@ -236,7 +236,7 @@ Im Ordner `cf worker` liegt ein kleines Beispiel für einen HTTPS-Proxy als Clou
 
 **Deployment:**
 
-1. `npm install -g wrangler` (oder `bun add -g wrangler`)
+1. `bun add -g wrangler`
 2. `wrangler init` ausführen und den Beispielcode als `src/index.js` einbinden
 3. Mit `wrangler deploy` veröffentlichen
 
