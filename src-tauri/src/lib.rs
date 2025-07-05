@@ -129,6 +129,7 @@ pub fn run() {
             commands::get_isolated_circuit,
             commands::set_exit_country,
             commands::set_bridges,
+            commands::list_bridge_presets,
             commands::get_traffic_stats,
             commands::get_metrics,
             commands::get_logs,

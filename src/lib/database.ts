@@ -109,6 +109,7 @@ export interface Settings {
   torrcConfig: string;
   exitCountry?: string | null;
   bridges?: string[];
+  bridgePreset?: string | null;
   maxLogLines?: number;
 }
 
@@ -124,6 +125,11 @@ export class AppDatabase extends Dexie {
         "++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines",
     });
     this.version(2).stores({ meta: "&id" });
+    this.version(3).stores({
+      settings:
+        "++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines, bridgePreset",
+      meta: "&id",
+    });
 
     this.settings.hook("creating", async (_pk, obj) => {
       await encryptFields(this, obj);

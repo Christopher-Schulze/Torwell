@@ -65,6 +65,33 @@ pub struct CircuitMetrics {
     pub oldest_age: u64,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
+pub struct BridgePreset {
+    pub name: String,
+    pub bridges: Vec<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct PresetFile {
+    #[serde(default)]
+    presets: Vec<BridgePreset>,
+}
+
+impl PresetFile {
+    fn from_str(s: &str) -> Result<Vec<BridgePreset>> {
+        let val: PresetFile = serde_json::from_str(s).map_err(|e| Error::Io(e.to_string()))?;
+        Ok(val.presets)
+    }
+}
+
+pub fn load_default_bridge_presets() -> Result<Vec<BridgePreset>> {
+    PresetFile::from_str(include_str!("../src/lib/bridge_presets.json"))
+}
+
+pub fn load_bridge_presets_from_str(data: &str) -> Result<Vec<BridgePreset>> {
+    PresetFile::from_str(data)
+}
+
 #[async_trait]
 pub trait TorClientBehavior: Send + Sync + Sized + 'static {
     async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String>;

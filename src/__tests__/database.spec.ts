@@ -31,6 +31,11 @@ function openRaw() {
     settings: '++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines',
   });
   raw.version(2).stores({ meta: '&id' });
+  raw.version(3).stores({
+    settings:
+      '++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines, bridgePreset',
+    meta: '&id',
+  });
   return raw.open().then(() => raw);
 }
 

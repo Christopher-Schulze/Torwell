@@ -8,6 +8,7 @@ type AppSettings = {
   torrcConfig: string;
   exitCountry: string | null;
   bridges: string[];
+  bridgePreset: string | null;
   maxLogLines: number;
 };
 
@@ -27,6 +28,7 @@ function createUIStore() {
       torrcConfig: "# Default torrc config\n",
       exitCountry: null,
       bridges: [],
+      bridgePreset: null,
       maxLogLines: 1000,
     },
     error: null,
@@ -63,6 +65,7 @@ function createUIStore() {
               torrcConfig: storedSettings.torrcConfig,
               exitCountry: storedSettings.exitCountry ?? null,
               bridges: storedSettings.bridges ?? [],
+              bridgePreset: storedSettings.bridgePreset ?? null,
               maxLogLines: storedSettings.maxLogLines ?? 1000,
             },
           }));
@@ -107,6 +110,27 @@ function createUIStore() {
         const newSettings: AppSettings = {
           ...current.settings,
           bridges,
+          bridgePreset: null,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to set bridges: ${message}`,
+        }));
+      }
+    },
+
+    setBridgePreset: async (preset: string | null, bridges: string[]) => {
+      try {
+        await invoke("set_bridges", { bridges });
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          bridges,
+          bridgePreset: preset,
         };
         await db.settings.put({ id: 1, ...newSettings });
         update((state) => ({ ...state, settings: newSettings, error: null }));
