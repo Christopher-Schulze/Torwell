@@ -33,6 +33,9 @@ pub enum Error {
     #[error("Circuit operation failed: {0}")]
     Circuit(String),
 
+    #[error("Network error: {0}")]
+    Network(String),
+
     #[error("Identity change failed: {0}")]
     Identity(String),
 
@@ -54,7 +57,7 @@ pub enum Error {
 
 impl From<arti_client::Error> for Error {
     fn from(err: arti_client::Error) -> Self {
-        Error::Tor(err.to_string())
+        Error::Network(err.to_string())
     }
 }
 
@@ -74,18 +77,18 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 impl From<tor_netdir::Error> for Error {
     fn from(err: tor_netdir::Error) -> Self {
-        Error::Tor(err.to_string())
+        Error::Network(err.to_string())
     }
 }
 
 impl From<tor_circmgr::Error> for Error {
     fn from(err: tor_circmgr::Error) -> Self {
-        Error::Tor(err.to_string())
+        Error::Circuit(err.to_string())
     }
 }
 
 impl From<tor_proto::Error> for Error {
     fn from(err: tor_proto::Error) -> Self {
-        Error::Tor(err.to_string())
+        Error::Network(err.to_string())
     }
 }
