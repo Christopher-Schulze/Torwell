@@ -210,3 +210,4 @@ und Probleme frühzeitig erkannt werden.
 - Sollte keine Hintergrundaufgabe laufen, kann `schedule_updates` nach dem
   Austausch manuell angestoßen werden, um den neuen PEM-Inhalt sofort
   einzulesen.
+\nSee `GeoIPDatabase.md` for configuring an external GeoIP database.

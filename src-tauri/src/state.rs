@@ -32,6 +32,8 @@ pub const DEFAULT_SESSION_TTL: u64 = 3600;
 struct AppConfig {
     #[serde(default = "default_max_log_lines")]
     max_log_lines: usize,
+    #[serde(default)]
+    geoip_path: Option<String>,
 }
 
 fn default_max_log_lines() -> usize {
@@ -106,14 +108,18 @@ impl<C: TorClientBehavior> Default for AppState<C> {
 
         let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
         let mut max_log_lines = cfg.max_log_lines;
+        let mut geoip_path = cfg.geoip_path.clone();
         if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
             if let Ok(n) = val.parse::<usize>() {
                 max_log_lines = n;
             }
         }
+        if let Ok(p) = std::env::var("TORWELL_GEOIP_PATH") {
+            geoip_path = Some(p);
+        }
 
         Self {
-            tor_manager: Arc::new(TorManager::new()),
+            tor_manager: Arc::new(TorManager::new_with_geoip(geoip_path.clone())),
             http_client: Arc::new(
                 SecureHttpClient::new_default().expect("failed to create http client"),
             ),
@@ -165,14 +171,18 @@ impl<C: TorClientBehavior> AppState<C> {
 
         let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
         let mut max_log_lines = cfg.max_log_lines;
+        let mut geoip_path = cfg.geoip_path.clone();
         if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
             if let Ok(n) = val.parse::<usize>() {
                 max_log_lines = n;
             }
         }
+        if let Ok(p) = std::env::var("TORWELL_GEOIP_PATH") {
+            geoip_path = Some(p);
+        }
 
         AppState {
-            tor_manager: Arc::new(TorManager::new()),
+            tor_manager: Arc::new(TorManager::new_with_geoip(geoip_path.clone())),
             http_client,
             log_file,
             log_lock: Arc::new(Mutex::new(())),

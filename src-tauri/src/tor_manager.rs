@@ -21,6 +21,7 @@ use tokio::sync::Mutex;
 use tor_circmgr::isolation::{IsolationToken, StreamIsolation};
 use tor_dirmgr::Timeliness;
 use tor_geoip::{CountryCode, GeoipDb};
+use std::path::Path;
 
 #[cfg(test)]
 pub(crate) static GEOIP_INIT_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -32,6 +33,12 @@ static GEOIP_DB: Lazy<GeoipDb> = Lazy::new(|| {
     }
     GeoipDb::new_embedded()
 });
+
+fn load_geoip_db(dir: &Path) -> Option<GeoipDb> {
+    let v4 = std::fs::read_to_string(dir.join("geoip")).ok()?;
+    let v6 = std::fs::read_to_string(dir.join("geoip6")).ok()?;
+    GeoipDb::new_from_legacy_format(&v4, &v6).ok()
+}
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
 
@@ -152,6 +159,7 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     exit_country: Arc<Mutex<Option<CountryCode>>>,
     bridges: Arc<Mutex<Vec<String>>>,
     country_cache: Arc<Mutex<HashMap<String, String>>>,
+    geoip_db: GeoipDb,
     connect_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
     circuit_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
 }
@@ -164,6 +172,7 @@ impl<C> Clone for TorManager<C> {
             exit_country: Arc::clone(&self.exit_country),
             bridges: Arc::clone(&self.bridges),
             country_cache: Arc::clone(&self.country_cache),
+            geoip_db: self.geoip_db.clone(),
             connect_limiter: Arc::clone(&self.connect_limiter),
             circuit_limiter: Arc::clone(&self.circuit_limiter),
         }
@@ -172,12 +181,22 @@ impl<C> Clone for TorManager<C> {
 
 impl<C: TorClientBehavior> TorManager<C> {
     pub fn new() -> Self {
+        Self::new_with_geoip(None)
+    }
+
+    pub fn new_with_geoip<P: AsRef<Path>>(geoip_dir: Option<P>) -> Self {
+        let db = geoip_dir
+            .as_ref()
+            .and_then(|p| load_geoip_db(p.as_ref()))
+            .unwrap_or_else(|| GEOIP_DB.clone());
+
         let manager = Self {
             client: Arc::new(Mutex::new(None)),
             isolation_tokens: Arc::new(Mutex::new(HashMap::new())),
             exit_country: Arc::new(Mutex::new(None)),
             bridges: Arc::new(Mutex::new(Vec::new())),
             country_cache: Arc::new(Mutex::new(HashMap::new())),
+            geoip_db: db,
             connect_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
                 NonZeroU32::new(CONNECT_RATE_LIMIT).unwrap(),
             ))),
@@ -335,7 +354,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         let ip_addr = addr
             .parse::<IpAddr>()
             .map_err(|_| Error::Lookup(format!("invalid address: {}", addr)))?;
-        if let Some(cc) = GEOIP_DB.lookup_country_code(ip_addr) {
+        if let Some(cc) = self.geoip_db.lookup_country_code(ip_addr) {
             let code = cc.as_ref().to_string();
             cache.insert(ip.to_string(), code.clone());
             Ok(code)
@@ -679,5 +698,24 @@ mod tests {
         assert!(matches!(res, Err(Error::Lookup(_))));
         assert!(manager.country_cache.lock().await.is_empty());
         assert_eq!(init_before, init_after);
+    }
+
+    #[tokio::test]
+    async fn external_geoip_directory() {
+        use tempfile::tempdir;
+        let dir = tempdir().unwrap();
+        std::fs::write(dir.path().join("geoip"), "16777216,16777471,AU\n").unwrap();
+        std::fs::write(dir.path().join("geoip6"), "2001::,2001::ffff,US\n").unwrap();
+
+        let manager: TorManager<DummyClient> = TorManager::new_with_geoip(Some(dir.path()));
+        let code = manager.lookup_country_code("1.0.0.1").await.unwrap();
+        assert_eq!(code, "AU");
+    }
+
+    #[tokio::test]
+    async fn geoip_fallback_to_embedded() {
+        let manager: TorManager<DummyClient> = TorManager::new_with_geoip(Some("/no/such/path"));
+        let code = manager.lookup_country_code("8.8.8.8").await.unwrap();
+        assert!(!code.is_empty());
     }
 }
