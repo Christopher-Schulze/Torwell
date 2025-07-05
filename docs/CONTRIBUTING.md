@@ -12,8 +12,9 @@ This project welcomes community contributions. Please follow the guidelines belo
 
 1. Install dependencies with `bun install`.
 2. Run `bun run check` to verify the Svelte frontend.
-3. Run `cargo check` in `src-tauri` to ensure the backend builds.
-4. Run `cargo clippy -- -D warnings` in `src-tauri` to check for Rust lints.
+3. Run `bun run lint:a11y` to perform accessibility checks.
+4. Run `cargo check` in `src-tauri` to ensure the backend builds.
+5. Run `cargo clippy -- -D warnings` in `src-tauri` to check for Rust lints.
 
 ## Pull Request Process
 
