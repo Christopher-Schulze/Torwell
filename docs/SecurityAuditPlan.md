@@ -1,6 +1,6 @@
 # Security Audit Plan
 
-This document outlines the steps for a comprehensive code audit derived from the project roadmap.
+This document outlines the steps for a comprehensive code audit derived from the project roadmap. Ergebnisse und offene Punkte werden im Dokument [docs/SecurityFindings.md](docs/SecurityFindings.md) festgehalten.
 
 ## Scope
 The external review should include:
@@ -27,7 +27,7 @@ Penetration testing should cover:
    - Simulate network attacks against the application APIs.
    - Validate sandboxing and process isolation features.
 4. **Reporting**
-   - Document all findings in `docs/SecurityFindings.md` with severity and recommended fixes.
+   - Document all findings in [docs/SecurityFindings.md](docs/SecurityFindings.md) with severity and recommended fixes.
 
 ## Timeline
 - Preparation: 1 week
@@ -56,5 +56,5 @@ calls.
 - [x] Run `bun audit` (or `npm audit`) for JavaScript dependencies
 - [ ] Use static analysis tools (`clippy`, `svelte-check`)
 - [ ] Conduct penetration testing
-- [x] Document findings in `docs/SecurityFindings.md`
+- [x] Document findings in [docs/SecurityFindings.md](docs/SecurityFindings.md)
 
