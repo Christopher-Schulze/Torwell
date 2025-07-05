@@ -207,6 +207,10 @@ cd src-tauri && cargo test && cd ..
 bun run tauri build
 ```
 
+Bei jedem Push nach `main` erzeugt die GitHub Actions CI ebenfalls ein MSI.
+Ist ein Codesigning-Zertifikat hinterlegt, wird der Installer signiert und als
+Artefakt `windows-msi` im Workflow bereitgestellt.
+
 ## Deployment
 
 Für automatisierte Builds steht die `Taskfile.yml` zur Verfügung. Der Befehl

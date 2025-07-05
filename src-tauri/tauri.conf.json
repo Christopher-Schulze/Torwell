@@ -7,12 +7,13 @@
     "devPath": "http://localhost:1420"
   },
   "package": {
-    "productName": "Torwell84",
+    "productName": "Torwell84 V2",
     "version": "2.2.2"
   },
   "tauri": {
     "bundle": {
         "identifier": "com.torwell84.v2.app",
+        "publisher": "Torwell84",
         "active": true,
         "targets": [
             "msi",
