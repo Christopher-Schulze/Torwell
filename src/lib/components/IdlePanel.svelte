@@ -18,7 +18,7 @@
 	}
 </script>
 
-<div class="bg-black/20 rounded-xl p-6">
+<div class="bg-black/20 rounded-xl p-6" tabindex="0" role="region">
 	<div class="flex flex-col items-center gap-3">
 		<!-- Progress Bar -->
                 <div

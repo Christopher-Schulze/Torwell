@@ -20,8 +20,10 @@
   const dispatch = createEventDispatcher();
   let showTorrcEditor = false; // This will be unused for now
   let closeButton: HTMLButtonElement | null = null;
+  let previouslyFocused: HTMLElement | null = null;
 
   $: if (show) {
+    previouslyFocused = document.activeElement as HTMLElement;
     selectedBridges = [...$uiStore.settings.bridges];
     torrcConfig = $uiStore.settings.torrcConfig;
     workerListString = $uiStore.settings.workerList.join("\n");
@@ -29,11 +31,12 @@
     exitCountry = $uiStore.settings.exitCountry ?? null;
     uiStore.actions.setExitCountry(exitCountry);
     tick().then(() => closeButton && closeButton.focus());
+  } else if (previouslyFocused) {
+    tick().then(() => previouslyFocused && previouslyFocused.focus());
   }
 
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      show = false;
       dispatch("close");
     }
   }
@@ -67,25 +70,25 @@
 {#if show}
   <div
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-    on:click|stopPropagation={() => (show = false)}
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="settings-modal-title"
-    on:keydown={handleKeyDown}
+    on:click={() => dispatch('close')}
+    tabindex="-1"
   >
     <section
       class="bg-black/40 backdrop-blur-3xl rounded-2xl border border-white/10 w-[90%] max-w-2xl min-h-[500px] p-6 flex flex-col"
       on:click|stopPropagation
       on:keydown={handleKeyDown}
-      role="document"
-    >
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-modal-title"
+      tabindex="0"
+      >
       <div class="flex justify-between items-center mb-4 shrink-0">
         <h2 id="settings-modal-title" class="text-2xl font-semibold">
           Settings
         </h2>
         <button
           class="text-gray-100 hover:text-white transition-colors"
-          on:click={() => (show = false)}
+          on:click={() => dispatch('close')}
           aria-label="Close settings"
           bind:this={closeButton}
         >

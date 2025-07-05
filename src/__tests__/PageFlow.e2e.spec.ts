@@ -23,4 +23,26 @@ describe('Main page flow', () => {
     await fireEvent.click(screen.getByRole('button', { name: /close logs/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('supports keyboard navigation for modals', async () => {
+    render(Page);
+
+    const logsButton = screen.getByRole('button', { name: /logs/i });
+    logsButton.focus();
+    await fireEvent.keyDown(logsButton, { key: 'Enter' });
+    await screen.findByRole('dialog');
+
+    const dialog = screen.getByRole('dialog');
+    await fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    settingsButton.focus();
+    await fireEvent.keyDown(settingsButton, { key: 'Enter' });
+    await screen.findByRole('dialog');
+
+    const dialog2 = screen.getByRole('dialog');
+    await fireEvent.keyDown(dialog2, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });
