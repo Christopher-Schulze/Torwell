@@ -5,8 +5,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::mpsc;
 use tempfile::tempdir;
+use tokio::sync::mpsc;
 use torwell84::secure_http::{SecureHttpClient, DEFAULT_CONFIG_PATH};
 
 const CA_PEM: &str = include_str!("../tests_data/ca.pem");
@@ -419,4 +419,17 @@ async fn warning_after_multiple_update_failures() {
 
     let warning = rx.recv().await.unwrap();
     assert!(warning.contains("consecutive certificate update failures"));
+}
+
+#[cfg(feature = "hsm")]
+#[test]
+fn init_and_finalize_hsm_with_softhsm() {
+    // Use the SoftHSM library shipped with the test environment. No real
+    // hardware is required for this check.
+    std::env::set_var("TORWELL_HSM_LIB", "/usr/lib/softhsm/libsofthsm2.so");
+
+    let mut ctx = torwell84::secure_http::init_hsm().expect("init_hsm failed");
+    // Calling a simple PKCS#11 function verifies the module is initialised.
+    ctx.get_info().expect("C_GetInfo failed");
+    torwell84::secure_http::finalize_hsm(ctx);
 }
