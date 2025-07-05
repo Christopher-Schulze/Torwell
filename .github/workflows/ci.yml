@@ -45,7 +45,7 @@ jobs:
       - run: bun install
       - run: bun run check
       - run: bun audit
-      - run: npx svelte-check
+      - run: bun run lint:a11y
 
   windows-tests:
     runs-on: windows-latest
@@ -64,7 +64,7 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: bun run check
-      - run: npx svelte-check
+      - run: bun run lint:a11y
       - name: Run cargo test
         working-directory: src-tauri
         run: cargo test
