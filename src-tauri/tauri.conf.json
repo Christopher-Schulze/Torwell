@@ -27,7 +27,19 @@
             "icons/128x128@2x.png",
             "icons/icon.icns",
             "icons/icon.ico"
-        ]
+        ],
+        "windows": {
+            "digestAlgorithm": "sha256",
+            "timestampUrl": "http://timestamp.digicert.com",
+            "wix": {
+                "language": "en-US",
+                "license": "../../LICENSE",
+                "fragmentPaths": [],
+                "componentGroupRefs": [],
+                "componentRefs": [],
+                "enableElevatedUpdateTask": true
+            }
+        }
     },
     "security": {
       "csp": null

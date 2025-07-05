@@ -60,6 +60,12 @@ jobs:
       - name: Run cargo test
         working-directory: src-tauri
         run: cargo test
+      - name: Build MSI
+        run: bun run tauri build
+      - name: Verify MSI exists
+        run: |
+          if (!(Test-Path "src-tauri/target/release/bundle/msi")) { exit 1 }
+          if (-not (Get-ChildItem -Path src-tauri/target/release/bundle/msi -Filter '*.msi')) { exit 1 }
 
   bundle:
     runs-on: ${{ matrix.os }}
