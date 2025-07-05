@@ -471,7 +471,13 @@ impl<C: TorClientBehavior> AppState<C> {
     /// Emit a security warning event to the frontend
     pub async fn emit_security_warning(&self, message: String) {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
-            let _ = handle.emit_all("security-warning", message);
+            let _ = handle.emit_all("security-warning", message.clone());
+            let _ = tauri::api::notification::Notification::new(
+                &handle.config().tauri.bundle.identifier,
+            )
+            .title("Torwell84 Warning")
+            .body(&message)
+            .show();
         }
     }
 
