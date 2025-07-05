@@ -48,4 +48,14 @@ describe('StatusCard', () => {
     expect(getByText('55 MB')).toBeInTheDocument();
     expect(getByText('3')).toBeInTheDocument();
   });
+
+  it('shows security warnings', async () => {
+    const { getByRole } = render(StatusCard, {
+      props: { status: 'CONNECTED', totalTrafficMB: 0, pingMs: undefined }
+    });
+    const { torStore } = await import('../lib/stores/torStore');
+    torStore.update((s) => ({ ...s, securityWarning: 'overload' }));
+    await Promise.resolve();
+    expect(getByRole('alert')).toHaveTextContent('overload');
+  });
 });
