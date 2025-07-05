@@ -1,9 +1,9 @@
 # Security Audit Plan
 
-This document outlines the steps for a code audit based on the "Security Audit" section of `docs/NextSteps.md`.
+This document outlines the steps for a comprehensive code audit derived from the project roadmap.
 
 ## Scope
-According to `NextSteps.md`, the external review should include:
+The external review should include:
 - Cryptography implementation
 - Network handling
 - Data storage
