@@ -238,7 +238,11 @@ Im Ordner `cf worker` liegt ein kleines Beispiel für einen HTTPS-Proxy als Clou
 
 1. `bun add -g wrangler`
 2. `wrangler init` ausführen und den Beispielcode als `src/index.js` einbinden
-3. Mit `wrangler deploy` veröffentlichen
+3. `wrangler secret put SECRET_TOKEN` setzen
+4. Mit `wrangler deploy` veröffentlichen
+
+Eine ausführlichere Anleitung findet sich in
+[docs/Todo-fuer-User.md](docs/Todo-fuer-User.md).
 
 
 ## Production Deployment
