@@ -1,5 +1,6 @@
 use crate::error::{Error, Result};
 use crate::state::{AppState, LogEntry};
+use crate::tor_manager::BridgePreset;
 use governor::{
     clock::DefaultClock,
     state::{InMemoryState, NotKeyed},
@@ -241,6 +242,11 @@ pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Re
     track_call("set_bridges").await;
     check_api_rate()?;
     state.tor_manager.set_bridges(bridges).await
+}
+
+#[tauri::command]
+pub async fn list_bridge_presets() -> Result<Vec<BridgePreset>> {
+    crate::tor_manager::load_default_bridge_presets()
 }
 
 #[tauri::command]

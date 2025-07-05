@@ -38,6 +38,9 @@ const BRIDGE =
   'Bridge obfs4 192.0.2.1:443 0123456789ABCDEF0123456789ABCDEF01234567 cert=AAAA iat-mode=0';
 const PRESETS = {
   bridges: [BRIDGE],
+  presets: [
+    { name: 'Default', bridges: [BRIDGE] }
+  ],
   exitCountries: [{ code: 'DE', name: 'Germany' }],
 };
 
@@ -107,11 +110,29 @@ describe('SettingsModal persistence', () => {
     unmount();
 
     const stored = await db.settings.get(1);
+  expect(stored?.bridges).toEqual([BRIDGE]);
+
+  const { getByLabelText: getAgain } = render(SettingsModal, { props: { show: true } });
+  const bridgeCheckbox = getAgain(BRIDGE) as HTMLInputElement;
+  expect(bridgeCheckbox.checked).toBe(true);
+  });
+
+  it('applies preset and persists selection', async () => {
+    const { getByLabelText, getByText, getByRole, unmount } = render(SettingsModal, { props: { show: true } });
+    await Promise.resolve();
+
+    await fireEvent.change(getByLabelText('Bridge preset'), { target: { value: 'Default' } });
+    await fireEvent.click(getByRole('button', { name: 'Apply Preset' }));
+
+    unmount();
+
+    const stored = await db.settings.get(1);
+    expect(stored?.bridgePreset).toBe('Default');
     expect(stored?.bridges).toEqual([BRIDGE]);
 
-    const { getByLabelText: getAgain } = render(SettingsModal, { props: { show: true } });
-    const bridgeCheckbox = getAgain(BRIDGE) as HTMLInputElement;
-    expect(bridgeCheckbox.checked).toBe(true);
+    const { getByLabelText: again } = render(SettingsModal, { props: { show: true } });
+    const select = again('Bridge preset') as HTMLSelectElement;
+    expect(select.value).toBe('Default');
   });
 
   it('selects exit country and persists', async () => {

@@ -264,3 +264,12 @@ async fn connect_rate_limited() {
     }
     assert!(matches!(last, Err(Error::RateLimited(_))));
 }
+
+#[test]
+fn bridge_preset_loading() {
+    let json = r#"{ "presets": [ { "name": "set1", "bridges": ["b1", "b2"] } ] }"#;
+    let presets = torwell84::tor_manager::load_bridge_presets_from_str(json).unwrap();
+    assert_eq!(presets.len(), 1);
+    assert_eq!(presets[0].name, "set1");
+    assert_eq!(presets[0].bridges, vec!["b1", "b2"]);
+}

@@ -6,6 +6,7 @@
   const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
 
   let availableBridges: string[] = [];
+  let bridgePresets: { name: string; bridges: string[] }[] = [];
   let exitCountries: { code: string; name: string }[] = [];
 
   async function loadPresets() {
@@ -13,6 +14,7 @@
       const res = await fetch(presetURL);
       const data = await res.json();
       availableBridges = data.bridges ?? [];
+      bridgePresets = data.presets ?? [];
       exitCountries = data.exitCountries ?? [];
     } catch (e) {
       console.error('Failed to load presets', e);
@@ -20,6 +22,7 @@
   }
 
   let selectedBridges: string[] = [];
+  let selectedPreset: string | null = null;
   let torrcConfig = "";
   let workerListString = "";
   let maxLogLines = 1000;
@@ -37,6 +40,7 @@
   $: if (show) {
     previouslyFocused = document.activeElement as HTMLElement;
     selectedBridges = [...$uiStore.settings.bridges];
+    selectedPreset = $uiStore.settings.bridgePreset ?? null;
     torrcConfig = $uiStore.settings.torrcConfig;
     workerListString = $uiStore.settings.workerList.join("\n");
     maxLogLines = $uiStore.settings.maxLogLines;
@@ -95,6 +99,13 @@
   function saveExitCountry() {
     uiStore.actions.setExitCountry(exitCountry);
   }
+
+  function applyPreset() {
+    const preset = bridgePresets.find((p) => p.name === selectedPreset);
+    if (preset) {
+      uiStore.actions.setBridgePreset(preset.name, preset.bridges);
+    }
+  }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
@@ -147,6 +158,36 @@
           >
             Save
           </button>
+        </div>
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            Bridge Preset
+          </h3>
+          <select
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+            bind:value={selectedPreset}
+            aria-label="Bridge preset"
+          >
+            <option value="">Custom</option>
+            {#each bridgePresets as p}
+              <option value={p.name}>{p.name}</option>
+            {/each}
+          </select>
+          {#if selectedPreset}
+            <ul class="text-sm mt-2">
+              {#each bridgePresets.find((b) => b.name === selectedPreset)?.bridges ?? [] as line}
+                <li>{line}</li>
+              {/each}
+            </ul>
+            <button
+              class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+              on:click={applyPreset}
+              aria-label="Apply preset"
+            >
+              Apply Preset
+            </button>
+          {/if}
         </div>
 
         <div class="mb-8">
