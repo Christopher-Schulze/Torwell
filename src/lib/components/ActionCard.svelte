@@ -55,7 +55,7 @@
 
 </script>
 
-<div class="glass-md rounded-xl p-6" tabindex="0" role="region">
+<div class="glass-md rounded-xl p-6" tabindex="0" role="region" aria-label="Tor controls">
 	<!-- Error Message -->
 {#if $torStore.errorMessage}
                 <div class="mb-4 p-3 bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg flex items-center gap-2" role="alert" aria-live="assertive">

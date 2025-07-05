@@ -69,7 +69,7 @@
 	}
 </script>
 
-<div class="glass-md rounded-xl p-6" tabindex="0" role="region">
+<div class="glass-md rounded-xl p-6" tabindex="0" role="region" aria-label="Tor chain configuration">
 	<!-- Single Row with Title, Dropdowns and Active Switch -->
 	<div class="grid grid-cols-5 gap-4 mb-4 items-center h-8">
 		<!-- Tor Chain Title -->

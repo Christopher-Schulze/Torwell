@@ -32,9 +32,10 @@ const nodeData = [
 
 describe('TorChain', () => {
   it('renders node card data only when connected', () => {
-    const { queryByText: queryDisconnected } = render(TorChain, {
+    const { queryByText: queryDisconnected, getByRole } = render(TorChain, {
       props: { isConnected: false, nodeData },
     });
+    expect(getByRole('region')).toHaveAttribute('aria-label', 'Tor chain configuration');
     expect(queryDisconnected('1.1.1.1')).not.toBeInTheDocument();
 
     const { getByText } = render(TorChain, {
