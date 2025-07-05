@@ -42,7 +42,7 @@
 </script>
 
 <!-- Status Card -->
-<div class="bg-black/20 rounded-xl p-6">
+<div class="bg-black/20 rounded-xl p-6" tabindex="0" role="region">
   <div class="flex items-center justify-between gap-6">
     <!-- Status Section -->
     <div class="flex items-center gap-4">

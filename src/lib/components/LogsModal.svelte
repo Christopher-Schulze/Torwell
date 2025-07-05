@@ -22,15 +22,19 @@
        let isClearing = false;
        let logFilePath = '';
        let closeButton: HTMLButtonElement | null = null;
+       let previouslyFocused: HTMLElement | null = null;
 
         $: filteredByType = activeTab === 'all' ? logs : logs.filter(log => log.type === activeTab);
         $: filteredLogs = levelFilter === 'all' ? filteredByType : filteredByType.filter(log => log.level === levelFilter);
 
-        $: if (show) {
-                loadLogs();
-                fetchLogFilePath();
-                tick().then(() => closeButton && closeButton.focus());
-        }
+       $: if (show) {
+               previouslyFocused = document.activeElement as HTMLElement;
+               loadLogs();
+               fetchLogFilePath();
+               tick().then(() => closeButton && closeButton.focus());
+       } else if (previouslyFocused) {
+               tick().then(() => previouslyFocused && previouslyFocused.focus());
+       }
 
         async function loadLogs() {
                 isLoading = true;
@@ -108,12 +112,14 @@
 <svelte:window on:keydown={handleKeydown} />
 
 {#if show}
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" on:click={() => dispatch('close')} tabindex="-1">
                 <div
                         class="bg-black/80 backdrop-blur-3xl rounded-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] overflow-hidden"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="logs-modal-title"
+                        tabindex="0"
+                        on:click|stopPropagation
                 >
 			<!-- Header -->
 			<div class="flex items-center justify-between p-6 border-b border-white/10">

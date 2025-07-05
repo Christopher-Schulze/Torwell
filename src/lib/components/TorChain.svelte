@@ -69,7 +69,7 @@
 	}
 </script>
 
-<div class="bg-black/20 rounded-xl p-6">
+<div class="bg-black/20 rounded-xl p-6" tabindex="0" role="region">
 	<!-- Single Row with Title, Dropdowns and Active Switch -->
 	<div class="grid grid-cols-5 gap-4 mb-4 items-center h-8">
 		<!-- Tor Chain Title -->
