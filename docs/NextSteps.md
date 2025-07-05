@@ -151,16 +151,27 @@
 ### 5.1 CI/CD Pipeline
 
 #### 5.1.1 Build Automation
-- **Requirements**:
-  - Automated builds on tag
-  - Versioned artifacts
-  - Release notes generation
+Der Build-Prozess soll vollautomatisch ablaufen, sobald ein neues Tag
+erstellt wird. Der Workflow läuft in folgenden Schritten ab:
+1. GitHub Actions wird durch Tags nach dem Muster `v*` ausgelöst.
+2. Node, Bun und der Rust-Toolchain werden installiert.
+3. Die Versionsnummer aus `package.json` und `Cargo.toml` wird mit dem
+   Tag verglichen.
+4. Über `bun run tauri build` werden plattformabhängige Pakete erstellt.
+5. Ein Skript aktualisiert die `docs/Changelog.md` um die neuesten
+   Commits.
+6. Die erzeugten Artefakte werden an ein Release angehängt.
 
 #### 5.1.2 Deployment Strategy
-- **Implementation**:
-  - Staging environment
-  - Canary releases
-  - Rollback procedures
+Nach dem erfolgreichen Build erfolgt die Verteilung in mehreren Stufen:
+1. Zuerst wird ein Staging-Release bereitgestellt und automatisierte
+   Tests laufen durch.
+2. Anschließend wird eine Canary-Version für ausgewählte Nutzer
+   veröffentlicht.
+3. Führen die Tests zu keinem Fehler, wird der Rollout für alle Nutzer
+   freigegeben.
+4. Bei Problemen kann jederzeit auf das vorherige Release-Tag
+   zurückgerollt werden.
 
 ### 5.2 Monitoring & Logging
 
