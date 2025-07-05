@@ -92,15 +92,22 @@ fn parse_tls_version(v: Option<&str>) -> reqwest::tls::Version {
 }
 
 #[cfg(feature = "hsm")]
-fn init_hsm() -> anyhow::Result<Ctx> {
+pub(crate) fn init_hsm() -> anyhow::Result<Ctx> {
+    // Resolve the PKCS#11 module path from the environment or fall back to
+    // the system SoftHSM location.  This keeps the implementation usable on
+    // machines without a real HSM installed.
     let module = std::env::var("TORWELL_HSM_LIB")
         .unwrap_or_else(|_| "/usr/lib/softhsm/libsofthsm2.so".into());
-    let ctx = Ctx::new_and_initialize(module)?;
+
+    // Create a PKCS#11 context and explicitly initialise the module.
+    let mut ctx = Ctx::new(module)?;
+    ctx.initialize(None)?;
     Ok(ctx)
 }
 
 #[cfg(feature = "hsm")]
-fn finalize_hsm(ctx: Ctx) {
+pub(crate) fn finalize_hsm(mut ctx: Ctx) {
+    // Ignore errors during finalisation as they should not affect shutdown.
     let _ = ctx.finalize();
 }
 

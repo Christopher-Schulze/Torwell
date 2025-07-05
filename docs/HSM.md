@@ -15,9 +15,21 @@ variable. If unset, `/usr/lib/softhsm/libsofthsm2.so` is used.
 Example using a YubiHSM:
 
 ```bash
-TORWELL_HSM_LIB=/usr/local/lib/libyubihsm_pkcs11.so \
+    TORWELL_HSM_LIB=/usr/local/lib/libyubihsm_pkcs11.so \
     bun tauri build --features hsm
 ```
+
+## Einrichtung mit SoftHSM
+
+1. Installiere das Paket `softhsm2` auf dem System.
+2. Initialisiere ein neues Token im ersten Slot:
+   ```bash
+   softhsm2-util --init-token --slot 0 \
+       --label "torwell" --so-pin 0102030405060708 --pin 1234
+   ```
+3. Stelle sicher, dass die Umgebungsvariable `TORWELL_HSM_LIB`
+   auf `/usr/lib/softhsm/libsofthsm2.so` zeigt (Standard).
+4. Baue Torwell anschließend wie oben beschrieben mit dem Feature `hsm`.
 
 ## Usage in SecureHttpClient
 
