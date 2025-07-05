@@ -1,12 +1,13 @@
 # Torwell84 - Pending Tasks
 
 ## High Priority
-1. GeoIP integration for country detection is already implemented in TorManager
 
 ## Medium Priority
 1. Refactor TorManager error handling for better diagnostics
 
 ## Future Ideas
+- Real-time dashboard for resource usage
+- System notifications on security warnings
 - Integration with hardware security modules
 - Mobile app version using Capacitor
 
