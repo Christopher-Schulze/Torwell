@@ -142,6 +142,9 @@
       retryCount={$torStore.retryCount}
       retryDelay={$torStore.retryDelay}
     />
+    <div class="text-right mt-2">
+      <a href="/dashboard" class="text-sm text-blue-400 underline">Resource Dashboard</a>
+    </div>
   </div>
 </div>
 
