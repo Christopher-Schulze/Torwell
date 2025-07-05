@@ -219,3 +219,22 @@ async fn new_identity_build_error() {
         _ => panic!("expected circuit error"),
     }
 }
+
+#[tokio::test]
+async fn new_identity_build_config_error() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: true,
+    }));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+    manager
+        .set_bridges(vec!["bad bridge".into()])
+        .await
+        .unwrap();
+    let res = manager.new_identity().await;
+    match res {
+        Err(Error::Identity { step, source: _ }) => assert_eq!(step, "build_config"),
+        _ => panic!("expected identity error"),
+    }
+}

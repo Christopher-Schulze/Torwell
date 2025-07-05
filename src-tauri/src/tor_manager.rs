@@ -502,7 +502,7 @@ impl TorManager {
         let isolation = StreamIsolation::builder()
             .owner_token(token)
             .build()
-            .expect("StreamIsolation builder failed");
+            .map_err(|e| Error::Circuit(format!("stream isolation build failed: {e}")))?;
 
         let prefs = {
             let guard = self.exit_country.lock().await;
