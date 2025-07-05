@@ -40,6 +40,7 @@
     "@tauri-apps/api": "^1.5.0",
     "dexie": "^4.0.11",
     "lucide-svelte": "^0.294.0",
+    "svelte-error-boundary": "^1.0.2",
     "tauri-plugin-keychain": "^2.0.1"
   }
 }

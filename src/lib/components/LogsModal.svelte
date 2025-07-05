@@ -22,6 +22,7 @@
        let isClearing = false;
        let logFilePath = '';
        let closeButton: HTMLButtonElement | null = null;
+       let modalEl: HTMLElement | null = null;
        let previouslyFocused: HTMLElement | null = null;
 
         $: filteredByType = activeTab === 'all' ? logs : logs.filter(log => log.type === activeTab);
@@ -64,11 +65,26 @@
                 }
         }
 
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			dispatch('close');
-		}
-	}
+        function handleKeydown(event: KeyboardEvent) {
+                if (event.key === 'Escape') {
+                        dispatch('close');
+                }
+        }
+
+       function trapFocus(event: KeyboardEvent) {
+               if (event.key !== 'Tab' || !modalEl) return;
+               const focusable = Array.from(modalEl.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+               if (focusable.length === 0) return;
+               const first = focusable[0];
+               const last = focusable[focusable.length - 1];
+               if (event.shiftKey && document.activeElement === first) {
+                       event.preventDefault();
+                       last.focus();
+               } else if (!event.shiftKey && document.activeElement === last) {
+                       event.preventDefault();
+                       first.focus();
+               }
+       }
 
 	function downloadLogs() {
 		const logText = filteredLogs.map(log => `[${log.timestamp}] [${log.level || 'INFO'}] ${log.message}`).join('\n');
@@ -113,14 +129,16 @@
 
 {#if show}
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" on:click={() => dispatch('close')} tabindex="-1">
-                <div
-                        class="bg-black/80 backdrop-blur-3xl rounded-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] overflow-hidden"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="logs-modal-title"
-                        tabindex="0"
-                        on:click|stopPropagation
-                >
+               <div
+                       class="bg-black/80 backdrop-blur-3xl rounded-2xl border border-white/10 w-full max-w-4xl max-h-[80vh] overflow-hidden"
+                       role="dialog"
+                       aria-modal="true"
+                       aria-labelledby="logs-modal-title"
+                       tabindex="0"
+                       bind:this={modalEl}
+                       on:keydown={trapFocus}
+                       on:click|stopPropagation
+               >
 			<!-- Header -->
 			<div class="flex items-center justify-between p-6 border-b border-white/10">
                                 <h2 id="logs-modal-title" class="text-xl font-semibold text-white">Logs</h2>
