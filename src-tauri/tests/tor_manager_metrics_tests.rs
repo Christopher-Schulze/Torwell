@@ -108,4 +108,6 @@ async fn circuit_metrics_connected() {
     let metrics = manager.circuit_metrics().await.unwrap();
     assert_eq!(metrics.count, 0);
     assert_eq!(metrics.oldest_age, 0);
+    assert_eq!(metrics.build_ms, 0);
+    assert_eq!(metrics.connect_ms, 0);
 }

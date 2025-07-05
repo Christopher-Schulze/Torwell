@@ -78,6 +78,10 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub oldest_circuit_age: Arc<Mutex<u64>>,
     /// Last recorded network latency in milliseconds
     pub latency_ms: Arc<Mutex<u64>>,
+    /// Duration in ms to build the last circuit
+    pub build_ms: Arc<Mutex<u64>>,
+    /// Duration in ms for the last bootstrap/connect
+    pub connect_ms: Arc<Mutex<u64>>,
     /// Maximum memory usage before warning (in MB)
     pub max_memory_mb: u64,
     /// Maximum number of circuits before warning
@@ -133,6 +137,8 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             circuit_count: Arc::new(Mutex::new(0)),
             oldest_circuit_age: Arc::new(Mutex::new(0)),
             latency_ms: Arc::new(Mutex::new(0)),
+            build_ms: Arc::new(Mutex::new(0)),
+            connect_ms: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -194,6 +200,8 @@ impl<C: TorClientBehavior> AppState<C> {
             circuit_count: Arc::new(Mutex::new(0)),
             oldest_circuit_age: Arc::new(Mutex::new(0)),
             latency_ms: Arc::new(Mutex::new(0)),
+            build_ms: Arc::new(Mutex::new(0)),
+            connect_ms: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -323,10 +331,19 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Update stored metrics
-    pub async fn update_metrics(&self, memory: u64, circuits: usize, oldest_age: u64) {
+    pub async fn update_metrics(
+        &self,
+        memory: u64,
+        circuits: usize,
+        oldest_age: u64,
+        build_ms: u64,
+        connect_ms: u64,
+    ) {
         *self.memory_usage.lock().await = memory;
         *self.circuit_count.lock().await = circuits;
         *self.oldest_circuit_age.lock().await = oldest_age;
+        *self.build_ms.lock().await = build_ms;
+        *self.connect_ms.lock().await = connect_ms;
 
         let memory_mb = memory / 1024 / 1024;
         if memory_mb > self.max_memory_mb {
@@ -361,7 +378,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 self.update_tray_menu().await;
             }
         }
-        // Additional metrics like circuit build times could be stored here
+        // build_ms and connect_ms have been updated above
     }
 
     /// Update network latency metric
@@ -370,11 +387,13 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Retrieve current metrics
-    pub async fn metrics(&self) -> (u64, usize, u64) {
+    pub async fn metrics(&self) -> (u64, usize, u64, u64, u64) {
         let mem = *self.memory_usage.lock().await;
         let circ = *self.circuit_count.lock().await;
         let age = *self.oldest_circuit_age.lock().await;
-        (mem, circ, age)
+        let build = *self.build_ms.lock().await;
+        let connect = *self.connect_ms.lock().await;
+        (mem, circ, age, build, connect)
     }
 
     /// Retrieve current latency
@@ -412,7 +431,15 @@ impl<C: TorClientBehavior> AppState<C> {
                     Err(_) => 0,
                 };
 
-                self.update_metrics(mem, circ.count, circ.oldest_age).await;
+                self
+                    .update_metrics(
+                        mem,
+                        circ.count,
+                        circ.oldest_age,
+                        circ.build_ms,
+                        circ.connect_ms,
+                    )
+                    .await;
                 self.update_latency(latency).await;
 
                 let _ = handle.emit_all(
@@ -421,7 +448,9 @@ impl<C: TorClientBehavior> AppState<C> {
                         "memory_bytes": mem,
                         "circuit_count": circ.count,
                         "latency_ms": latency,
-                        "oldest_age": circ.oldest_age
+                        "oldest_age": circ.oldest_age,
+                        "build_ms": circ.build_ms,
+                        "connect_ms": circ.connect_ms
                     }),
                 );
             }

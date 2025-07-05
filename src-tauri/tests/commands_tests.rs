@@ -324,7 +324,7 @@ async fn tray_warning_set_and_cleared() {
     let state = app.state::<AppState<MockTorClient>>();
 
     // trigger warning
-    state.update_metrics(2 * 1024 * 1024, 0).await;
+    state.update_metrics(2 * 1024 * 1024, 0, 0, 0, 0).await;
     assert!(state.tray_warning.lock().await.is_some());
 
     // clear warning

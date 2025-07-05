@@ -21,6 +21,8 @@
   $: memoryPath = buildPath(metrics, "memoryMB");
   $: circuitPath = buildPath(metrics, "circuitCount");
   $: agePath = buildPath(metrics, "oldestAge");
+  $: buildPathLine = buildPath(metrics, "buildMs");
+  $: connectPath = buildPath(metrics, "connectMs");
 </script>
 
 <svg {width} {height} class="text-green-400" role="img" aria-label="Tor metrics chart">
@@ -38,6 +40,22 @@
       d={circuitPath}
       fill="none"
       stroke="blue"
+      stroke-width="1"
+    />
+  {/if}
+  {#if buildPathLine}
+    <path
+      d={buildPathLine}
+      fill="none"
+      stroke="red"
+      stroke-width="1"
+    />
+  {/if}
+  {#if connectPath}
+    <path
+      d={connectPath}
+      fill="none"
+      stroke="purple"
       stroke-width="1"
     />
   {/if}

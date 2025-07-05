@@ -63,6 +63,10 @@ pub struct CircuitMetrics {
     pub count: usize,
     /// Age of the oldest circuit in seconds.
     pub oldest_age: u64,
+    /// Duration in milliseconds to build the last circuit.
+    pub build_ms: u64,
+    /// Time in milliseconds for the last successful connect/bootstrapping.
+    pub connect_ms: u64,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
@@ -189,6 +193,8 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     geoip_db: GeoipDb,
     connect_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
     circuit_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
+    last_build_ms: Arc<Mutex<u64>>,
+    last_connect_ms: Arc<Mutex<u64>>,
 }
 
 impl<C> Clone for TorManager<C> {
@@ -202,6 +208,8 @@ impl<C> Clone for TorManager<C> {
             geoip_db: self.geoip_db.clone(),
             connect_limiter: Arc::clone(&self.connect_limiter),
             circuit_limiter: Arc::clone(&self.circuit_limiter),
+            last_build_ms: Arc::clone(&self.last_build_ms),
+            last_connect_ms: Arc::clone(&self.last_connect_ms),
         }
     }
 }
@@ -230,6 +238,8 @@ impl<C: TorClientBehavior> TorManager<C> {
             circuit_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
                 NonZeroU32::new(CIRCUIT_RATE_LIMIT).unwrap(),
             ))),
+            last_build_ms: Arc::new(Mutex::new(0)),
+            last_connect_ms: Arc::new(Mutex::new(0)),
         };
 
         let cleanup_clone = manager.clone();
@@ -302,6 +312,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                     source: e.to_string(),
                 }
             })?;
+        let start = std::time::Instant::now();
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
             .map_err(|e| {
@@ -311,6 +322,10 @@ impl<C: TorClientBehavior> TorManager<C> {
                     source: e,
                 }
             })?;
+        *self
+            .last_connect_ms
+            .lock()
+            .await = start.elapsed().as_millis() as u64;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -482,6 +497,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         client.retire_all_circs();
 
         // Build fresh circuit
+        let start = std::time::Instant::now();
         client
             .build_new_circuit()
             .await
@@ -492,6 +508,10 @@ impl<C: TorClientBehavior> TorManager<C> {
                     source: e,
                 }
             })?;
+        *self
+            .last_build_ms
+            .lock()
+            .await = start.elapsed().as_millis() as u64;
 
         Ok(())
     }
@@ -714,13 +734,18 @@ impl TorManager {
                     .max()
                     .unwrap_or(0);
 
-                return Ok(CircuitMetrics { count, oldest_age });
+                let build_ms = *self.last_build_ms.lock().await;
+                let connect_ms = *self.last_connect_ms.lock().await;
+
+                return Ok(CircuitMetrics { count, oldest_age, build_ms, connect_ms });
             }
         }
 
         Ok(CircuitMetrics {
             count: 0,
             oldest_age: 0,
+            build_ms: *self.last_build_ms.lock().await,
+            connect_ms: *self.last_connect_ms.lock().await,
         })
     }
 }

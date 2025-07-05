@@ -43,6 +43,8 @@ pub struct Metrics {
     pub memory_bytes: u64,
     pub circuit_count: usize,
     pub oldest_circuit_age: u64,
+    pub build_ms: u64,
+    pub connect_ms: u64,
 }
 
 const INVOCATION_WINDOW: Duration = Duration::from_secs(60);
@@ -270,7 +272,15 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
     let pid = sysinfo::get_current_pid().map_err(|e| Error::Io(e.to_string()))?;
     sys.refresh_process(pid);
     let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
-    state.update_metrics(mem, circ.count, circ.oldest_age).await;
+    state
+        .update_metrics(
+            mem,
+            circ.count,
+            circ.oldest_age,
+            circ.build_ms,
+            circ.connect_ms,
+        )
+        .await;
 
     if mem / 1024 / 1024 > state.max_memory_mb {
         let _ = state
@@ -303,6 +313,8 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
         memory_bytes: mem,
         circuit_count: circ.count,
         oldest_circuit_age: circ.oldest_age,
+        build_ms: circ.build_ms,
+        connect_ms: circ.connect_ms,
     })
 }
 
