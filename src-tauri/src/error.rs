@@ -21,6 +21,10 @@ pub enum Error {
     #[error("Connection timed out")]
     Timeout,
 
+    /// Connection attempt failed
+    #[error("connection failed: {0}")]
+    ConnectError(String),
+
     #[error("No circuit available")]
     NoCircuit,
 
@@ -32,6 +36,10 @@ pub enum Error {
 
     #[error("Circuit operation failed: {0}")]
     Circuit(String),
+
+    /// Timed out while waiting for a circuit
+    #[error("circuit timed out")]
+    CircuitTimeout,
 
     #[error("Identity change failed: {0}")]
     Identity(String),
@@ -80,7 +88,11 @@ impl From<tor_netdir::Error> for Error {
 
 impl From<tor_circmgr::Error> for Error {
     fn from(err: tor_circmgr::Error) -> Self {
-        Error::Tor(err.to_string())
+        use tor_circmgr::Error as CE;
+        match err {
+            CE::CircTimeout(_) | CE::RequestTimeout => Error::CircuitTimeout,
+            _ => Error::Tor(err.to_string()),
+        }
     }
 }
 

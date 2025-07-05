@@ -8,6 +8,7 @@ use torwell84::tor_manager::{TorClientBehavior, TorClientConfig, TorManager};
 struct MockTorClient {
     reconfigure_ok: bool,
     build_ok: bool,
+    build_err: Option<String>,
 }
 
 static CONNECT_RESULTS: Lazy<Mutex<VecDeque<Result<MockTorClient, String>>>> =
@@ -59,7 +60,7 @@ impl TorClientBehavior for MockTorClient {
         if self.build_ok {
             Ok(())
         } else {
-            Err("build".into())
+            Err(self.build_err.clone().unwrap_or_else(|| "build".into()))
         }
     }
 }
@@ -129,6 +130,14 @@ async fn connect_with_backoff_timeout() {
 }
 
 #[tokio::test]
+async fn connect_error_simple() {
+    MockTorClient::push_result(Err("boom".into()));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.connect().await;
+    assert!(matches!(res, Err(Error::ConnectError(_))));
+}
+
+#[tokio::test]
 async fn bridge_parse_error() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager
@@ -187,6 +196,7 @@ async fn new_identity_build_error() {
     MockTorClient::push_result(Ok(MockTorClient {
         reconfigure_ok: true,
         build_ok: false,
+        build_err: None,
     }));
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
@@ -195,4 +205,17 @@ async fn new_identity_build_error() {
         Err(Error::Circuit(msg)) => assert!(msg.contains("build")),
         _ => panic!("expected circuit error"),
     }
+}
+
+#[tokio::test]
+async fn new_identity_timeout_error() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: false,
+        build_err: Some("timeout".into()),
+    }));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+    let res = manager.new_identity().await;
+    assert!(matches!(res, Err(Error::CircuitTimeout)));
 }

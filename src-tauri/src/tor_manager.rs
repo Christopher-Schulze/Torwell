@@ -233,7 +233,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                 }
                 builder.bridges(bridge_builder);
             }
-            builder.build().map_err(|e| Error::Tor(e.to_string()))
+            builder.build().map_err(|e| Error::ConnectError(e.to_string()))
         }
     }
 
@@ -248,7 +248,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         let config = self.build_config().await?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
-            .map_err(|e| Error::Bootstrap(e))?;
+            .map_err(|e| Error::ConnectError(e))?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -338,7 +338,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     pub async fn set_exit_country(&self, country: Option<String>) -> Result<()> {
         let mut guard = self.exit_country.lock().await;
         if let Some(cc) = country {
-            let code = CountryCode::new(&cc).map_err(|e| Error::Tor(e.to_string()))?;
+            let code = CountryCode::new(&cc).map_err(|e| Error::ConnectError(e.to_string()))?;
             *guard = Some(code);
         } else {
             *guard = None;
@@ -389,7 +389,13 @@ impl<C: TorClientBehavior> TorManager<C> {
         client
             .build_new_circuit()
             .await
-            .map_err(|e| Error::Circuit(format!("failed to build new circuit: {e}")))?;
+            .map_err(|e| {
+                if e.to_lowercase().contains("timeout") {
+                    Error::CircuitTimeout
+                } else {
+                    Error::Circuit(format!("failed to build new circuit: {e}"))
+                }
+            })?;
 
         Ok(())
     }
@@ -413,11 +419,23 @@ impl TorManager {
                 None,
             )
             .await
-            .map_err(|e| Error::Circuit(format!("failed to launch exit circuit: {e}")))?;
+            .map_err(|e| {
+                if e.to_lowercase().contains("timeout") {
+                    Error::CircuitTimeout
+                } else {
+                    Error::Circuit(format!("failed to launch exit circuit: {e}"))
+                }
+            })?;
 
         let hops: Vec<_> = circuit
             .path_ref()
-            .map_err(|e| Error::Circuit(format!("failed to read circuit path: {e}")))?
+            .map_err(|e| {
+                if e.to_lowercase().contains("timeout") {
+                    Error::CircuitTimeout
+                } else {
+                    Error::Circuit(format!("failed to read circuit path: {e}"))
+                }
+            })?
             .hops()
             .iter()
             .cloned()
@@ -488,11 +506,23 @@ impl TorManager {
             .circmgr()
             .get_or_launch_exit((&*netdir).into(), &[], isolation, prefs)
             .await
-            .map_err(|e| Error::Circuit(format!("failed to launch isolated circuit for {}: {}", domain_key, e)))?;
+            .map_err(|e| {
+                if e.to_lowercase().contains("timeout") {
+                    Error::CircuitTimeout
+                } else {
+                    Error::Circuit(format!("failed to launch isolated circuit for {}: {}", domain_key, e))
+                }
+            })?;
 
         let hops: Vec<_> = circuit
             .path_ref()
-            .map_err(|e| Error::Circuit(format!("failed to read circuit path for {}: {}", domain_key, e)))?
+            .map_err(|e| {
+                if e.to_lowercase().contains("timeout") {
+                    Error::CircuitTimeout
+                } else {
+                    Error::Circuit(format!("failed to read circuit path for {}: {}", domain_key, e))
+                }
+            })?
             .hops()
             .iter()
             .cloned()

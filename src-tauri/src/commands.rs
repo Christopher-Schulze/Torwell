@@ -156,6 +156,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 }
             }
             Err(e) => {
+                log::error!("tor connection failed: {}", e);
                 if let Err(e_emit) = app_handle.emit_all(
                     "tor-status-update",
                     serde_json::json!({
@@ -297,7 +298,10 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     track_call("new_identity").await;
     check_api_rate()?;
-    state.tor_manager.new_identity().await?; // potential metric: measure time to build new circuit
+    if let Err(e) = state.tor_manager.new_identity().await {
+        log::error!("new_identity failed: {}", e);
+        return Err(e);
+    }
     // Emit event to update frontend
     app_handle.emit_all(
         "tor-status-update",
