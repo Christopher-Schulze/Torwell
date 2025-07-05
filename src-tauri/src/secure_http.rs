@@ -9,6 +9,7 @@ use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
 use serde::Deserialize;
 use serde_json::Value;
+use urlencoding::encode;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -121,6 +122,8 @@ pub struct SecureHttpClient {
     warning_cb: Arc<Mutex<Option<Box<dyn Fn(String) + Send + Sync>>>>,
     pending_warnings: Arc<Mutex<Vec<String>>>,
     update_failures: Arc<Mutex<u32>>,
+    worker_urls: Arc<Mutex<Vec<String>>>,
+    worker_token: Arc<Mutex<Option<String>>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -133,6 +136,8 @@ impl Clone for SecureHttpClient {
             warning_cb: self.warning_cb.clone(),
             pending_warnings: self.pending_warnings.clone(),
             update_failures: self.update_failures.clone(),
+            worker_urls: self.worker_urls.clone(),
+            worker_token: self.worker_token.clone(),
         }
     }
 }
@@ -208,6 +213,8 @@ impl SecureHttpClient {
             warning_cb: Arc::new(Mutex::new(None)),
             pending_warnings: Arc::new(Mutex::new(Vec::new())),
             update_failures: Arc::new(Mutex::new(0)),
+            worker_urls: Arc::new(Mutex::new(Vec::new())),
+            worker_token: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -228,6 +235,12 @@ impl SecureHttpClient {
                 callback(msg);
             }
         }
+    }
+
+    /// Configure proxy workers and authentication token
+    pub async fn set_worker_config(&self, workers: Vec<String>, token: Option<String>) {
+        *self.worker_urls.lock().await = workers;
+        *self.worker_token.lock().await = token;
     }
 
     async fn emit_warning(&self, msg: String) {
@@ -344,7 +357,28 @@ impl SecureHttpClient {
             guard.clone()
         };
 
-        let resp = client.get(parsed.clone()).send().await?;
+        let worker = {
+            let guard = self.worker_urls.lock().await;
+            guard.get(0).cloned()
+        };
+        let resp = if let Some(w) = worker {
+            let mut target = w;
+            let encoded = encode(parsed.as_str());
+            if target.contains('?') {
+                target.push('&');
+            } else {
+                target.push('?');
+            }
+            target.push_str("url=");
+            target.push_str(&encoded);
+            let mut req = client.get(target);
+            if let Some(tok) = &*self.worker_token.lock().await {
+                req = req.header("X-Proxy-Token", tok);
+            }
+            req.send().await?
+        } else {
+            client.get(parsed.clone()).send().await?
+        };
         self.handle_hsts_header(&resp).await;
         Ok(resp)
     }
@@ -357,7 +391,28 @@ impl SecureHttpClient {
     /// Send JSON data to an HTTP endpoint using the pinned TLS configuration.
     pub async fn post_json(&self, url: &str, body: &Value) -> reqwest::Result<()> {
         let client = { self.client.lock().await.clone() };
-        let resp = client.post(url).json(body).send().await?;
+        let worker = {
+            let guard = self.worker_urls.lock().await;
+            guard.get(0).cloned()
+        };
+        let resp = if let Some(w) = worker {
+            let mut target = w;
+            let encoded = encode(url);
+            if target.contains('?') {
+                target.push('&');
+            } else {
+                target.push('?');
+            }
+            target.push_str("url=");
+            target.push_str(&encoded);
+            let mut req = client.post(target).json(body);
+            if let Some(tok) = &*self.worker_token.lock().await {
+                req = req.header("X-Proxy-Token", tok);
+            }
+            req.send().await?
+        } else {
+            client.post(url).json(body).send().await?
+        };
         self.handle_hsts_header(&resp).await;
         Ok(())
     }

@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/tauri";
 type AppSettings = {
   workerList: string[];
   torrcConfig: string;
+  workerToken: string;
   exitCountry: string | null;
   bridges: string[];
   bridgePreset: string | null;
@@ -26,6 +27,7 @@ function createUIStore() {
     settings: {
       workerList: ["worker1.example.com", "worker2.example.com"], // Default values
       torrcConfig: "# Default torrc config\n",
+      workerToken: "",
       exitCountry: null,
       bridges: [],
       bridgePreset: null,
@@ -63,6 +65,7 @@ function createUIStore() {
             settings: {
               workerList: storedSettings.workerList,
               torrcConfig: storedSettings.torrcConfig,
+              workerToken: storedSettings.workerToken ?? "",
               exitCountry: storedSettings.exitCountry ?? null,
               bridges: storedSettings.bridges ?? [],
               bridgePreset: storedSettings.bridgePreset ?? null,
@@ -79,6 +82,10 @@ function createUIStore() {
           });
           await invoke("set_log_limit", {
             limit: storedSettings.maxLogLines ?? 1000,
+          });
+          await invoke("set_worker_config", {
+            workers: storedSettings.workerList,
+            token: storedSettings.workerToken ?? "",
           });
         }
       } catch (err) {
@@ -210,6 +217,7 @@ function createUIStore() {
             settings: {
               ...state.settings,
               workerList: stored.workerList,
+              workerToken: stored.workerToken ?? "",
             },
           }));
         }
@@ -222,20 +230,22 @@ function createUIStore() {
       }
     },
 
-    saveWorkerList: async (workers: string[]) => {
+    saveWorkerConfig: async (workers: string[], token: string) => {
       try {
         const current = get({ subscribe });
         const newSettings: AppSettings = {
           ...current.settings,
           workerList: workers,
+          workerToken: token,
         };
+        await invoke("set_worker_config", { workers, token });
         await db.settings.put({ id: 1, ...newSettings });
         update((state) => ({ ...state, settings: newSettings, error: null }));
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         update((state) => ({
           ...state,
-          error: `Failed to save worker list: ${message}`,
+          error: `Failed to save worker config: ${message}`,
         }));
       }
     },

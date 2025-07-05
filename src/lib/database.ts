@@ -107,6 +107,7 @@ export interface Settings {
   id?: number;
   workerList: string[];
   torrcConfig: string;
+  workerToken?: string;
   exitCountry?: string | null;
   bridges?: string[];
   bridgePreset?: string | null;
@@ -128,6 +129,11 @@ export class AppDatabase extends Dexie {
     this.version(3).stores({
       settings:
         "++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines, bridgePreset",
+      meta: "&id",
+    });
+    this.version(4).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset",
       meta: "&id",
     });
 
