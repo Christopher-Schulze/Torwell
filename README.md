@@ -153,6 +153,8 @@ The minimum TLS version can also be configured via the `min_tls_version` field
 
 For a detailed description of the certificate rotation process, see
 [docs/CertificateManagement.md#rotation-workflow](docs/CertificateManagement.md#rotation-workflow).
+Instructions for creating your own production certificate are available in
+[docs/ProductionCertificate.md](docs/ProductionCertificate.md).
 
 Example for development:
 
