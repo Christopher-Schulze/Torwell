@@ -310,7 +310,7 @@ impl<C: TorClientBehavior> TorManager<C> {
 
     pub(crate) async fn lookup_country_code(&self, ip: &str) -> Result<String> {
         if ip.contains('?') {
-            return Err(Error::Lookup("invalid address".into()));
+            return Err(Error::Lookup(format!("invalid address: {ip}")));
         }
 
         let mut cache = self.country_cache.lock().await;
@@ -331,7 +331,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             cache.insert(ip.to_string(), code.clone());
             Ok(code)
         } else {
-            Err(Error::Lookup(format!("not found: {}", addr)))
+            Err(Error::Lookup(format!("country not found for {}", addr)))
         }
     }
 
@@ -382,14 +382,14 @@ impl<C: TorClientBehavior> TorManager<C> {
         let config = self.build_config().await?;
         client
             .reconfigure(&config)
-            .map_err(|e| Error::Identity(e))?;
+            .map_err(|e| Error::Identity(format!("reconfigure failed: {e}")))?;
         client.retire_all_circs();
 
         // Build fresh circuit
         client
             .build_new_circuit()
             .await
-            .map_err(|e| Error::Circuit(e))?;
+            .map_err(|e| Error::Circuit(format!("failed to build new circuit: {e}")))?;
 
         Ok(())
     }
@@ -413,11 +413,11 @@ impl TorManager {
                 None,
             )
             .await
-            .map_err(|e| Error::Circuit(e.to_string()))?;
+            .map_err(|e| Error::Circuit(format!("failed to launch exit circuit: {e}")))?;
 
         let hops: Vec<_> = circuit
             .path_ref()
-            .map_err(|e| Error::Circuit(e.to_string()))?
+            .map_err(|e| Error::Circuit(format!("failed to read circuit path: {e}")))?
             .hops()
             .iter()
             .cloned()
@@ -460,6 +460,7 @@ impl TorManager {
         let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
 
         let mut tokens = self.isolation_tokens.lock().await;
+        let domain_key = domain.clone();
         let entry = tokens.entry(domain).or_default();
         let token = IsolationToken::new();
         entry.push((token, std::time::Instant::now()));
@@ -487,11 +488,11 @@ impl TorManager {
             .circmgr()
             .get_or_launch_exit((&*netdir).into(), &[], isolation, prefs)
             .await
-            .map_err(|e| Error::Circuit(e.to_string()))?;
+            .map_err(|e| Error::Circuit(format!("failed to launch isolated circuit for {}: {}", domain_key, e)))?;
 
         let hops: Vec<_> = circuit
             .path_ref()
-            .map_err(|e| Error::Circuit(e.to_string()))?
+            .map_err(|e| Error::Circuit(format!("failed to read circuit path for {}: {}", domain_key, e)))?
             .hops()
             .iter()
             .cloned()
