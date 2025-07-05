@@ -1,0 +1,15 @@
+{
+  "bridges": [
+    "Bridge obfs4 192.0.2.1:443 0123456789ABCDEF0123456789ABCDEF01234567 cert=AAAA iat-mode=0",
+    "Bridge obfs4 192.0.2.2:443 89ABCDEF0123456789ABCDEF0123456789ABCDEF cert=BBBB iat-mode=0",
+    "Bridge obfs4 192.0.2.3:443 1111111111111111111111111111111111111111 cert=CCCC iat-mode=0"
+  ],
+  "exitCountries": [
+    {"code": "DE", "name": "Germany"},
+    {"code": "US", "name": "USA"},
+    {"code": "FR", "name": "France"},
+    {"code": "GB", "name": "UK"},
+    {"code": "NL", "name": "Netherlands"},
+    {"code": "SE", "name": "Sweden"}
+  ]
+}
