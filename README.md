@@ -323,7 +323,7 @@ The backend emits structured `Error` variants via the `tor-status-update` event.
 - `Identity` – changing circuits failed during a specific `step`
 - `NetDir` – network directory lookup failed
 - `Circuit` – circuit creation or inspection failed
-- `RateLimited` – action exceeded its rate limit
+- `RateLimitExceeded` – action exceeded its rate limit
 - `Timeout` – operation aborted after the allowed time
 
 ## 📈 Roadmap

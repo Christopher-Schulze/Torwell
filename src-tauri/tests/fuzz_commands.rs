@@ -76,7 +76,7 @@ async fn fuzz_network_commands() {
                     .collect();
                 let count = rng.gen_range(0..15);
                 let res = commands::ping_host(state, token.clone(), Some(host), Some(count)).await;
-                if matches!(res, Err(Error::RateLimited(_))) {
+                if matches!(res, Err(Error::RateLimitExceeded(_))) {
                     rate_limited = true;
                 }
             }
@@ -88,21 +88,21 @@ async fn fuzz_network_commands() {
                     .map(char::from)
                     .collect();
                 let res = commands::set_exit_country(state, Some(country)).await;
-                if matches!(res, Err(Error::RateLimited(_))) {
+                if matches!(res, Err(Error::RateLimitExceeded(_))) {
                     rate_limited = true;
                 }
             }
             // get_active_circuit
             2 => {
                 let res = commands::get_active_circuit(state).await;
-                if matches!(res, Err(Error::RateLimited(_))) {
+                if matches!(res, Err(Error::RateLimitExceeded(_))) {
                     rate_limited = true;
                 }
             }
             // get_metrics
             _ => {
                 let res = commands::get_metrics(state).await;
-                if matches!(res, Err(Error::RateLimited(_))) {
+                if matches!(res, Err(Error::RateLimitExceeded(_))) {
                     rate_limited = true;
                 }
             }

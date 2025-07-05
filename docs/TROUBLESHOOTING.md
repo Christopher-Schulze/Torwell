@@ -20,7 +20,7 @@ This guide lists common problems encountered during development and how to analy
 
 ## Rate Limits
 
-- Connection attempts are limited to **5 per minute**. Exceeding this limit returns a `RateLimited` error.
+- Connection attempts are limited to **5 per minute**. Exceeding this limit returns a `RateLimitExceeded` error.
 - Retrieving logs via `get_logs` is limited to **20 requests per minute**.
 
 ## Zertifikatsupdate
@@ -44,7 +44,7 @@ auszuschließen.
 
 - Fehlende Systembibliotheken wie `glib-2.0` verhindern einen erfolgreichen `cargo check`.
 - Vergessenes `bun install` führt zu nicht auflösbaren Frontend-Abhängigkeiten.
-- Bei zu vielen Verbindungsversuchen oder Log-Abfragen tritt ein `RateLimited`-Fehler auf.
+- Bei zu vielen Verbindungsversuchen oder Log-Abfragen tritt ein `RateLimitExceeded`-Fehler auf.
 - Falsch konfigurierte Zertifikats-URLs melden `certificate update failed` im `torwell.log`.
 - Scheitert die Schlüsselbundintegration, erscheint `keyring access denied` in der Konsole.
 

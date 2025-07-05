@@ -42,7 +42,7 @@ Ein weiteres Skript `src-tauri/tests/pentest.rs` simuliert unautorisierte Anfrag
 und einen massiven Aufruf von Befehlen.
 Ungültige Tokens werden konsequent mit `Error::InvalidToken` abgelehnt. Nach mehr
 als 60 gültigen Aufrufen greift der globale Rate Limiter und liefert
-`Error::RateLimited`. Somit funktionieren die Sitzungsprüfung und das
+`Error::RateLimitExceeded`. Somit funktionieren die Sitzungsprüfung und das
 Rate‑Limiting wie vorgesehen.
 
 ## Aktueller Stand (2025-07-05)

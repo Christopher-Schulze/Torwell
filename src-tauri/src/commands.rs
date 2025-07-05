@@ -63,7 +63,7 @@ static HOST_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9.-]+$").unwra
 fn check_api_rate() -> Result<()> {
     API_LIMITER
         .check()
-        .map_err(|_| Error::RateLimited("api".into()))
+        .map_err(|_| Error::RateLimitExceeded("api".into()))
 }
 
 async fn track_call(name: &'static str) -> usize {
@@ -351,7 +351,7 @@ pub async fn get_logs(state: State<'_, AppState>, token: String) -> Result<Vec<L
     }
     if LOG_LIMITER.check().is_err() {
         log::error!("get_logs: rate limit exceeded");
-        return Err(Error::RateLimited("get_logs".into()));
+        return Err(Error::RateLimitExceeded("get_logs".into()));
     }
     state.read_logs().await
 }

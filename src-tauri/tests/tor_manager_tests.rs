@@ -137,8 +137,8 @@ async fn bridge_parse_error() {
         .unwrap();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source: _ }) => assert_eq!(step, "build_config"),
-        _ => panic!("expected connection failed"),
+        Err(Error::ConfigError { step, .. }) => assert_eq!(step, "build_config"),
+        _ => panic!("expected config error"),
     }
 }
 
@@ -148,11 +148,11 @@ async fn bootstrap_error_context() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "bootstrap");
             assert!(source.contains("boot"));
         }
-        _ => panic!("expected connection failed"),
+        _ => panic!("expected network failure"),
     }
 }
 
@@ -262,7 +262,7 @@ async fn connect_rate_limited() {
         }
         manager.disconnect().await.unwrap();
     }
-    assert!(matches!(last, Err(Error::RateLimited(_))));
+    assert!(matches!(last, Err(Error::RateLimitExceeded(_))));
 }
 
 #[tokio::test]
@@ -270,8 +270,8 @@ async fn set_exit_country_invalid_error_variant() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager.set_exit_country(Some("zzz".into())).await;
     match res {
-        Err(Error::ConnectionFailed { step, .. }) => assert_eq!(step, "set_exit_country"),
-        _ => panic!("expected connection failed"),
+        Err(Error::ConfigError { step, .. }) => assert_eq!(step, "set_exit_country"),
+        _ => panic!("expected config error"),
     }
 }
 
