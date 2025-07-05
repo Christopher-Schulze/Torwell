@@ -20,11 +20,13 @@ impl SessionManager {
         let expiry = Instant::now() + ttl;
         let mut map = HashMap::new();
         map.insert(token.clone(), expiry);
-        Arc::new(Self {
+        let mgr = Arc::new(Self {
             sessions: Mutex::new(map),
             ttl,
             startup_token: Mutex::new(Some(token)),
-        })
+        });
+        mgr.clone().start_cleanup_task();
+        mgr
     }
 
     fn generate_token() -> String {
@@ -67,5 +69,16 @@ impl SessionManager {
     async fn cleanup(&self) {
         let now = Instant::now();
         self.sessions.lock().await.retain(|_, &mut exp| exp > now);
+    }
+
+    /// Spawn a background task that periodically cleans up expired sessions.
+    pub fn start_cleanup_task(self: Arc<Self>) {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60));
+            loop {
+                interval.tick().await;
+                self.cleanup().await;
+            }
+        });
     }
 }
