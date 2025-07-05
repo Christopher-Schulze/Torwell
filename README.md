@@ -139,7 +139,7 @@ run:
 scripts/backup_ui.sh
 ```
 The script copies `src/lib/components` to `src/lib/components_backup` so you can
-easily restore the previous UI.
+easily restore the previous UI. The backup directory is ignored by Git.
 
 
 
