@@ -1,9 +1,14 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
+import Inspect from 'vite-plugin-inspect';
 
 export default defineConfig(({ mode }) => {
+  const plugins = [sveltekit()];
+  if (mode === 'analyze') {
+    plugins.push(Inspect({ build: true }));
+  }
   return {
-    plugins: [sveltekit()],
+    plugins,
     
     // Prevent Vite from obscuring Rust errors
     clearScreen: false,

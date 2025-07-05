@@ -4,8 +4,9 @@
   import ActionCard from "$lib/components/ActionCard.svelte";
   import IdlePanel from "$lib/components/IdlePanel.svelte";
   import SecurityBanner from "$lib/components/SecurityBanner.svelte";
-  import LogsModal from "$lib/components/LogsModal.svelte";
-  import SettingsModal from "$lib/components/SettingsModal.svelte";
+  import { browser } from "$app/environment";
+  let LogsModalComponent: any = null;
+  let SettingsModalComponent: any = null;
   import { uiStore } from "$lib/stores/uiStore";
   import { torStore } from "$lib/stores/torStore";
   import { invoke } from "@tauri-apps/api/tauri";
@@ -96,6 +97,18 @@
       isolatedCircuits = [];
     };
   });
+
+  $: if (browser && $uiStore.isLogsModalOpen && !LogsModalComponent) {
+    import("$lib/components/LogsModal.svelte").then((m) => {
+      LogsModalComponent = m.default;
+    });
+  }
+
+  $: if (browser && $uiStore.isSettingsModalOpen && !SettingsModalComponent) {
+    import("$lib/components/SettingsModal.svelte").then((m) => {
+      SettingsModalComponent = m.default;
+    });
+  }
 </script>
 
 <div class="p-6 max-w-6xl mx-auto">
@@ -132,12 +145,18 @@
   </div>
 </div>
 
-<LogsModal
-  bind:show={$uiStore.isLogsModalOpen}
-  on:close={() => uiStore.actions.closeLogsModal()}
-/>
+{#if LogsModalComponent}
+  <svelte:component
+    this={LogsModalComponent}
+    bind:show={$uiStore.isLogsModalOpen}
+    on:close={() => uiStore.actions.closeLogsModal()}
+  />
+{/if}
 
-<SettingsModal
-  bind:show={$uiStore.isSettingsModalOpen}
-  on:close={() => uiStore.actions.closeSettingsModal()}
-/>
+{#if SettingsModalComponent}
+  <svelte:component
+    this={SettingsModalComponent}
+    bind:show={$uiStore.isSettingsModalOpen}
+    on:close={() => uiStore.actions.closeSettingsModal()}
+  />
+{/if}
