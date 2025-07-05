@@ -171,6 +171,7 @@ You can influence certain backend parameters via environment variables:
 - `TORWELL_MAX_LOG_LINES` – Maximum number of log lines kept in `torwell.log` (default `1000`).
 - `TORWELL_MAX_MEMORY_MB` – Memory usage threshold before warnings (default `1024`).
 - `TORWELL_MAX_CIRCUITS` – Maximum allowed parallel circuits (default `20`).
+- `TORWELL_HSM_LIB` – Path to the PKCS#11 module when compiled with the `hsm` feature.
 
 > The first build will download many Rust crates and may take several minutes.
 
@@ -357,6 +358,7 @@ See [docs/Limitations.md](docs/Limitations.md) for features that are currently i
 
 ## 📱 Mobile
 Experimental Capacitor configuration is provided in [docs/Mobile.md](docs/Mobile.md). Use `task mobile:android` or `task mobile:ios` to build the mobile apps. The mobile build communicates with the Rust backend over a small HTTP bridge running on port 1421 when compiled with the `mobile` feature.
+Guidance for using a Hardware Security Module is available in [docs/HSM.md](docs/HSM.md).
 
 ## 🔐 Security Findings
 Aktuelle Erkenntnisse aus Audits sind im Dokument [docs/SecurityFindings.md](docs/SecurityFindings.md) zusammengefasst.
