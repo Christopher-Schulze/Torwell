@@ -155,3 +155,15 @@ sicherstellt, dass immer ein gültiges Zertifikat vorliegt.
 
 Dieser Workflow stellt sicher, dass die Zertifikate regelmäßig erneuert werden
 und Probleme frühzeitig erkannt werden.
+
+## Hinweise zur Zertifikats-Rotation
+
+- Bewahre das bisherige PEM unter `src-tauri/certs/backup.pem` auf, um bei
+  Problemen kurzfristig darauf zurückgreifen zu können.
+- Prüfe das Ablaufdatum des neuen Zertifikats vor dem Austausch mit
+  `openssl x509 -in <datei> -noout -dates`.
+- Dokumentiere jedes Rotationsdatum in einer zentralen Liste, damit ersichtlich
+  bleibt, wann welches Zertifikat aktiv war.
+- Sollte keine Hintergrundaufgabe laufen, kann `schedule_updates` nach dem
+  Austausch manuell angestoßen werden, um den neuen PEM-Inhalt sofort
+  einzulesen.
