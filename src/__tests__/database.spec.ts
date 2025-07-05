@@ -36,6 +36,11 @@ function openRaw() {
       '++id, workerList, torrcConfig, exitCountry, bridges, maxLogLines, bridgePreset',
     meta: '&id',
   });
+  raw.version(4).stores({
+    settings:
+      '++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset',
+    meta: '&id',
+  });
   return raw.open().then(() => raw);
 }
 
@@ -50,6 +55,7 @@ describe('database encryption', () => {
       id: 1,
       workerList: [],
       torrcConfig: '',
+      workerToken: '',
       exitCountry: 'US',
       bridges: ['b1'],
       maxLogLines: 10,
@@ -69,7 +75,7 @@ describe('database encryption', () => {
 
   it('stores AES key in secure storage', async () => {
     const api = await import('@tauri-apps/api/tauri');
-    await db.settings.put({ id: 2, workerList: [], torrcConfig: '' });
+    await db.settings.put({ id: 2, workerList: [], torrcConfig: '', workerToken: '' });
     expect(api.invoke).toHaveBeenCalledWith('set_secure_key', { value: expect.any(String) });
     const key = await api.invoke('get_secure_key');
     expect(typeof key).toBe('string');
@@ -81,7 +87,7 @@ describe('database encryption', () => {
     await raw.close();
 
     const api = await import('@tauri-apps/api/tauri');
-    await db.settings.put({ id: 3, workerList: [], torrcConfig: '' });
+    await db.settings.put({ id: 3, workerList: [], torrcConfig: '', workerToken: '' });
 
     expect(await api.invoke('get_secure_key')).toBe('oldkey');
     const check = await openRaw();

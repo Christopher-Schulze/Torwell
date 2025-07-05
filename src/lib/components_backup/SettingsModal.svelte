@@ -22,6 +22,7 @@
   let selectedBridges: string[] = [];
   let torrcConfig = "";
   let workerListString = "";
+  let workerToken = "";
   let maxLogLines = 1000;
   let exitCountry: string | null = null;
   // import TorrcEditorModal from './TorrcEditorModal.svelte';
@@ -39,6 +40,7 @@
     selectedBridges = [...$uiStore.settings.bridges];
     torrcConfig = $uiStore.settings.torrcConfig;
     workerListString = $uiStore.settings.workerList.join("\n");
+    workerToken = $uiStore.settings.workerToken;
     maxLogLines = $uiStore.settings.maxLogLines;
     exitCountry = $uiStore.settings.exitCountry ?? null;
     uiStore.actions.setExitCountry(exitCountry);
@@ -82,7 +84,7 @@
       .split(/\r?\n/)
       .map((l) => l.trim())
       .filter((l) => l.length > 0);
-    uiStore.actions.saveWorkerList(list);
+    uiStore.actions.saveWorkerConfig(list, workerToken);
   }
 
   function saveLogLimit() {
@@ -214,6 +216,13 @@
             bind:value={workerListString}
             aria-label="Worker list"
           ></textarea>
+          <input
+            type="text"
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm mt-2"
+            bind:value={workerToken}
+            placeholder="Worker token"
+            aria-label="Worker token"
+          />
           <button
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
             on:click={saveWorkers}
@@ -221,7 +230,9 @@
           >
             Save
           </button>
-          <p class="text-xs text-gray-200 mt-2">One worker URL per line</p>
+          <p class="text-xs text-gray-200 mt-2">
+            One worker URL per line. <a href="/docs/Todo-fuer-User.md" target="_blank" class="underline">Mehr Infos in der Dokumentation</a>
+          </p>
         </div>
 
         <div class="mb-8">

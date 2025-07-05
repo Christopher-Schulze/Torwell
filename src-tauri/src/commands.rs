@@ -246,6 +246,17 @@ pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Re
 }
 
 #[tauri::command]
+pub async fn set_worker_config(
+    state: State<'_, AppState>,
+    workers: Vec<String>,
+    token: Option<String>,
+) -> Result<()> {
+    check_api_rate()?;
+    state.http_client.set_worker_config(workers, token).await;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn list_bridge_presets() -> Result<Vec<BridgePreset>> {
     crate::tor_manager::load_default_bridge_presets()
 }
