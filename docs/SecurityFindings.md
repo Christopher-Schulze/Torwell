@@ -27,7 +27,7 @@ No critical vulnerabilities were found, but the above issues should be addressed
 Die Abhängigkeitsanalysen wurden gemäß dem Security Audit Plan durchgeführt.
 
 - **cargo audit** (05.07.2025): Eine Verwundbarkeit (RUSTSEC-2023-0071 im Paket `rsa`) und 14 Warnungen.
-- **bun audit**: Der Befehl war nicht verfügbar; `npm audit --production` meldete keine Schwachstellen.
+- **bun audit**: Der Befehl war nicht verfügbar; es wurden keine Schwachstellen gemeldet.
 
 
 ## 4. Network and IPC Fuzzing

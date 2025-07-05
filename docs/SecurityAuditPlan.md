@@ -20,7 +20,7 @@ Penetration testing should cover:
    - Examine `src-tauri` for correct usage of TLS and certificate pinning.
    - Review session management in `src-tauri/src/session.rs` and `state.rs`.
    - Inspect front‑end code in `src/` for secure IPC calls and proper data handling.
-   - Run `cargo audit` and `npm audit` / `bun audit` for dependency checks.
+   - Run `cargo audit` and `bun audit` for dependency checks.
 2. **Static Analysis**
    - Use tools like `clippy` for Rust and `svelte-check` for Svelte components.
 3. **Penetration Testing**
@@ -53,7 +53,7 @@ calls.
 - [x] Review session management in `src-tauri/src/session.rs` and `state.rs`
 - [x] Inspect front-end code in `src/` for secure IPC and data handling
 - [x] Run `cargo audit` for Rust dependencies
-- [x] Run `bun audit` (or `npm audit`) for JavaScript dependencies
+- [x] Run `bun audit` for JavaScript dependencies
 - [ ] Use static analysis tools (`clippy`, `svelte-check`)
 - [ ] Conduct penetration testing
 - [x] Document findings in `docs/SecurityFindings.md`
