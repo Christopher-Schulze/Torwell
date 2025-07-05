@@ -393,6 +393,14 @@ impl<C: TorClientBehavior> TorManager<C> {
 
         Ok(())
     }
+
+    /// Close all currently open circuits without building a new one.
+    pub async fn close_all_circuits(&self) -> Result<()> {
+        let client_guard = self.client.lock().await;
+        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        client.retire_all_circs();
+        Ok(())
+    }
 }
 
 impl TorManager {
@@ -488,11 +496,21 @@ impl TorManager {
             .circmgr()
             .get_or_launch_exit((&*netdir).into(), &[], isolation, prefs)
             .await
-            .map_err(|e| Error::Circuit(format!("failed to launch isolated circuit for {}: {}", domain_key, e)))?;
+            .map_err(|e| {
+                Error::Circuit(format!(
+                    "failed to launch isolated circuit for {}: {}",
+                    domain_key, e
+                ))
+            })?;
 
         let hops: Vec<_> = circuit
             .path_ref()
-            .map_err(|e| Error::Circuit(format!("failed to read circuit path for {}: {}", domain_key, e)))?
+            .map_err(|e| {
+                Error::Circuit(format!(
+                    "failed to read circuit path for {}: {}",
+                    domain_key, e
+                ))
+            })?
             .hops()
             .iter()
             .cloned()

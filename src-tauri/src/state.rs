@@ -1,4 +1,5 @@
 use crate::error::Result;
+use crate::icmp;
 use crate::secure_http::SecureHttpClient;
 use crate::session::SessionManager;
 use crate::tor_manager::{TorClientBehavior, TorManager};
@@ -16,7 +17,6 @@ use sysinfo::{PidExt, System, SystemExt};
 use tauri::AppHandle;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
-use crate::icmp;
 use tokio::sync::Mutex;
 use tor_rtcompat::PreferredRuntime;
 
@@ -128,10 +128,12 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
-            session: SessionManager::new(Duration::from_secs(std::env::var("TORWELL_SESSION_TTL")
-                .ok()
-                .and_then(|v| v.parse::<u64>().ok())
-                .unwrap_or(DEFAULT_SESSION_TTL))),
+            session: SessionManager::new(Duration::from_secs(
+                std::env::var("TORWELL_SESSION_TTL")
+                    .ok()
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(DEFAULT_SESSION_TTL),
+            )),
             app_handle: Arc::new(Mutex::new(None)),
         }
     }
@@ -181,10 +183,12 @@ impl<C: TorClientBehavior> AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
-            session: SessionManager::new(Duration::from_secs(std::env::var("TORWELL_SESSION_TTL")
-                .ok()
-                .and_then(|v| v.parse::<u64>().ok())
-                .unwrap_or(DEFAULT_SESSION_TTL))),
+            session: SessionManager::new(Duration::from_secs(
+                std::env::var("TORWELL_SESSION_TTL")
+                    .ok()
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(DEFAULT_SESSION_TTL),
+            )),
             app_handle: Arc::new(Mutex::new(None)),
         }
     }
@@ -296,6 +300,27 @@ impl<C: TorClientBehavior> AppState<C> {
     pub async fn update_metrics(&self, memory: u64, circuits: usize) {
         *self.memory_usage.lock().await = memory;
         *self.circuit_count.lock().await = circuits;
+
+        let memory_mb = memory / 1024 / 1024;
+        if memory_mb > self.max_memory_mb {
+            let msg = format!(
+                "memory usage {} MB exceeds limit {}",
+                memory_mb, self.max_memory_mb
+            );
+            let _ = self.add_log(Level::Warn, msg.clone()).await;
+            let _ = self.tor_manager.close_all_circuits().await;
+            self.emit_security_warning(msg).await;
+        }
+
+        if circuits > self.max_circuits {
+            let msg = format!(
+                "circuit count {} exceeds limit {}",
+                circuits, self.max_circuits
+            );
+            let _ = self.add_log(Level::Warn, msg.clone()).await;
+            let _ = self.tor_manager.close_all_circuits().await;
+            self.emit_security_warning(msg).await;
+        }
         // Additional metrics like circuit build times could be stored here
     }
 

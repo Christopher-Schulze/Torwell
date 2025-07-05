@@ -149,4 +149,7 @@
       </button>
     </div>
   </div>
+  {#if $torStore.securityWarning}
+    <p class="text-yellow-200 text-xs mt-2" role="alert">{$torStore.securityWarning}</p>
+  {/if}
 </div>
