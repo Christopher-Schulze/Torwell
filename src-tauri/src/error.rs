@@ -36,8 +36,11 @@ pub enum Error {
     #[error("Network error: {0}")]
     Network(String),
 
-    #[error("Identity change failed: {0}")]
-    Identity(String),
+    #[error("connection failed during {step}: {source}")]
+    ConnectionFailed { step: String, source: String },
+
+    #[error("identity change failed during {step}: {source}")]
+    Identity { step: String, source: String },
 
     #[error("Rate limit exceeded for {0}")]
     RateLimited(String),

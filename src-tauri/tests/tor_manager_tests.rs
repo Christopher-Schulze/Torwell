@@ -136,7 +136,24 @@ async fn bridge_parse_error() {
         .await
         .unwrap();
     let res = manager.connect().await;
-    assert!(matches!(res, Err(Error::BridgeParse(_))));
+    match res {
+        Err(Error::ConnectionFailed { step, source: _ }) => assert_eq!(step, "build_config"),
+        _ => panic!("expected connection failed"),
+    }
+}
+
+#[tokio::test]
+async fn bootstrap_error_context() {
+    MockTorClient::push_result(Err("boot".into()));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.connect().await;
+    match res {
+        Err(Error::ConnectionFailed { step, source }) => {
+            assert_eq!(step, "bootstrap");
+            assert!(source.contains("boot"));
+        }
+        _ => panic!("expected connection failed"),
+    }
 }
 
 #[tokio::test]
@@ -177,7 +194,10 @@ async fn new_identity_reconfigure_error() {
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::Identity(msg)) => assert!(msg.contains("reconf")),
+        Err(Error::Identity { step, source }) => {
+            assert_eq!(step, "reconfigure");
+            assert!(source.contains("reconf"));
+        }
         _ => panic!("expected identity error"),
     }
 }
@@ -192,7 +212,10 @@ async fn new_identity_build_error() {
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::Circuit(msg)) => assert!(msg.contains("build")),
+        Err(Error::Identity { step, source }) => {
+            assert_eq!(step, "build_circuit");
+            assert!(source.contains("build"));
+        }
         _ => panic!("expected circuit error"),
     }
 }
