@@ -227,6 +227,18 @@ impl<C: TorClientBehavior> AppState<C> {
         file.write_all(json.as_bytes()).await?;
         file.write_all(b"\n").await?;
         drop(file);
+
+        // Optional hook: forward logs to a central server if configured.
+        if let Ok(endpoint) = std::env::var("TORWELL_LOG_ENDPOINT") {
+            let client = self.http_client.clone();
+            let payload = serde_json::to_value(&entry)?;
+            tokio::spawn(async move {
+                if let Err(e) = client.post_json(&endpoint, &payload).await {
+                    log::error!("failed to send log entry: {}", e);
+                }
+            });
+        }
+
         self.trim_logs().await?;
         Ok(())
     }
@@ -284,6 +296,7 @@ impl<C: TorClientBehavior> AppState<C> {
     pub async fn update_metrics(&self, memory: u64, circuits: usize) {
         *self.memory_usage.lock().await = memory;
         *self.circuit_count.lock().await = circuits;
+        // Additional metrics like circuit build times could be stored here
     }
 
     /// Update network latency metric
@@ -317,6 +330,8 @@ impl<C: TorClientBehavior> AppState<C> {
                         oldest_age: 0,
                     },
                 };
+                // Potential place to record detailed circuit build metrics
+                // e.g., duration of the last circuit construction.
 
                 let mut sys = System::new();
                 let pid = match sysinfo::get_current_pid() {
