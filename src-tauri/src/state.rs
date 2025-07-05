@@ -70,6 +70,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub memory_usage: Arc<Mutex<u64>>,
     /// Current number of circuits
     pub circuit_count: Arc<Mutex<usize>>,
+    /// Age of the oldest circuit in seconds
+    pub oldest_circuit_age: Arc<Mutex<u64>>,
     /// Last recorded network latency in milliseconds
     pub latency_ms: Arc<Mutex<u64>>,
     /// Maximum memory usage before warning (in MB)
@@ -121,6 +123,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
+            oldest_circuit_age: Arc::new(Mutex::new(0)),
             latency_ms: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
@@ -177,6 +180,7 @@ impl<C: TorClientBehavior> AppState<C> {
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
+            oldest_circuit_age: Arc::new(Mutex::new(0)),
             latency_ms: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
@@ -301,9 +305,10 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Update stored metrics
-    pub async fn update_metrics(&self, memory: u64, circuits: usize) {
+    pub async fn update_metrics(&self, memory: u64, circuits: usize, oldest_age: u64) {
         *self.memory_usage.lock().await = memory;
         *self.circuit_count.lock().await = circuits;
+        *self.oldest_circuit_age.lock().await = oldest_age;
 
         let memory_mb = memory / 1024 / 1024;
         if memory_mb > self.max_memory_mb {
@@ -347,10 +352,11 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Retrieve current metrics
-    pub async fn metrics(&self) -> (u64, usize) {
+    pub async fn metrics(&self) -> (u64, usize, u64) {
         let mem = *self.memory_usage.lock().await;
         let circ = *self.circuit_count.lock().await;
-        (mem, circ)
+        let age = *self.oldest_circuit_age.lock().await;
+        (mem, circ, age)
     }
 
     /// Retrieve current latency
@@ -388,7 +394,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     Err(_) => 0,
                 };
 
-                self.update_metrics(mem, circ.count).await;
+                self.update_metrics(mem, circ.count, circ.oldest_age).await;
                 self.update_latency(latency).await;
 
                 let _ = handle.emit_all(
@@ -396,7 +402,8 @@ impl<C: TorClientBehavior> AppState<C> {
                     serde_json::json!({
                         "memory_bytes": mem,
                         "circuit_count": circ.count,
-                        "latency_ms": latency
+                        "latency_ms": latency,
+                        "oldest_age": circ.oldest_age
                     }),
                 );
             }

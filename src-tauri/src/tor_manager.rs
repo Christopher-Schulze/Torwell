@@ -588,9 +588,10 @@ impl TorManager {
 
         #[cfg(feature = "experimental-api")]
         {
-            // Use new arti-client APIs when compiled with the experimental feature.
-            // These APIs allow retrieving information about currently open circuits
-            // including their creation time.
+            // Use arti-client APIs to retrieve information about currently open
+            // circuits and calculate their age. If the call fails (e.g. due to
+            // lack of support in the underlying implementation) fall back to
+            // returning zeroed metrics.
             use arti_client::client::CircuitInfoExt as _;
 
             if let Ok(circs) = client.circmgr().list_circuits() {
@@ -606,7 +607,6 @@ impl TorManager {
             }
         }
 
-        // Fallback when the arti-client APIs are unavailable.
         Ok(CircuitMetrics {
             count: 0,
             oldest_age: 0,
