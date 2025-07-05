@@ -115,6 +115,33 @@ vermeiden, sollte der Webserver beispielsweise folgenden Header senden:
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 ```
 
+## Update-Server
+
+Damit der Client stets ein aktuelles Zertifikat abrufen kann, muss das PEM
+regelmäßig auf dem Update-Server erneuert werden. Üblicherweise wird dort alle
+90 Tage ein neues Zertifikat bereitgestellt und die bestehende Datei ersetzt.
+Der Webserver liefert das PEM unter der in `cert_url` definierten Adresse aus.
+
+Eine einfache Möglichkeit ist ein Cronjob, der das Zertifikat von der
+unternehmensinternen PKI lädt und auf den Server kopiert:
+
+```bash
+# /etc/cron.d/torwell-cert-renew
+0 3 * * * root /usr/local/bin/push_cert.sh
+```
+
+Das Skript `push_cert.sh` könnte beispielsweise so aussehen:
+
+```bash
+#!/bin/bash
+set -e
+scp /pki/torwell/server.pem \
+    user@updates.torwell.com:/var/www/certs/server.pem
+```
+
+Nach der Übertragung steht das neue Zertifikat umgehend für alle Clients zum
+Download bereit.
+
 ## Geplante Zertifikatsrotation
 
 Um eine durchgehende Vertrauenskette sicherzustellen, werden die
