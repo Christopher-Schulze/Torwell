@@ -74,6 +74,7 @@ async fn update_metrics_closes_circuits_on_limit() {
         max_log_lines: Arc::new(Mutex::new(1000)),
         memory_usage: Arc::new(Mutex::new(0)),
         circuit_count: Arc::new(Mutex::new(0)),
+        oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
         max_memory_mb: 1,
         max_circuits: 1,
@@ -82,7 +83,7 @@ async fn update_metrics_closes_circuits_on_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("state.log").await;
-    state.update_metrics(2 * 1024 * 1024, 2).await;
+    state.update_metrics(2 * 1024 * 1024, 2, 0).await;
 
     assert!(*flag.lock().unwrap());
     let logs = state.read_logs().await.unwrap();
@@ -105,6 +106,7 @@ async fn tray_warning_on_memory_limit() {
         max_log_lines: Arc::new(Mutex::new(1000)),
         memory_usage: Arc::new(Mutex::new(0)),
         circuit_count: Arc::new(Mutex::new(0)),
+        oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
         max_memory_mb: 1,
         max_circuits: 10,
@@ -113,7 +115,7 @@ async fn tray_warning_on_memory_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("mem.log").await;
-    state.update_metrics(2 * 1024 * 1024, 0).await;
+    state.update_metrics(2 * 1024 * 1024, 0, 0).await;
     assert!(state.tray_warning.lock().await.as_ref().unwrap().contains("memory"));
 }
 
@@ -133,6 +135,7 @@ async fn tray_warning_on_circuit_limit() {
         max_log_lines: Arc::new(Mutex::new(1000)),
         memory_usage: Arc::new(Mutex::new(0)),
         circuit_count: Arc::new(Mutex::new(0)),
+        oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
         max_memory_mb: 1024,
         max_circuits: 1,
@@ -141,6 +144,6 @@ async fn tray_warning_on_circuit_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("circ.log").await;
-    state.update_metrics(0, 2).await;
+    state.update_metrics(0, 2, 0).await;
     assert!(state.tray_warning.lock().await.as_ref().unwrap().contains("circuit"));
 }

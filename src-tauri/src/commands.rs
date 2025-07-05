@@ -259,7 +259,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
     let pid = sysinfo::get_current_pid().map_err(|e| Error::Io(e.to_string()))?;
     sys.refresh_process(pid);
     let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
-    state.update_metrics(mem, circ.count).await;
+    state.update_metrics(mem, circ.count, circ.oldest_age).await;
 
     if mem / 1024 / 1024 > state.max_memory_mb {
         let _ = state
