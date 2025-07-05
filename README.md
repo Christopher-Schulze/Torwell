@@ -240,8 +240,9 @@ regelmäßig erneuert werden können. Prüfen Sie `torwell.log` auf Meldungen wi
 ist, rotiert die Anwendung die Datei und verschiebt ältere Logs in den Ordner
 `archive`.
 
-Unter Linux empfiehlt sich der Betrieb als systemd‑Service. Eine minimale
-`torwell84.service`‑Datei könnte so aussehen:
+ Unter Linux empfiehlt sich der Betrieb als systemd‑Service. Die vollständige
+ Datei findet sich unter `src-tauri/torwell84.service`. Eine minimale
+ `torwell84.service`‑Datei könnte so aussehen:
 
 ```ini
 [Unit]
@@ -260,6 +261,8 @@ WantedBy=multi-user.target
 ```
 
 Logs lassen sich anschließend mit `journalctl -u torwell84.service` abrufen.
+Weitere Hinweise zur Einrichtung finden sich in
+[docs/ProductionDeployment.md](docs/ProductionDeployment.md).
 
 ## Installation
 

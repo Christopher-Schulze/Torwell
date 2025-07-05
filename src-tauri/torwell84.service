@@ -1,0 +1,13 @@
+[Unit]
+Description=Torwell84 Service
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/torwell84/Torwell84
+Restart=always
+User=torwell
+Group=torwell
+
+[Install]
+WantedBy=multi-user.target
