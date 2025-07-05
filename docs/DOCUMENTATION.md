@@ -146,3 +146,19 @@ Das Backend akzeptiert verschiedene Umgebungsvariablen zur Laufzeitkonfiguration
 - `TORWELL_MAX_CIRCUITS` – Maximale Anzahl erlaubter paralleler Tor-Circuits (Standard `20`).
 - Bei Überschreitung dieser Limits erscheint ein Warnhinweis im Systemtray-Menü.
 
+
+## 14. Session Tokens
+
+Bestimmte Befehle wie `get_logs` oder `ping_host` benötigen ein gültiges Session-Token. Dieses lässt sich mit dem Kommando `request_token` abrufen und muss danach bei jedem Aufruf als `token`-Argument übergeben werden.
+
+```ts
+import { invoke } from '@tauri-apps/api/tauri';
+
+async function fetchLogs() {
+  const tok = await invoke<string>('request_token');
+  return invoke('get_logs', { token: tok });
+}
+```
+
+Die Tokens verfallen nach der in `TORWELL_SESSION_TTL` definierten Zeitspanne. Erhält der Client einen `401`-Fehler oder eine Meldung "Invalid session token", sollte umgehend ein neues Token angefordert und der Befehl erneut ausgeführt werden.
+
