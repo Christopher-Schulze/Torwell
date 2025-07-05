@@ -120,6 +120,7 @@ pub struct SecureHttpClient {
     min_tls: reqwest::tls::Version,
     warning_cb: Arc<Mutex<Option<Box<dyn Fn(String) + Send + Sync>>>>,
     pending_warnings: Arc<Mutex<Vec<String>>>,
+    update_failures: Arc<Mutex<u32>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -131,6 +132,7 @@ impl Clone for SecureHttpClient {
             min_tls: self.min_tls,
             warning_cb: self.warning_cb.clone(),
             pending_warnings: self.pending_warnings.clone(),
+            update_failures: self.update_failures.clone(),
         }
     }
 }
@@ -205,6 +207,7 @@ impl SecureHttpClient {
             min_tls,
             warning_cb: Arc::new(Mutex::new(None)),
             pending_warnings: Arc::new(Mutex::new(Vec::new())),
+            update_failures: Arc::new(Mutex::new(0)),
         })
     }
 
@@ -380,10 +383,23 @@ impl SecureHttpClient {
     pub async fn update_certificates_from(&self, urls: &[String]) -> anyhow::Result<()> {
         for url in urls {
             match self.update_certificates(url).await {
-                Ok(_) => return Ok(()),
+                Ok(_) => {
+                    let mut cnt = self.update_failures.lock().await;
+                    *cnt = 0;
+                    return Ok(());
+                }
                 Err(e) => {
                     log::error!("failed to fetch new certificate from {}: {}", url, e);
                 }
+            }
+        }
+        {
+            let mut cnt = self.update_failures.lock().await;
+            *cnt += 1;
+            if *cnt >= 3 {
+                self
+                    .emit_warning(format!("{} consecutive certificate update failures", *cnt))
+                    .await;
             }
         }
         Err(anyhow::anyhow!("all certificate update attempts failed"))

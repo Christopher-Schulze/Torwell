@@ -5,6 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::mpsc;
 use tempfile::tempdir;
 use torwell84::secure_http::{SecureHttpClient, DEFAULT_CONFIG_PATH};
 
@@ -386,4 +387,36 @@ async fn hsts_warning_on_post() {
     assert!(logger
         .into_iter()
         .any(|rec| rec.level() == log::Level::Warn && rec.args().contains("HSTS header missing")));
+}
+
+#[tokio::test]
+async fn warning_after_multiple_update_failures() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(500);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    client
+        .set_warning_callback(move |msg| {
+            let _ = tx.send(msg);
+        })
+        .await;
+
+    for _ in 0..3 {
+        let _ = client
+            .update_certificates_from(&[server.url("/cert.pem")])
+            .await;
+    }
+
+    let warning = rx.recv().await.unwrap();
+    assert!(warning.contains("consecutive certificate update failures"));
 }
