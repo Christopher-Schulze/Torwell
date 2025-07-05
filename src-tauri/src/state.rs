@@ -329,6 +329,15 @@ impl<C: TorClientBehavior> AppState<C> {
             self.update_tray_menu().await;
             self.emit_security_warning(msg).await;
         }
+
+        if memory_mb <= self.max_memory_mb && circuits <= self.max_circuits {
+            let mut warn = self.tray_warning.lock().await;
+            if warn.is_some() {
+                *warn = None;
+                drop(warn);
+                self.update_tray_menu().await;
+            }
+        }
         // Additional metrics like circuit build times could be stored here
     }
 
@@ -399,22 +408,39 @@ impl<C: TorClientBehavior> AppState<C> {
         *self.app_handle.lock().await = Some(handle);
     }
 
-    /// Update the system tray menu with current warning if set
+    /// Update the system tray menu with current status and warning if set
     async fn update_tray_menu(&self) {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
+            let connected = self.tor_manager.is_connected().await;
+            let status = if connected { "Connected" } else { "Disconnected" };
             let mut menu = SystemTrayMenu::new()
-                .add_item(CustomMenuItem::new("show", "Show"))
-                .add_item(CustomMenuItem::new("connect", "Connect"))
-                .add_item(CustomMenuItem::new("disconnect", "Disconnect"))
+                .add_item(CustomMenuItem::new("status", format!("Status: {}", status)).disabled())
+                .add_item(CustomMenuItem::new("show", "Show"));
+
+            if connected {
+                menu = menu.add_item(CustomMenuItem::new("disconnect", "Disconnect"));
+            } else {
+                menu = menu.add_item(CustomMenuItem::new("connect", "Connect"));
+            }
+
+            menu = menu
                 .add_item(CustomMenuItem::new("show_logs", "Show Logs"))
                 .add_item(CustomMenuItem::new("settings", "Settings"))
                 .add_item(CustomMenuItem::new("quit", "Quit"));
+
             if let Some(w) = self.tray_warning.lock().await.clone() {
-                menu = menu.add_item(CustomMenuItem::new("warning", w));
+                menu = menu.add_item(CustomMenuItem::new("warning", w).disabled());
             }
+
             let tray = handle.tray_handle();
             let _ = tray.set_menu(menu);
         }
+    }
+
+    /// Clear any tray warning and refresh the tray menu
+    pub async fn clear_tray_warning(&self) {
+        *self.tray_warning.lock().await = None;
+        self.update_tray_menu().await;
     }
 
     /// Emit a security warning event to the frontend
