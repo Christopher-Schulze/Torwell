@@ -367,7 +367,12 @@ pub async fn ping_host(
 }
 
 #[tauri::command]
-pub async fn get_secure_key() -> Result<Option<String>> {
+pub async fn get_secure_key(state: State<'_, AppState>, token: String) -> Result<Option<String>> {
+    track_call("get_secure_key").await;
+    check_api_rate()?;
+    if !state.validate_session(&token).await {
+        return Err(Error::InvalidToken);
+    }
     let entry = keyring::Entry::new("torwell84", "aes-key")
         .map_err(|e| Error::Io(e.to_string()))?;
     match entry.get_password() {
@@ -378,7 +383,12 @@ pub async fn get_secure_key() -> Result<Option<String>> {
 }
 
 #[tauri::command]
-pub async fn set_secure_key(value: String) -> Result<()> {
+pub async fn set_secure_key(state: State<'_, AppState>, token: String, value: String) -> Result<()> {
+    track_call("set_secure_key").await;
+    check_api_rate()?;
+    if !state.validate_session(&token).await {
+        return Err(Error::InvalidToken);
+    }
     let entry = keyring::Entry::new("torwell84", "aes-key")
         .map_err(|e| Error::Io(e.to_string()))?;
     entry.set_password(&value).map_err(|e| Error::Io(e.to_string()))
