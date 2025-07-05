@@ -130,17 +130,6 @@ bun tauri build
 cd src-tauri && cargo test
 ```
 
-### UI Backup
-To back up the current Svelte components before experimenting with new designs,
-run:
-
-```bash
-scripts/backup_ui.sh
-```
-The script copies `src/lib/components` to `src/lib/components_backup` so you can
-easily restore the previous UI.
-
-
 
 ### Updating Certificates
 The pinned certificate location is configured in `src-tauri/certs/cert_config.json`.
