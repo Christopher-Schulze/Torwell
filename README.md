@@ -230,6 +230,16 @@ relevant:
 3. Änderungen committen und einen Tag `vX.Y.Z` erstellen.
 4. Tag und Branch pushen – der Release-Workflow baut und signiert die Pakete
    automatisch und lädt sie zu GitHub Releases hoch.
+### Optional Cloudflare Worker
+
+Im Ordner `cf worker` liegt ein kleines Beispiel für einen HTTPS-Proxy als Cloudflare Worker. Diese Worker sind optional und für den Betrieb von Torwell84 nicht erforderlich.
+
+**Deployment:**
+
+1. `npm install -g wrangler` (oder `bun add -g wrangler`)
+2. `wrangler init` ausführen und den Beispielcode als `src/index.js` einbinden
+3. Mit `wrangler deploy` veröffentlichen
+
 
 ## Production Deployment
 
