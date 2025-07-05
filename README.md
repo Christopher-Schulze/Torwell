@@ -229,8 +229,12 @@ relevant:
 
 ## Installation
 
-### Windows
-Download the latest `msi` installer from the [releases page](https://github.com/Christopher-Schulze/Torwell84/releases) and run it.
+### Windows Installation
+1. Lade den aktuellen `msi`‑Installer von der [Releases‑Seite](https://github.com/Christopher-Schulze/Torwell84/releases) herunter.
+2. Doppelklicke die Datei `Torwell84_<version>.msi` und folge dem Installationsassistenten.
+3. Bestätige den Herausgeber **Torwell84** und wähle das gewünschte Installationsverzeichnis.
+4. Nach Abschluss findest du die Anwendung im Startmenü. Die Daten werden unter `%APPDATA%\Torwell84` gespeichert.
+5. Sollte SmartScreen eine Warnung ausgeben, öffne die Eigenschaften der Datei, aktiviere "Zulassen" und starte den Installer erneut.
 
 ### Linux
 For Debian-based distributions, install the `.deb` package:
