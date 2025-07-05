@@ -99,6 +99,22 @@ export TORWELL_CERT_PATH=src-tauri/certs/custom.pem
 bun tauri dev
 ```
 
+### HSTS und TLS-Versionen
+
+Der Eintrag `min_tls_version` in `cert_config.json` bestimmt die minimale
+TLS-Version, die der Client akzeptiert. Zulässig sind die Werte `"1.2"` und
+`"1.3"`. Wird kein Wert angegeben oder ein niedrigerer Wert gesetzt, erzwingt
+`SecureHttpClient` automatisch TLS&nbsp;1.2.
+
+Nach jedem HTTPS-Aufruf wird zudem geprüft, ob der Server den
+`Strict-Transport-Security`-Header mitsendet. Fehlt dieser Header, erscheint eine
+Warnmeldung im Log. Um HTTP-Downgrades zu verhindern und die Warnung zu
+vermeiden, sollte der Webserver beispielsweise folgenden Header senden:
+
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+```
+
 ## Geplante Zertifikatsrotation
 
 Um eine durchgehende Vertrauenskette sicherzustellen, werden die

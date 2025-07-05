@@ -90,7 +90,7 @@ fn parse_tls_version(v: Option<&str>) -> reqwest::tls::Version {
 fn strong_provider(min_tls: reqwest::tls::Version) -> CryptoProvider {
     let mut provider = ring::default_provider();
     provider.cipher_suites.retain(|suite| {
-        let allowed = matches!(
+        let strong = matches!(
             suite.common().suite,
             CipherSuite::TLS13_AES_256_GCM_SHA384
                 | CipherSuite::TLS13_CHACHA20_POLY1305_SHA256
@@ -99,13 +99,15 @@ fn strong_provider(min_tls: reqwest::tls::Version) -> CryptoProvider {
                 | CipherSuite::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
                 | CipherSuite::TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
         );
-        if !allowed {
+        if !strong {
             return false;
         }
-        if matches!(min_tls, reqwest::tls::Version::TLS_1_3) {
-            suite.common().versions.contains(&TLS13)
-        } else {
-            true
+
+        let has_tls13 = suite.common().versions.contains(&TLS13);
+        let has_tls12 = suite.common().versions.contains(&TLS12);
+        match min_tls {
+            reqwest::tls::Version::TLS_1_3 => has_tls13,
+            _ => has_tls12 || has_tls13,
         }
     });
     provider
@@ -233,6 +235,25 @@ impl SecureHttpClient {
         }
     }
 
+    async fn handle_hsts_header(&self, resp: &reqwest::Response) {
+        if let Some(hsts) = resp.headers().get("strict-transport-security") {
+            if let Ok(val) = hsts.to_str() {
+                if let Some(max_age) = parse_max_age(val) {
+                    if let Some(host) = resp.url().host_str() {
+                        let expiry = Instant::now() + Duration::from_secs(max_age);
+                        let mut map = self.hsts.lock().await;
+                        map.insert(host.to_string(), expiry);
+                    }
+                }
+            }
+        } else {
+            log::warn!("HSTS header missing for {}", resp.url());
+            self
+                .emit_warning(format!("HSTS header missing for {}", resp.url()))
+                .await;
+        }
+    }
+
     /// Initialize a client using settings from a configuration file and
     /// optionally start periodic updates.
     pub async fn init<P: AsRef<Path>>(
@@ -321,23 +342,7 @@ impl SecureHttpClient {
         };
 
         let resp = client.get(parsed.clone()).send().await?;
-
-        if let Some(hsts) = resp.headers().get("strict-transport-security") {
-            if let Ok(val) = hsts.to_str() {
-                if let Some(max_age) = parse_max_age(val) {
-                    if let Some(host) = resp.url().host_str() {
-                        let expiry = Instant::now() + Duration::from_secs(max_age);
-                        let mut map = self.hsts.lock().await;
-                        map.insert(host.to_string(), expiry);
-                    }
-                }
-            }
-        } else {
-            log::warn!("HSTS header missing for {}", resp.url());
-            self
-                .emit_warning(format!("HSTS header missing for {}", resp.url()))
-                .await;
-        }
+        self.handle_hsts_header(&resp).await;
         Ok(resp)
     }
 
@@ -349,7 +354,8 @@ impl SecureHttpClient {
     /// Send JSON data to an HTTP endpoint using the pinned TLS configuration.
     pub async fn post_json(&self, url: &str, body: &Value) -> reqwest::Result<()> {
         let client = { self.client.lock().await.clone() };
-        client.post(url).json(body).send().await?;
+        let resp = client.post(url).json(body).send().await?;
+        self.handle_hsts_header(&resp).await;
         Ok(())
     }
 

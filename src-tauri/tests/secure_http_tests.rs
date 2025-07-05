@@ -361,3 +361,29 @@ async fn hsts_warning_on_update() {
         .into_iter()
         .any(|rec| rec.level() == log::Level::Warn && rec.args().contains("HSTS header missing")));
 }
+
+#[tokio::test]
+async fn hsts_warning_on_post() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(POST).path("/submit");
+            then.status(200);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+
+    let logger = Logger::start();
+    let body = serde_json::json!({"a": 1});
+    client
+        .post_json(&server.url("/submit"), &body)
+        .await
+        .unwrap();
+    assert!(logger
+        .into_iter()
+        .any(|rec| rec.level() == log::Level::Warn && rec.args().contains("HSTS header missing")));
+}
