@@ -22,3 +22,10 @@ This report summarizes security issues discovered during a brief review of the r
 
 No critical vulnerabilities were found, but the above issues should be addressed to improve the overall security posture.
 
+## Audit Vorbereitung
+
+Die Abhängigkeitsanalysen wurden gemäß dem Security Audit Plan durchgeführt.
+
+- **cargo audit** (05.07.2025): Eine Verwundbarkeit (RUSTSEC-2023-0071 im Paket `rsa`) und 14 Warnungen.
+- **bun audit**: Der Befehl war nicht verfügbar; `npm audit --production` meldete keine Schwachstellen.
+
