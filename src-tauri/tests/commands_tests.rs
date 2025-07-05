@@ -305,6 +305,16 @@ async fn ping_host_count_capped() {
 }
 
 #[tokio::test]
+async fn ping_host_rate_limited() {
+    // repeatedly call ping_host to exceed the API rate limit
+    let mut last = Ok(0u64);
+    for _ in 0..65 {
+        last = commands::ping_host(Some("127.0.0.1".into()), Some(1)).await;
+    }
+    assert!(matches!(last, Err(Error::RateLimited(_))));
+}
+
+#[tokio::test]
 async fn tray_warning_set_and_cleared() {
     let mut app = tauri::test::mock_app();
     let state = mock_state();
