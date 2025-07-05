@@ -1,7 +1,12 @@
 <script>
-	import '../app.css';
+  import '../app.css';
+  import AppErrorBoundary from '$lib/components/AppErrorBoundary.svelte';
+  import ErrorOverlay from '$lib/components/ErrorOverlay.svelte';
 </script>
 
 <main>
-	<slot />
+  <AppErrorBoundary>
+    <slot />
+  </AppErrorBoundary>
+  <ErrorOverlay />
 </main>

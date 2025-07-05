@@ -20,6 +20,7 @@
   const dispatch = createEventDispatcher();
   let showTorrcEditor = false; // This will be unused for now
   let closeButton: HTMLButtonElement | null = null;
+  let modalEl: HTMLElement | null = null;
   let previouslyFocused: HTMLElement | null = null;
 
   $: if (show) {
@@ -38,6 +39,25 @@
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === "Escape") {
       dispatch("close");
+    }
+  }
+
+  function trapFocus(event: KeyboardEvent) {
+    if (event.key !== "Tab" || !modalEl) return;
+    const focusable = Array.from(
+      modalEl.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
     }
   }
 
@@ -76,7 +96,8 @@
     <section
       class="bg-black/40 backdrop-blur-3xl rounded-2xl border border-white/10 w-[90%] max-w-2xl min-h-[500px] p-6 flex flex-col"
       on:click|stopPropagation
-      on:keydown={handleKeyDown}
+      on:keydown={trapFocus}
+      bind:this={modalEl}
       role="dialog"
       aria-modal="true"
       aria-labelledby="settings-modal-title"
