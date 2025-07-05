@@ -472,12 +472,45 @@ impl<C: TorClientBehavior> AppState<C> {
     pub async fn emit_security_warning(&self, message: String) {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
             let _ = handle.emit_all("security-warning", message.clone());
-            let _ = tauri::api::notification::Notification::new(
-                &handle.config().tauri.bundle.identifier,
-            )
-            .title("Torwell84 Warning")
-            .body(&message)
-            .show();
+
+            #[cfg(target_os = "windows")]
+            {
+                use winrt_notification::{Duration, Toast};
+                let _ = Toast::new(Toast::POWERSHELL_APP_ID)
+                    .title("Torwell84 Warning")
+                    .text1(&message)
+                    .duration(Duration::Short)
+                    .show();
+            }
+
+            #[cfg(target_os = "linux")]
+            {
+                use std::process::Command;
+                let _ = Command::new("notify-send")
+                    .arg("Torwell84 Warning")
+                    .arg(&message)
+                    .output();
+            }
+
+            #[cfg(target_os = "macos")]
+            {
+                let _ = tauri::api::notification::Notification::new(
+                    &handle.config().tauri.bundle.identifier,
+                )
+                .title("Torwell84 Warning")
+                .body(&message)
+                .show();
+            }
+
+            #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+            {
+                let _ = tauri::api::notification::Notification::new(
+                    &handle.config().tauri.bundle.identifier,
+                )
+                .title("Torwell84 Warning")
+                .body(&message)
+                .show();
+            }
         }
     }
 
