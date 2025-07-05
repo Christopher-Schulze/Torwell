@@ -40,3 +40,11 @@ die Anwendung die erforderlichen Berechtigungen besitzt und teste die
 Integration mit einem frischen Benutzerkonto, um Berechtigungsprobleme
 auszuschließen.
 
+## Stolperfallen
+
+- Fehlende Systembibliotheken wie `glib-2.0` verhindern einen erfolgreichen `cargo check`.
+- Vergessenes `bun install` führt zu nicht auflösbaren Frontend-Abhängigkeiten.
+- Bei zu vielen Verbindungsversuchen oder Log-Abfragen tritt ein `RateLimited`-Fehler auf.
+- Falsch konfigurierte Zertifikats-URLs melden `certificate update failed` im `torwell.log`.
+- Scheitert die Schlüsselbundintegration, erscheint `keyring access denied` in der Konsole.
+
