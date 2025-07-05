@@ -247,6 +247,20 @@ async fn close_all_circuits_not_connected() {
 }
 
 #[tokio::test]
+async fn list_circuit_ids_not_connected() {
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.list_circuit_ids().await;
+    assert!(matches!(res, Err(Error::NotConnected)));
+}
+
+#[tokio::test]
+async fn close_circuit_not_connected() {
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.close_circuit(1).await;
+    assert!(matches!(res, Err(Error::NotConnected)));
+}
+
+#[tokio::test]
 async fn connect_rate_limited() {
     for _ in 0..6 {
         MockTorClient::push_result(Ok(MockTorClient::default()));

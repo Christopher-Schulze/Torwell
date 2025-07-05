@@ -2,6 +2,7 @@
   import { Activity, Zap } from "lucide-svelte";
   import { invoke } from "$lib/api";
   import MetricsChart from "./MetricsChart.svelte";
+  import CircuitList from "./CircuitList.svelte";
 
   export let status;
   export let totalTrafficMB = 0;
@@ -159,5 +160,6 @@
   {/if}
   <div class="mt-2">
     <MetricsChart {metrics} />
+    <CircuitList show={status === 'CONNECTED'} />
   </div>
 </div>

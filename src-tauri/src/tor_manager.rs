@@ -501,6 +501,48 @@ impl<C: TorClientBehavior> TorManager<C> {
         client.retire_all_circs();
         Ok(())
     }
+
+    /// Return a list of currently open circuit IDs.
+    pub async fn list_circuit_ids(&self) -> Result<Vec<u64>> {
+        let client_guard = self.client.lock().await;
+        let _client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("list_circuit_ids: not connected");
+            Error::NotConnected
+        })?;
+
+        #[cfg(feature = "experimental-api")]
+        {
+            use arti_client::client::CircuitInfoExt as _;
+            if let Ok(circs) = _client.circmgr().list_circuits() {
+                return Ok(circs.iter().map(|c| c.id().into()).collect());
+            }
+        }
+
+        Ok(Vec::new())
+    }
+
+    /// Close a specific circuit by its ID.
+    pub async fn close_circuit(&self, id: u64) -> Result<()> {
+        let client_guard = self.client.lock().await;
+        let _client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("close_circuit: not connected");
+            Error::NotConnected
+        })?;
+
+        #[cfg(feature = "experimental-api")]
+        {
+            use arti_client::client::CircuitInfoExt as _;
+            if let Ok(circs) = _client.circmgr().list_circuits() {
+                for c in circs {
+                    if c.id().into() == id {
+                        let _ = _client.circmgr().close_circuit(c.id());
+                        break;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl TorManager {

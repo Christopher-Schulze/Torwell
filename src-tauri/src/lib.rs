@@ -1,11 +1,11 @@
 mod commands;
 mod error;
+#[cfg(feature = "mobile")]
+mod http_bridge;
 mod secure_http;
 mod session;
 mod state;
 mod tor_manager;
-#[cfg(feature = "mobile")]
-mod http_bridge;
 
 use secure_http::SecureHttpClient;
 use state::AppState;
@@ -138,6 +138,8 @@ pub fn run() {
             commands::list_bridge_presets,
             commands::get_traffic_stats,
             commands::get_metrics,
+            commands::list_circuits,
+            commands::close_circuit,
             commands::get_logs,
             commands::clear_logs,
             commands::get_log_file_path,

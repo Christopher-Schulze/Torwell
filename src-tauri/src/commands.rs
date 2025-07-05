@@ -341,6 +341,20 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
     )?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn list_circuits(state: State<'_, AppState>) -> Result<Vec<u64>> {
+    track_call("list_circuits").await;
+    check_api_rate()?;
+    state.tor_manager.list_circuit_ids().await
+}
+
+#[tauri::command]
+pub async fn close_circuit(state: State<'_, AppState>, id: u64) -> Result<()> {
+    track_call("close_circuit").await;
+    check_api_rate()?;
+    state.tor_manager.close_circuit(id).await
+}
 #[tauri::command]
 pub async fn get_logs(state: State<'_, AppState>, token: String) -> Result<Vec<LogEntry>> {
     track_call("get_logs").await;
