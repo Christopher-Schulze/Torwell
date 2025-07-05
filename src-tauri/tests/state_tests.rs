@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 use tokio::sync::Mutex;
+use log::Level;
 
 use torwell84::secure_http::SecureHttpClient;
 use torwell84::session::SessionManager;
@@ -146,4 +147,52 @@ async fn tray_warning_on_circuit_limit() {
     let _ = tokio::fs::remove_file("circ.log").await;
     state.update_metrics(0, 2, 0).await;
     assert!(state.tray_warning.lock().await.as_ref().unwrap().contains("circuit"));
+}
+
+#[tokio::test]
+async fn log_rotation_creates_archive() {
+    let manager: TorManager<DummyClient> = TorManager::new();
+
+    let state = AppState {
+        tor_manager: Arc::new(manager),
+        http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        log_file: PathBuf::from("rotate.log"),
+        log_lock: Arc::new(Mutex::new(())),
+        retry_counter: Arc::new(Mutex::new(0)),
+        max_log_lines: Arc::new(Mutex::new(1000)),
+        memory_usage: Arc::new(Mutex::new(0)),
+        circuit_count: Arc::new(Mutex::new(0)),
+        oldest_circuit_age: Arc::new(Mutex::new(0)),
+        latency_ms: Arc::new(Mutex::new(0)),
+        max_memory_mb: 1,
+        max_circuits: 1,
+        session: SessionManager::new(Duration::from_secs(60)),
+        app_handle: Arc::new(Mutex::new(None)),
+        tray_warning: Arc::new(Mutex::new(None)),
+    };
+
+    let _ = tokio::fs::remove_file("rotate.log").await;
+    let _ = tokio::fs::remove_dir_all("archive").await;
+
+    state.set_max_log_lines(2).await.unwrap();
+
+    for i in 0..3 {
+        state
+            .add_log(Level::Info, format!("line{}", i))
+            .await
+            .unwrap();
+    }
+
+    let mut dir = tokio::fs::read_dir("archive").await.unwrap();
+    let mut has_file = false;
+    while let Some(_) = dir.next_entry().await.unwrap() {
+        has_file = true;
+        break;
+    }
+    assert!(has_file);
+
+    let logs = state.read_logs().await.unwrap();
+    assert_eq!(logs.len(), 2);
+    assert!(logs[0].message.contains("line1"));
+    assert!(logs[1].message.contains("line2"));
 }
