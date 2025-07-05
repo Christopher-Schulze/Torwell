@@ -7,6 +7,7 @@ use tauri::Manager;
 use tokio::sync::Mutex;
 
 use log::Level;
+use regex::Regex;
 use torwell84::commands;
 use torwell84::error::Error;
 use torwell84::secure_http::SecureHttpClient;
@@ -190,12 +191,13 @@ async fn command_log_retrieval() {
     let _ = tokio::fs::remove_file(&state.log_file).await;
     app.manage(state);
     let state = app.state::<AppState<MockTorClient>>();
-    state.add_log(Level::Info, "line1".into()).await.unwrap();
-    state.add_log(Level::Warn, "line2".into()).await.unwrap();
+    state.add_log(Level::Info, "line1".into(), None).await.unwrap();
+    state.add_log(Level::Warn, "line2".into(), None).await.unwrap();
     let logs = commands::get_logs(state).await.unwrap();
     assert_eq!(logs.len(), 2);
-    assert_eq!(logs[0].message, "line1");
+    assert!(Regex::new("line1").unwrap().is_match(&logs[0].message));
     assert_eq!(logs[0].level, "INFO");
+    assert!(Regex::new("line2").unwrap().is_match(&logs[1].message));
     assert_eq!(logs[1].level, "WARN");
     commands::clear_logs(state).await.unwrap();
     let logs = commands::get_logs(state).await.unwrap();
@@ -213,14 +215,14 @@ async fn command_set_log_limit_trims_logs() {
     let state = app.state::<AppState<MockTorClient>>();
 
     commands::set_log_limit(state, 2).await.unwrap();
-    state.add_log(Level::Info, "one".into()).await.unwrap();
-    state.add_log(Level::Info, "two".into()).await.unwrap();
-    state.add_log(Level::Info, "three".into()).await.unwrap();
+    state.add_log(Level::Info, "one".into(), None).await.unwrap();
+    state.add_log(Level::Info, "two".into(), None).await.unwrap();
+    state.add_log(Level::Info, "three".into(), None).await.unwrap();
 
     let logs = commands::get_logs(state).await.unwrap();
     assert_eq!(logs.len(), 2);
-    assert_eq!(logs[0].message, "two");
-    assert_eq!(logs[1].message, "three");
+    assert!(Regex::new("two").unwrap().is_match(&logs[0].message));
+    assert!(Regex::new("three").unwrap().is_match(&logs[1].message));
 }
 
 #[tokio::test]

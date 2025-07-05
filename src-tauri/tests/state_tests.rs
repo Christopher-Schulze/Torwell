@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 use tokio::sync::Mutex;
 use log::Level;
+use regex::Regex;
 
 use torwell84::secure_http::SecureHttpClient;
 use torwell84::session::SessionManager;
@@ -178,7 +179,7 @@ async fn log_rotation_creates_archive() {
 
     for i in 0..3 {
         state
-            .add_log(Level::Info, format!("line{}", i))
+            .add_log(Level::Info, format!("line{}", i), None)
             .await
             .unwrap();
     }
@@ -193,6 +194,6 @@ async fn log_rotation_creates_archive() {
 
     let logs = state.read_logs().await.unwrap();
     assert_eq!(logs.len(), 2);
-    assert!(logs[0].message.contains("line1"));
-    assert!(logs[1].message.contains("line2"));
+    assert!(Regex::new("line1").unwrap().is_match(&logs[0].message));
+    assert!(Regex::new("line2").unwrap().is_match(&logs[1].message));
 }

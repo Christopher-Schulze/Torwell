@@ -116,6 +116,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             .add_log(
                                 Level::Warn,
                                 format!("connection attempt {} failed: {}", attempt, err_str),
+                                None,
                             )
                             .await;
                     });
@@ -274,6 +275,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
                     mem / 1024 / 1024,
                     state.max_memory_mb
                 ),
+                None,
             )
             .await;
     }
@@ -286,6 +288,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
                     "circuit count {} exceeds limit {}",
                     circ.count, state.max_circuits
                 ),
+                None,
             )
             .await;
     }
@@ -314,9 +317,11 @@ pub async fn get_logs(state: State<'_, AppState>, token: String) -> Result<Vec<L
     track_call("get_logs").await;
     check_api_rate()?;
     if !state.validate_session(&token).await {
+        log::error!("get_logs: invalid token");
         return Err(Error::InvalidToken);
     }
     if LOG_LIMITER.check().is_err() {
+        log::error!("get_logs: rate limit exceeded");
         return Err(Error::RateLimited("get_logs".into()));
     }
     state.read_logs().await
@@ -327,6 +332,7 @@ pub async fn clear_logs(state: State<'_, AppState>, token: String) -> Result<()>
     track_call("clear_logs").await;
     check_api_rate()?;
     if !state.validate_session(&token).await {
+        log::error!("clear_logs: invalid token");
         return Err(Error::InvalidToken);
     }
     state.clear_log_file().await
@@ -337,6 +343,7 @@ pub async fn get_log_file_path(state: State<'_, AppState>, token: String) -> Res
     track_call("get_log_file_path").await;
     check_api_rate()?;
     if !state.validate_session(&token).await {
+        log::error!("get_log_file_path: invalid token");
         return Err(Error::InvalidToken);
     }
     Ok(state.log_file_path())
@@ -358,10 +365,12 @@ pub async fn ping_host(
     track_call("ping_host").await;
     check_api_rate()?;
     if !state.validate_session(&token).await {
+        log::error!("ping_host: invalid token");
         return Err(Error::InvalidToken);
     }
     let host = host.unwrap_or_else(|| "google.com".to_string());
     if !HOST_RE.is_match(&host) {
+        log::error!("ping_host: invalid host '{}'", host);
         return Err(Error::Io("invalid host".into()));
     }
     let count = count.unwrap_or(5).min(MAX_PING_COUNT);
@@ -375,6 +384,7 @@ pub async fn get_secure_key(state: State<'_, AppState>, token: String) -> Result
     track_call("get_secure_key").await;
     check_api_rate()?;
     if !state.validate_session(&token).await {
+        log::error!("get_secure_key: invalid token");
         return Err(Error::InvalidToken);
     }
     let entry = keyring::Entry::new("torwell84", "aes-key")
@@ -391,6 +401,7 @@ pub async fn set_secure_key(state: State<'_, AppState>, token: String, value: St
     track_call("set_secure_key").await;
     check_api_rate()?;
     if !state.validate_session(&token).await {
+        log::error!("set_secure_key: invalid token");
         return Err(Error::InvalidToken);
     }
     let entry = keyring::Entry::new("torwell84", "aes-key")
