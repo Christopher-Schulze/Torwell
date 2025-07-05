@@ -238,3 +238,29 @@ async fn new_identity_build_config_error() {
         _ => panic!("expected identity error"),
     }
 }
+
+#[tokio::test]
+async fn close_all_circuits_not_connected() {
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.close_all_circuits().await;
+    assert!(matches!(res, Err(Error::NotConnected)));
+}
+
+#[tokio::test]
+async fn connect_rate_limited() {
+    for _ in 0..6 {
+        MockTorClient::push_result(Ok(MockTorClient::default()));
+    }
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let mut last = Ok(());
+    for _ in 0..6 {
+        last = manager
+            .connect_with_backoff(0, std::time::Duration::from_secs(1), |_, _, _| {}, |_| {})
+            .await;
+        if last.is_err() {
+            break;
+        }
+        manager.disconnect().await.unwrap();
+    }
+    assert!(matches!(last, Err(Error::RateLimited(_))));
+}

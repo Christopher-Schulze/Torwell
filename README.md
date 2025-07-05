@@ -310,7 +310,16 @@ Open the `.dmg` file from the releases page and drag **Torwell84** to your Appli
 - **UI Library**: Tailwind CSS with `tailwindcss-glassmorphism`
 
 ### Error States
-The backend emits detailed error messages via the `tor-status-update` event. Possible values include `NotConnected`, `AlreadyConnected`, `Bootstrap`, `NetDir`, `Circuit`, and `Identity`.
+The backend emits structured `Error` variants via the `tor-status-update` event. Common values are:
+
+- `NotConnected` – command requires an active connection
+- `AlreadyConnected` – connection attempt while already connected
+- `ConnectionFailed` – connecting Tor failed with a `step` description
+- `Identity` – changing circuits failed during a specific `step`
+- `NetDir` – network directory lookup failed
+- `Circuit` – circuit creation or inspection failed
+- `RateLimited` – action exceeded its rate limit
+- `Timeout` – operation aborted after the allowed time
 
 ## 📈 Roadmap
 
