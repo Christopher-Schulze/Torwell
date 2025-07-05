@@ -30,6 +30,13 @@
 - Parallel isolated circuits per domain via updated `get_isolated_circuit`
 - Bridge selection list in the settings modal
 
+## [2.3.0] - 2025-07-10
+### Added
+- Windows support is now available for builds and installation
+- New resource monitoring with tray warnings for high memory usage, circuit count and latency
+### Changed
+- Status badge in README switched to Beta
+
 ## [2.2.2] - 2025-07-05
 ### Added
 - Documented that connection retries and timeouts are already implemented.

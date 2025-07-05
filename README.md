@@ -8,7 +8,7 @@
   <!-- Badges -->
   <div style="margin: 1em 0;">
     <a href="https://github.com/Christopher-Schulze/Torwell84/releases">
-      <img src="https://img.shields.io/badge/Status-Under%20Development-yellow" alt="Status">
+      <img src="https://img.shields.io/badge/Status-Beta-blue" alt="Status">
     </a>
     <a href="https://torproject.org">
       <img src="https://img.shields.io/badge/Tor-Enabled-7D4698?logo=tor" alt="Tor Network">
@@ -62,11 +62,12 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 - **Native UI**: Cross-platform desktop application using Tauri
 - **Modern Stack**: Svelte-based frontend with TypeScript
 - **Structured Logging**: JSON log entries with level and timestamp
+- **Resource Monitoring**: Tray warnings for memory usage, circuit count and latency
 
 ### 📊 Status
 - **Stable**: Core Tor functionality is working
 - **Active Development**: Regular updates and improvements
-- **Cross-Platform**: macOS and Linux supported, Windows coming soon
+- **Cross-Platform**: macOS, Linux and Windows supported
 
 ## 🛠️ Development Status
 
@@ -329,9 +330,10 @@ The backend emits structured `Error` variants via the `tor-status-update` event.
 - [ ] Better system tray integration
 
 -### Upcoming Features
-- [ ] Windows support
+- [x] Windows support
 - [ ] Advanced circuit management
 - [ ] Network monitoring tools
+- [ ] Live resource monitoring with tray warnings
 
 ## 🤝 Contributing
 
