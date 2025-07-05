@@ -4,6 +4,8 @@ mod secure_http;
 mod session;
 mod state;
 mod tor_manager;
+#[cfg(feature = "mobile")]
+mod http_bridge;
 
 use secure_http::SecureHttpClient;
 use state::AppState;
@@ -22,6 +24,9 @@ pub fn run() {
         .expect("failed to initialize http client")
     });
     let app_state = AppState::new(http_client.clone());
+
+    #[cfg(feature = "mobile")]
+    http_bridge::start(app_state.clone());
 
     let quit = CustomMenuItem::new("quit", "Quit");
     let show = CustomMenuItem::new("show", "Show");
