@@ -44,6 +44,13 @@ pub struct Metrics {
     pub oldest_circuit_age: u64,
 }
 
+/// Circuit build statistics.
+#[derive(Serialize, Clone)]
+pub struct CircuitBuildMetrics {
+    pub build_ms: u64,
+    pub failures: u32,
+}
+
 const INVOCATION_WINDOW: Duration = Duration::from_secs(60);
 static INVOCATIONS: Lazy<Mutex<HashMap<&'static str, Vec<Instant>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
@@ -294,6 +301,17 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
         memory_bytes: mem,
         circuit_count: circ.count,
         oldest_circuit_age: circ.oldest_age,
+    })
+}
+
+#[tauri::command]
+pub async fn get_circuit_build_stats(state: State<'_, AppState>) -> Result<CircuitBuildMetrics> {
+    track_call("get_circuit_build_stats").await;
+    check_api_rate()?;
+    let m = state.tor_manager.circuit_build_metrics().await;
+    Ok(CircuitBuildMetrics {
+        build_ms: m.build_ms,
+        failures: m.failures,
     })
 }
 

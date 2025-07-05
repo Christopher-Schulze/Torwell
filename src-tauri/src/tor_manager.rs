@@ -65,6 +65,16 @@ pub struct CircuitMetrics {
     pub oldest_age: u64,
 }
 
+/// Metrics about circuit creation attempts.
+#[derive(Debug, Clone)]
+pub struct CircuitBuildMetrics {
+    /// Duration of the last successful circuit or connection build in
+    /// milliseconds.
+    pub build_ms: u64,
+    /// Number of failed connection or circuit build attempts since startup.
+    pub failures: u32,
+}
+
 #[async_trait]
 pub trait TorClientBehavior: Send + Sync + Sized + 'static {
     async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String>;
@@ -162,6 +172,8 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     geoip_db: GeoipDb,
     connect_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
     circuit_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
+    circuit_build_time: Arc<Mutex<u64>>,
+    failed_attempts: Arc<Mutex<u32>>,
 }
 
 impl<C> Clone for TorManager<C> {
@@ -175,6 +187,8 @@ impl<C> Clone for TorManager<C> {
             geoip_db: self.geoip_db.clone(),
             connect_limiter: Arc::clone(&self.connect_limiter),
             circuit_limiter: Arc::clone(&self.circuit_limiter),
+            circuit_build_time: Arc::clone(&self.circuit_build_time),
+            failed_attempts: Arc::clone(&self.failed_attempts),
         }
     }
 }
@@ -203,6 +217,8 @@ impl<C: TorClientBehavior> TorManager<C> {
             circuit_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
                 NonZeroU32::new(CIRCUIT_RATE_LIMIT).unwrap(),
             ))),
+            circuit_build_time: Arc::new(Mutex::new(0)),
+            failed_attempts: Arc::new(Mutex::new(0)),
         };
 
         let cleanup_clone = manager.clone();
@@ -304,20 +320,28 @@ impl<C: TorClientBehavior> TorManager<C> {
         let mut delay = INITIAL_BACKOFF;
         loop {
             if start.elapsed() >= max_total_time {
+                *self.circuit_build_time.lock().await = 0;
                 return Err(Error::Timeout);
             }
             match self.connect_once(&mut on_progress).await {
-                Ok(_) => return Ok(()),
+                Ok(_) => {
+                    *self.circuit_build_time.lock().await = start.elapsed().as_millis() as u64;
+                    *self.failed_attempts.lock().await += attempt as u32;
+                    return Ok(());
+                }
                 Err(e) => {
                     attempt += 1;
+                    *self.failed_attempts.lock().await += 1;
                     on_retry(attempt, delay, &e);
                     if attempt > max_retries {
+                        *self.circuit_build_time.lock().await = 0;
                         return Err(Error::RetriesExceeded {
                             attempts: attempt,
                             error: e.to_string(),
                         });
                     }
                     if start.elapsed() + delay > max_total_time {
+                        *self.circuit_build_time.lock().await = 0;
                         return Err(Error::Timeout);
                     }
                     tokio::time::sleep(delay).await;
@@ -418,13 +442,20 @@ impl<C: TorClientBehavior> TorManager<C> {
         client.retire_all_circs();
 
         // Build fresh circuit
-        client
-            .build_new_circuit()
-            .await
-            .map_err(|e| Error::Identity {
-                step: "build_circuit".into(),
-                source: e,
-            })?;
+        let start = std::time::Instant::now();
+        match client.build_new_circuit().await {
+            Ok(_) => {
+                *self.circuit_build_time.lock().await = start.elapsed().as_millis() as u64;
+            }
+            Err(e) => {
+                *self.failed_attempts.lock().await += 1;
+                *self.circuit_build_time.lock().await = 0;
+                return Err(Error::Identity {
+                    step: "build_circuit".into(),
+                    source: e,
+                });
+            }
+        }
 
         Ok(())
     }
@@ -614,6 +645,14 @@ impl TorManager {
             count: 0,
             oldest_age: 0,
         })
+    }
+
+    /// Retrieve metrics about circuit build performance.
+    pub async fn circuit_build_metrics(&self) -> CircuitBuildMetrics {
+        CircuitBuildMetrics {
+            build_ms: *self.circuit_build_time.lock().await,
+            failures: *self.failed_attempts.lock().await,
+        }
     }
 }
 

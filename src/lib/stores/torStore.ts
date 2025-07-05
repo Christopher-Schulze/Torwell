@@ -22,6 +22,8 @@ export interface TorState {
   circuitCount: number;
   pingMs: number | undefined;
   metrics: MetricPoint[];
+  buildMs: number;
+  buildFailures: number;
 }
 
 export interface MetricPoint {
@@ -30,6 +32,8 @@ export interface MetricPoint {
   circuitCount: number;
   latencyMs: number;
   oldestAge: number;
+  buildMs: number;
+  buildFailures: number;
 }
 
 function createTorStore() {
@@ -45,6 +49,8 @@ function createTorStore() {
     circuitCount: 0,
     pingMs: undefined,
     metrics: [],
+    buildMs: 0,
+    buildFailures: 0,
   };
 
   const { subscribe, update, set } = writable<TorState>(initialState);
@@ -58,6 +64,8 @@ function createTorStore() {
       circuitCount: event.payload.circuit_count,
       latencyMs: event.payload.latency_ms,
       oldestAge: event.payload.oldest_age ?? 0,
+      buildMs: event.payload.build_ms ?? 0,
+      buildFailures: event.payload.build_failures ?? 0,
     };
     update((state) => {
       const metrics = [...state.metrics, point].slice(-MAX_POINTS);
@@ -67,6 +75,8 @@ function createTorStore() {
         circuitCount: point.circuitCount,
         pingMs: point.latencyMs,
         metrics,
+        buildMs: point.buildMs,
+        buildFailures: point.buildFailures,
       };
     });
   });
@@ -112,6 +122,8 @@ function createTorStore() {
         circuitCount: 0,
         pingMs: undefined,
         metrics: [],
+        buildMs: 0,
+        buildFailures: 0,
       }));
     }
   });

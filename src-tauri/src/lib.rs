@@ -131,6 +131,7 @@ pub fn run() {
             commands::set_bridges,
             commands::get_traffic_stats,
             commands::get_metrics,
+            commands::get_circuit_build_stats,
             commands::get_logs,
             commands::clear_logs,
             commands::get_log_file_path,

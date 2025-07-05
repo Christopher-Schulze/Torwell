@@ -109,3 +109,23 @@ async fn circuit_metrics_connected() {
     assert_eq!(metrics.count, 0);
     assert_eq!(metrics.oldest_age, 0);
 }
+
+#[tokio::test]
+async fn circuit_build_metrics_initial() {
+    let manager: TorManager<MockMetricsClient> = TorManager::new();
+    let m = manager.circuit_build_metrics().await;
+    assert_eq!(m.build_ms, 0);
+    assert_eq!(m.failures, 0);
+}
+
+#[tokio::test]
+async fn circuit_build_metrics_updated_on_identity() {
+    MockMetricsClient::push_client(MockMetricsClient::new(0, 0));
+    let manager: TorManager<MockMetricsClient> = TorManager::new();
+    manager.connect().await.unwrap();
+    manager.new_identity().await.unwrap();
+    let m = manager.circuit_build_metrics().await;
+    assert!(m.build_ms > 0);
+    // no failures expected
+    assert_eq!(m.failures, 0);
+}

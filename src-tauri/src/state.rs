@@ -404,6 +404,8 @@ impl<C: TorClientBehavior> AppState<C> {
                     Err(_) => 0,
                 };
 
+                let build = self.tor_manager.circuit_build_metrics().await;
+
                 self.update_metrics(mem, circ.count, circ.oldest_age).await;
                 self.update_latency(latency).await;
 
@@ -413,7 +415,9 @@ impl<C: TorClientBehavior> AppState<C> {
                         "memory_bytes": mem,
                         "circuit_count": circ.count,
                         "latency_ms": latency,
-                        "oldest_age": circ.oldest_age
+                        "oldest_age": circ.oldest_age,
+                        "build_ms": build.build_ms,
+                        "build_failures": build.failures
                     }),
                 );
             }

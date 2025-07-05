@@ -21,6 +21,7 @@
   $: memoryPath = buildPath(metrics, "memoryMB");
   $: circuitPath = buildPath(metrics, "circuitCount");
   $: agePath = buildPath(metrics, "oldestAge");
+  $: buildPathMs = buildPath(metrics, "buildMs");
 </script>
 
 <svg {width} {height} class="text-green-400">
@@ -48,6 +49,15 @@
       stroke="orange"
       stroke-width="1"
       stroke-dasharray="2,2"
+    />
+  {/if}
+  {#if buildPathMs}
+    <path
+      d={buildPathMs}
+      fill="none"
+      stroke="purple"
+      stroke-width="1"
+      stroke-dasharray="4,2"
     />
   {/if}
 </svg>
