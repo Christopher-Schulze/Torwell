@@ -404,6 +404,10 @@ impl<C: TorClientBehavior> AppState<C> {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
             let mut menu = SystemTrayMenu::new()
                 .add_item(CustomMenuItem::new("show", "Show"))
+                .add_item(CustomMenuItem::new("connect", "Connect"))
+                .add_item(CustomMenuItem::new("disconnect", "Disconnect"))
+                .add_item(CustomMenuItem::new("show_logs", "Show Logs"))
+                .add_item(CustomMenuItem::new("settings", "Settings"))
                 .add_item(CustomMenuItem::new("quit", "Quit"));
             if let Some(w) = self.tray_warning.lock().await.clone() {
                 menu = menu.add_item(CustomMenuItem::new("warning", w));

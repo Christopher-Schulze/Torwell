@@ -25,8 +25,16 @@ pub fn run() {
 
     let quit = CustomMenuItem::new("quit", "Quit");
     let show = CustomMenuItem::new("show", "Show");
+    let connect = CustomMenuItem::new("connect", "Connect");
+    let disconnect = CustomMenuItem::new("disconnect", "Disconnect");
+    let logs = CustomMenuItem::new("show_logs", "Show Logs");
+    let settings = CustomMenuItem::new("settings", "Settings");
     let tray_menu = SystemTrayMenu::new()
         .add_item(show.clone())
+        .add_item(connect.clone())
+        .add_item(disconnect.clone())
+        .add_item(logs.clone())
+        .add_item(settings.clone())
         .add_item(quit.clone());
     let tray = SystemTray::new().with_menu(tray_menu);
 
@@ -37,6 +45,38 @@ pub fn run() {
                 "quit" => std::process::exit(0),
                 "show" => {
                     if let Some(window) = app.get_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+                "connect" => {
+                    let state = app.state::<AppState>();
+                    let handle = app.handle();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(e) = commands::connect(handle, state).await {
+                            log::error!("tray connect failed: {}", e);
+                        }
+                    });
+                }
+                "disconnect" => {
+                    let state = app.state::<AppState>();
+                    let handle = app.handle();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(e) = commands::disconnect(handle, state).await {
+                            log::error!("tray disconnect failed: {}", e);
+                        }
+                    });
+                }
+                "show_logs" => {
+                    if let Some(window) = app.get_window("main") {
+                        let _ = window.emit("open-logs", ());
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+                "settings" => {
+                    if let Some(window) = app.get_window("main") {
+                        let _ = window.emit("open-settings", ());
                         let _ = window.show();
                         let _ = window.set_focus();
                     }
