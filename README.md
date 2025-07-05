@@ -207,6 +207,10 @@ cd src-tauri && cargo test && cd ..
 bun run tauri build
 ```
 
+Bei jedem Push nach `main` erzeugt die GitHub Actions CI ebenfalls ein MSI.
+Ist ein Codesigning-Zertifikat hinterlegt, wird der Installer signiert und als
+Artefakt `windows-msi` im Workflow bereitgestellt.
+
 ## Deployment
 
 Für automatisierte Builds steht die `Taskfile.yml` zur Verfügung. Der Befehl
@@ -226,6 +230,36 @@ relevant:
 3. Änderungen committen und einen Tag `vX.Y.Z` erstellen.
 4. Tag und Branch pushen – der Release-Workflow baut und signiert die Pakete
    automatisch und lädt sie zu GitHub Releases hoch.
+
+## Production Deployment
+
+Stellen Sie für produktive Umgebungen einen erreichbaren Update-Endpunkt bereit,
+damit die Zertifikate laut [CertificateManagement](docs/CertificateManagement.md)
+regelmäßig erneuert werden können. Prüfen Sie `torwell.log` auf Meldungen wie
+`certificate update failed`. Sobald das konfigurierbare Zeilenlimit erreicht
+ist, rotiert die Anwendung die Datei und verschiebt ältere Logs in den Ordner
+`archive`.
+
+Unter Linux empfiehlt sich der Betrieb als systemd‑Service. Eine minimale
+`torwell84.service`‑Datei könnte so aussehen:
+
+```ini
+[Unit]
+Description=Torwell84 Service
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/torwell84/Torwell84
+Restart=always
+User=torwell
+Group=torwell
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Logs lassen sich anschließend mit `journalctl -u torwell84.service` abrufen.
 
 ## Installation
 

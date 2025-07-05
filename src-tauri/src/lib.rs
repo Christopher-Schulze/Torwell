@@ -53,18 +53,20 @@ pub fn run() {
                     let state = app.state::<AppState>();
                     let handle = app.handle();
                     tauri::async_runtime::spawn(async move {
-                        if let Err(e) = commands::connect(handle, state).await {
+                        if let Err(e) = commands::connect(handle.clone(), state.clone()).await {
                             log::error!("tray connect failed: {}", e);
                         }
+                        state.update_tray_menu().await;
                     });
                 }
                 "disconnect" => {
                     let state = app.state::<AppState>();
                     let handle = app.handle();
                     tauri::async_runtime::spawn(async move {
-                        if let Err(e) = commands::disconnect(handle, state).await {
+                        if let Err(e) = commands::disconnect(handle.clone(), state.clone()).await {
                             log::error!("tray disconnect failed: {}", e);
                         }
+                        state.update_tray_menu().await;
                     });
                 }
                 "show_logs" => {
@@ -80,6 +82,12 @@ pub fn run() {
                         let _ = window.show();
                         let _ = window.set_focus();
                     }
+                }
+                "warning" => {
+                    let state = app.state::<AppState>();
+                    tauri::async_runtime::spawn(async move {
+                        state.clear_tray_warning().await;
+                    });
                 }
                 _ => {}
             },
@@ -100,6 +108,7 @@ pub fn run() {
             let state_clone = state.clone();
             tauri::async_runtime::block_on(async move {
                 state_clone.register_handle(handle.clone()).await;
+                state_clone.update_tray_menu().await;
                 http_client
                     .set_warning_callback(move |msg| {
                         let st = state.clone();

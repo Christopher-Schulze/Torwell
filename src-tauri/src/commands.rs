@@ -154,6 +154,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 ) {
                     log::error!("Failed to emit status update: {}", e);
                 }
+                state_clone.update_tray_menu().await;
             }
             Err(e) => {
                 if let Err(e_emit) = app_handle.emit_all(
@@ -167,6 +168,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 ) {
                     log::error!("Failed to emit error status update: {}", e_emit);
                 }
+                state_clone.update_tray_menu().await;
             }
         }
     });
@@ -186,13 +188,15 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
     }
 
     state.tor_manager.disconnect().await?;
-
+    
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
         serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0, "bootstrapMessage": "", "retryCount": 0, "retryDelay": 0 }),
     ) {
         log::error!("Failed to emit status update: {}", e);
     }
+
+    state.update_tray_menu().await;
 
     Ok(())
 }

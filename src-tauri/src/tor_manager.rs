@@ -245,10 +245,19 @@ impl<C: TorClientBehavior> TorManager<C> {
             return Err(Error::AlreadyConnected);
         }
         progress(0, "starting".into());
-        let config = self.build_config().await?;
+        let config = self
+            .build_config()
+            .await
+            .map_err(|e| Error::ConnectionFailed {
+                step: "build_config".into(),
+                source: e.to_string(),
+            })?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
-            .map_err(|e| Error::Bootstrap(e))?;
+            .map_err(|e| Error::ConnectionFailed {
+                step: "bootstrap".into(),
+                source: e,
+            })?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -379,17 +388,29 @@ impl<C: TorClientBehavior> TorManager<C> {
         }
 
         // Force new configuration and circuits
-        let config = self.build_config().await?;
+        let config = self
+            .build_config()
+            .await
+            .map_err(|e| Error::Identity {
+                step: "build_config".into(),
+                source: e.to_string(),
+            })?;
         client
             .reconfigure(&config)
-            .map_err(|e| Error::Identity(format!("reconfigure failed: {e}")))?;
+            .map_err(|e| Error::Identity {
+                step: "reconfigure".into(),
+                source: e,
+            })?;
         client.retire_all_circs();
 
         // Build fresh circuit
         client
             .build_new_circuit()
             .await
-            .map_err(|e| Error::Circuit(format!("failed to build new circuit: {e}")))?;
+            .map_err(|e| Error::Identity {
+                step: "build_circuit".into(),
+                source: e,
+            })?;
 
         Ok(())
     }

@@ -303,3 +303,19 @@ async fn ping_host_count_capped() {
     let res = commands::ping_host(Some("127.0.0.1".into()), Some(100)).await;
     assert!(res.is_ok());
 }
+
+#[tokio::test]
+async fn tray_warning_set_and_cleared() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    // trigger warning
+    state.update_metrics(2 * 1024 * 1024, 0).await;
+    assert!(state.tray_warning.lock().await.is_some());
+
+    // clear warning
+    state.clear_tray_warning().await;
+    assert!(state.tray_warning.lock().await.is_none());
+}
