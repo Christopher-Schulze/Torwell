@@ -1,13 +1,18 @@
 #!/bin/bash
 set -e
 
-VERSION="$1"
 CHANGELOG="docs/Changelog.md"
 
-if [ -z "$VERSION" ]; then
-  echo "Usage: $0 <version>" >&2
+# Read version from package.json and Cargo.toml and ensure they match
+PKG_VERSION=$(jq -r .version package.json)
+CARGO_VERSION=$(grep -m1 '^version' src-tauri/Cargo.toml | cut -d '"' -f2)
+
+if [ "$PKG_VERSION" != "$CARGO_VERSION" ]; then
+  echo "Version mismatch between package.json and Cargo.toml" >&2
   exit 1
 fi
+
+VERSION="$PKG_VERSION"
 
 DATE=$(date +%Y-%m-%d)
 PREVIOUS_TAG=$(git tag --sort=-v:refname | sed -n '2p')

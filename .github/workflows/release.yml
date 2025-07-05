@@ -53,7 +53,7 @@ jobs:
           fi
           echo "version=$PKG" >> $GITHUB_OUTPUT
       - name: Update changelog
-        run: ./scripts/update_changelog.sh ${{ steps.version.outputs.version }}
+        run: ./scripts/update_changelog.sh
       - name: Commit changelog
         run: |
           git config user.name github-actions
@@ -61,6 +61,18 @@ jobs:
           git add docs/Changelog.md
           git commit -m "chore: update changelog for ${{ steps.version.outputs.version }}"
           git push
+      - name: Import signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
+      - name: Sign artifacts
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          find dist -type f -not -name '*.asc' -not -name '*.sig' -print0 | while IFS= read -r -d '' file; do
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" -ab "$file"
+          done
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

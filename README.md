@@ -209,6 +209,14 @@ relevant:
 - `TORWELL_FALLBACK_CERT_URL` – Optionale Ausweich-URL für Updates
 - `TORWELL_SESSION_TTL` – Lebensdauer der Authentifizierungstokens
 
+### Creating a Release
+
+1. Versionsnummer in `package.json` und `src-tauri/Cargo.toml` aktualisieren.
+2. `./scripts/update_changelog.sh` ausführen, um das Changelog zu aktualisieren.
+3. Änderungen committen und einen Tag `vX.Y.Z` erstellen.
+4. Tag und Branch pushen – der Release-Workflow baut und signiert die Pakete
+   automatisch und lädt sie zu GitHub Releases hoch.
+
 ## Installation
 
 ### Windows
