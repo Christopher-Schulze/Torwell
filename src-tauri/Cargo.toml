@@ -43,6 +43,7 @@ directories = "6.0"
 keyring = "2"
 rand = "0.8"
 surge-ping = "0.8"
+pkcs11 = { version = "0.5", optional = true }
 
 [dev-dependencies]
 async-trait = "0.1"
@@ -59,3 +60,4 @@ default = ["custom-protocol"]
 # DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]
 mobile = []
+hsm = ["pkcs11"]

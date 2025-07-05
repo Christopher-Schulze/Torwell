@@ -1,5 +1,5 @@
-use reqwest::{Client, ClientBuilder, Url};
 use anyhow::anyhow;
+use reqwest::{Client, ClientBuilder, Url};
 use rustls::crypto::ring::{self, cipher_suite};
 use rustls::crypto::{self, CryptoProvider};
 use rustls::pki_types::CertificateDer;
@@ -9,7 +9,6 @@ use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
 use serde::Deserialize;
 use serde_json::Value;
-use urlencoding::encode;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -17,6 +16,10 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
+use urlencoding::encode;
+
+#[cfg(feature = "hsm")]
+use pkcs11::Ctx;
 
 /// Location of the pinned server certificate. The path is relative to the
 /// repository root so updates persist across runs.
@@ -88,6 +91,19 @@ fn parse_tls_version(v: Option<&str>) -> reqwest::tls::Version {
     }
 }
 
+#[cfg(feature = "hsm")]
+fn init_hsm() -> anyhow::Result<Ctx> {
+    let module = std::env::var("TORWELL_HSM_LIB")
+        .unwrap_or_else(|_| "/usr/lib/softhsm/libsofthsm2.so".into());
+    let ctx = Ctx::new_and_initialize(module)?;
+    Ok(ctx)
+}
+
+#[cfg(feature = "hsm")]
+fn finalize_hsm(ctx: Ctx) {
+    let _ = ctx.finalize();
+}
+
 fn strong_provider(min_tls: reqwest::tls::Version) -> CryptoProvider {
     let mut provider = ring::default_provider();
     provider.cipher_suites.retain(|suite| {
@@ -152,6 +168,9 @@ impl SecureHttpClient {
         path: P,
         min_tls: reqwest::tls::Version,
     ) -> anyhow::Result<ClientConfig> {
+        #[cfg(feature = "hsm")]
+        let hsm_ctx = init_hsm().ok();
+
         let mut store = RootCertStore::empty();
         let file = File::open(&path)?;
         let mut reader = BufReader::new(file);
@@ -169,6 +188,11 @@ impl SecureHttpClient {
         let mut config = builder.with_root_certificates(store).with_no_client_auth();
 
         config.enable_ocsp_stapling = true;
+
+        #[cfg(feature = "hsm")]
+        if let Some(ctx) = hsm_ctx {
+            finalize_hsm(ctx);
+        }
         Ok(config)
     }
 
@@ -264,8 +288,7 @@ impl SecureHttpClient {
             }
         } else {
             log::warn!("HSTS header missing for {}", resp.url());
-            self
-                .emit_warning(format!("HSTS header missing for {}", resp.url()))
+            self.emit_warning(format!("HSTS header missing for {}", resp.url()))
                 .await;
         }
     }
@@ -452,8 +475,7 @@ impl SecureHttpClient {
             let mut cnt = self.update_failures.lock().await;
             *cnt += 1;
             if *cnt >= 3 {
-                self
-                    .emit_warning(format!("{} consecutive certificate update failures", *cnt))
+                self.emit_warning(format!("{} consecutive certificate update failures", *cnt))
                     .await;
             }
         }
