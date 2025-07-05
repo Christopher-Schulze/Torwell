@@ -47,3 +47,14 @@ verify that tokens are generated securely, expire after the configured TTL and
 that the front‑end supplies the token via the `token` argument in `tauri::invoke`
 calls.
 
+## Audit Checklist
+
+- [x] Examine `src-tauri` for TLS and certificate pinning
+- [x] Review session management in `src-tauri/src/session.rs` and `state.rs`
+- [x] Inspect front-end code in `src/` for secure IPC and data handling
+- [x] Run `cargo audit` for Rust dependencies
+- [x] Run `bun audit` (or `npm audit`) for JavaScript dependencies
+- [ ] Use static analysis tools (`clippy`, `svelte-check`)
+- [ ] Conduct penetration testing
+- [x] Document findings in `docs/SecurityFindings.md`
+
