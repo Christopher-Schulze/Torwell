@@ -82,6 +82,7 @@
   - Implement memory monitoring
   - Add circuit cleanup routines
   - Set memory usage limits
+  - Bei Überschreitung wird nun eine Warnung im Systemtray angezeigt
 
 ## 3. Frontend Improvements
 
