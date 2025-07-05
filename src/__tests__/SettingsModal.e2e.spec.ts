@@ -49,4 +49,23 @@ describe('SettingsModal persistence', () => {
     expect(input.value).toBe('123');
     expect(select.value).toBe('DE');
   });
+
+  it('applies bridges via store and backend', async () => {
+  const { getByLabelText, getByRole } = render(SettingsModal, { props: { show: true } });
+
+  await fireEvent.click(getByLabelText(BRIDGE));
+  await fireEvent.click(getByRole('button', { name: 'Apply bridge selection' }));
+
+  const { uiStore } = await import('../lib/stores/uiStore');
+  await Promise.resolve();
+
+  const { get } = await import('svelte/store');
+  expect(get(uiStore).settings.bridges).toContain(BRIDGE);
+
+  const { invoke } = await import('@tauri-apps/api/tauri');
+  expect(invoke).toHaveBeenCalledWith('set_bridges', { bridges: [BRIDGE] });
+
+  const stored = await db.settings.get(1);
+  expect(stored?.bridges).toContain(BRIDGE);
+});
 });
