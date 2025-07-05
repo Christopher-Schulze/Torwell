@@ -288,21 +288,28 @@ impl<C: TorClientBehavior> TorManager<C> {
         P: FnMut(u8, String) + Send,
     {
         if self.is_connected().await {
+            log::error!("connect_once: already connected");
             return Err(Error::AlreadyConnected);
         }
         progress(0, "starting".into());
         let config = self
             .build_config()
             .await
-            .map_err(|e| Error::ConnectionFailed {
-                step: "build_config".into(),
-                source: e.to_string(),
+            .map_err(|e| {
+                log::error!("connect_once: build_config failed: {}", e);
+                Error::ConnectionFailed {
+                    step: "build_config".into(),
+                    source: e.to_string(),
+                }
             })?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
-            .map_err(|e| Error::ConnectionFailed {
-                step: "bootstrap".into(),
-                source: e,
+            .map_err(|e| {
+                log::error!("connect_once: bootstrap failed: {}", e);
+                Error::ConnectionFailed {
+                    step: "bootstrap".into(),
+                    source: e,
+                }
             })?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
@@ -324,6 +331,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         P: FnMut(u8, String) + Send,
     {
         if self.connect_limiter.check().is_err() {
+            log::error!("connect_with_backoff: rate limit exceeded");
             return Err(Error::RateLimited("connect".into()));
         }
         let start = std::time::Instant::now();
@@ -331,6 +339,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         let mut delay = INITIAL_BACKOFF;
         loop {
             if start.elapsed() >= max_total_time {
+                log::error!("connect_with_backoff: timeout after {:?}", max_total_time);
                 return Err(Error::Timeout);
             }
             match self.connect_once(&mut on_progress).await {
@@ -339,12 +348,18 @@ impl<C: TorClientBehavior> TorManager<C> {
                     attempt += 1;
                     on_retry(attempt, delay, &e);
                     if attempt > max_retries {
+                        log::error!(
+                            "connect_with_backoff: retries exceeded ({} attempts) - {}",
+                            attempt,
+                            e
+                        );
                         return Err(Error::RetriesExceeded {
                             attempts: attempt,
                             error: e.to_string(),
                         });
                     }
                     if start.elapsed() + delay > max_total_time {
+                        log::error!("connect_with_backoff: total timeout reached");
                         return Err(Error::Timeout);
                     }
                     tokio::time::sleep(delay).await;
@@ -357,6 +372,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     pub async fn disconnect(&self) -> Result<()> {
         let mut client_guard = self.client.lock().await;
         if client_guard.take().is_none() {
+            log::error!("disconnect: not connected");
             return Err(Error::NotConnected);
         }
         // Client is dropped here, which handles shutdown.
@@ -365,6 +381,7 @@ impl<C: TorClientBehavior> TorManager<C> {
 
     pub(crate) async fn lookup_country_code(&self, ip: &str) -> Result<String> {
         if ip.contains('?') {
+            log::error!("lookup_country_code: invalid address {ip}");
             return Err(Error::Lookup(format!("invalid address: {ip}")));
         }
 
@@ -380,12 +397,16 @@ impl<C: TorClientBehavior> TorManager<C> {
 
         let ip_addr = addr
             .parse::<IpAddr>()
-            .map_err(|_| Error::Lookup(format!("invalid address: {}", addr)))?;
+            .map_err(|_| {
+                log::error!("lookup_country_code: invalid address parsed {addr}");
+                Error::Lookup(format!("invalid address: {}", addr))
+            })?;
         if let Some(cc) = self.geoip_db.lookup_country_code(ip_addr) {
             let code = cc.as_ref().to_string();
             cache.insert(ip.to_string(), code.clone());
             Ok(code)
         } else {
+            log::error!("lookup_country_code: country not found for {}", addr);
             Err(Error::Lookup(format!("country not found for {}", addr)))
         }
     }
@@ -393,7 +414,10 @@ impl<C: TorClientBehavior> TorManager<C> {
     pub async fn set_exit_country(&self, country: Option<String>) -> Result<()> {
         let mut guard = self.exit_country.lock().await;
         if let Some(cc) = country {
-            let code = CountryCode::new(&cc).map_err(|e| Error::Tor(e.to_string()))?;
+            let code = CountryCode::new(&cc).map_err(|e| {
+                log::error!("set_exit_country: invalid code {} - {}", cc, e);
+                Error::Tor(e.to_string())
+            })?;
             *guard = Some(code);
         } else {
             *guard = None;
@@ -427,20 +451,33 @@ impl<C: TorClientBehavior> TorManager<C> {
 
     pub async fn new_identity(&self) -> Result<()> {
         let client_guard = self.client.lock().await;
-        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        let client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("new_identity: not connected");
+            Error::NotConnected
+        })?;
 
         if self.circuit_limiter.check().is_err() {
+            log::error!("new_identity: rate limit exceeded");
             return Err(Error::RateLimited("new_identity".into()));
         }
 
         // Force new configuration and circuits
-        let config = self.build_config().await.map_err(|e| Error::Identity {
-            step: "build_config".into(),
-            source: e.to_string(),
-        })?;
-        client.reconfigure(&config).map_err(|e| Error::Identity {
-            step: "reconfigure".into(),
-            source: e,
+        let config = self
+            .build_config()
+            .await
+            .map_err(|e| {
+                log::error!("new_identity: build_config failed: {}", e);
+                Error::Identity {
+                    step: "build_config".into(),
+                    source: e.to_string(),
+                }
+            })?;
+        client.reconfigure(&config).map_err(|e| {
+            log::error!("new_identity: reconfigure failed: {}", e);
+            Error::Identity {
+                step: "reconfigure".into(),
+                source: e,
+            }
         })?;
         client.retire_all_circs();
 
@@ -448,9 +485,12 @@ impl<C: TorClientBehavior> TorManager<C> {
         client
             .build_new_circuit()
             .await
-            .map_err(|e| Error::Identity {
-                step: "build_circuit".into(),
-                source: e,
+            .map_err(|e| {
+                log::error!("new_identity: build_circuit failed: {}", e);
+                Error::Identity {
+                    step: "build_circuit".into(),
+                    source: e,
+                }
             })?;
 
         Ok(())
@@ -459,7 +499,10 @@ impl<C: TorClientBehavior> TorManager<C> {
     /// Close all currently open circuits without building a new one.
     pub async fn close_all_circuits(&self) -> Result<()> {
         let client_guard = self.client.lock().await;
-        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        let client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("close_all_circuits: not connected");
+            Error::NotConnected
+        })?;
         client.retire_all_circs();
         Ok(())
     }
@@ -468,12 +511,20 @@ impl<C: TorClientBehavior> TorManager<C> {
 impl TorManager {
     pub async fn get_active_circuit(&self) -> Result<Vec<RelayInfo>> {
         let client_guard = self.client.lock().await;
-        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        let client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("traffic_stats: not connected");
+            Error::NotConnected
+        })?;
 
         let netdir = client
             .dirmgr()
             .netdir(Timeliness::Timely)
             .map_err(|e| Error::NetDir(e.to_string()))?;
+        let exit_pref = self.exit_country.lock().await.clone();
+        log::info!(
+            "building active circuit with exit {:?}",
+            exit_pref.as_ref().map(|c| c.to_string())
+        );
         let circuit = client
             .circmgr()
             .get_or_launch_exit(
@@ -483,7 +534,14 @@ impl TorManager {
                 None,
             )
             .await
-            .map_err(|e| Error::Circuit(e.to_string()))?;
+            .map_err(|e| {
+                log::error!(
+                    "get_active_circuit: failed to build circuit with exit {:?}: {}",
+                    exit_pref.as_ref().map(|c| c.to_string()),
+                    e
+                );
+                Error::Circuit(e.to_string())
+            })?;
 
         let hops: Vec<_> = circuit
             .path_ref()
@@ -527,7 +585,10 @@ impl TorManager {
 
     pub async fn get_isolated_circuit(&self, domain: String) -> Result<Vec<RelayInfo>> {
         let client_guard = self.client.lock().await;
-        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        let client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("circuit_metrics: not connected");
+            Error::NotConnected
+        })?;
 
         let mut tokens = self.isolation_tokens.lock().await;
         let entry = tokens.entry(domain).or_default();
@@ -553,11 +614,25 @@ impl TorManager {
             })
         };
 
+        let exit_pref = prefs.as_ref().and_then(|p| p.exit_country());
+        log::info!(
+            "building isolated circuit for domain {} with exit {:?}",
+            domain,
+            exit_pref
+        );
         let circuit = client
             .circmgr()
             .get_or_launch_exit((&*netdir).into(), &[], isolation, prefs)
             .await
-            .map_err(|e| Error::Circuit(e.to_string()))?;
+            .map_err(|e| {
+                log::error!(
+                    "get_isolated_circuit: failed for domain {} with exit {:?}: {}",
+                    domain,
+                    exit_pref,
+                    e
+                );
+                Error::Circuit(e.to_string())
+            })?;
 
         let hops: Vec<_> = circuit
             .path_ref()
@@ -602,7 +677,10 @@ impl TorManager {
     /// Return the total number of bytes sent and received through the Tor client.
     pub async fn traffic_stats(&self) -> Result<TrafficStats> {
         let client_guard = self.client.lock().await;
-        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        let client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("get_active_circuit: not connected");
+            Error::NotConnected
+        })?;
 
         let stats = client.traffic_stats();
         Ok(TrafficStats {
@@ -614,7 +692,10 @@ impl TorManager {
     /// Return number of active circuits and age of the oldest one in seconds.
     pub async fn circuit_metrics(&self) -> Result<CircuitMetrics> {
         let client_guard = self.client.lock().await;
-        let client = client_guard.as_ref().ok_or(Error::NotConnected)?;
+        let client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("get_isolated_circuit: not connected");
+            Error::NotConnected
+        })?;
 
         #[cfg(feature = "experimental-api")]
         {

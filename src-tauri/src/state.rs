@@ -54,6 +54,8 @@ pub struct LogEntry {
     pub level: String,
     pub timestamp: String,
     pub message: String,
+    #[serde(default)]
+    pub stack: Option<String>,
 }
 
 #[derive(Clone)]
@@ -233,7 +235,12 @@ impl<C: TorClientBehavior> AppState<C> {
         self.session.validate(token).await
     }
 
-    pub async fn add_log(&self, level: Level, message: String) -> Result<()> {
+    pub async fn add_log(
+        &self,
+        level: Level,
+        message: String,
+        stack: Option<String>,
+    ) -> Result<()> {
         let _guard = self.log_lock.lock().await;
         let mut file = OpenOptions::new()
             .create(true)
@@ -244,6 +251,7 @@ impl<C: TorClientBehavior> AppState<C> {
             level: level.to_string(),
             timestamp: Utc::now().to_rfc3339(),
             message,
+            stack,
         };
         let json = serde_json::to_string(&entry)?;
         file.write_all(json.as_bytes()).await?;
@@ -326,7 +334,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 "memory usage {} MB exceeds limit {}",
                 memory_mb, self.max_memory_mb
             );
-            let _ = self.add_log(Level::Warn, msg.clone()).await;
+            let _ = self.add_log(Level::Warn, msg.clone(), None).await;
             let _ = self.tor_manager.close_all_circuits().await;
             *self.tray_warning.lock().await = Some(msg.clone());
             self.update_tray_menu().await;
@@ -338,7 +346,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 "circuit count {} exceeds limit {}",
                 circuits, self.max_circuits
             );
-            let _ = self.add_log(Level::Warn, msg.clone()).await;
+            let _ = self.add_log(Level::Warn, msg.clone(), None).await;
             let _ = self.tor_manager.close_all_circuits().await;
             *self.tray_warning.lock().await = Some(msg.clone());
             self.update_tray_menu().await;
