@@ -21,6 +21,14 @@ export interface TorState {
   memoryUsageMB: number;
   circuitCount: number;
   pingMs: number | undefined;
+  metrics: MetricPoint[];
+}
+
+export interface MetricPoint {
+  time: number;
+  memoryMB: number;
+  circuitCount: number;
+  latencyMs: number;
 }
 
 function createTorStore() {
@@ -35,18 +43,30 @@ function createTorStore() {
     memoryUsageMB: 0,
     circuitCount: 0,
     pingMs: undefined,
+    metrics: [],
   };
 
   const { subscribe, update, set } = writable<TorState>(initialState);
 
   // Listen for metrics updates from the Rust backend
+  const MAX_POINTS = 30;
   listen<any>("metrics-update", (event) => {
-    update((state) => ({
-      ...state,
-      memoryUsageMB: Math.round(event.payload.memory_bytes / 1_000_000),
+    const point: MetricPoint = {
+      time: Date.now(),
+      memoryMB: Math.round(event.payload.memory_bytes / 1_000_000),
       circuitCount: event.payload.circuit_count,
-      pingMs: event.payload.latency_ms,
-    }));
+      latencyMs: event.payload.latency_ms,
+    };
+    update((state) => {
+      const metrics = [...state.metrics, point].slice(-MAX_POINTS);
+      return {
+        ...state,
+        memoryUsageMB: point.memoryMB,
+        circuitCount: point.circuitCount,
+        pingMs: point.latencyMs,
+        metrics,
+      };
+    });
   });
 
   listen<string>("security-warning", (event) => {
@@ -89,6 +109,7 @@ function createTorStore() {
         memoryUsageMB: 0,
         circuitCount: 0,
         pingMs: undefined,
+        metrics: [],
       }));
     }
   });

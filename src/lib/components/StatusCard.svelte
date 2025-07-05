@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Activity, Zap } from "lucide-svelte";
   import { invoke } from "$lib/api";
+  import MetricsChart from "./MetricsChart.svelte";
 
   export let status;
   export let totalTrafficMB = 0;
@@ -9,8 +10,10 @@
   import { torStore } from "$lib/stores/torStore";
   let memoryMB: number;
   let circuitCount: number;
+  let metrics = [];
   $: memoryMB = $torStore.memoryUsageMB;
   $: circuitCount = $torStore.circuitCount;
+  $: metrics = $torStore.metrics;
 
   let isPinging = false;
 
@@ -29,7 +32,7 @@
     try {
       const result = (await invoke("ping_host", {
         host: "google.com",
-        count: 5
+        count: 5,
       })) as number;
       pingMs = result;
     } catch (error) {
@@ -150,6 +153,11 @@
     </div>
   </div>
   {#if $torStore.securityWarning}
-    <p class="text-yellow-200 text-xs mt-2" role="alert">{$torStore.securityWarning}</p>
+    <p class="text-yellow-200 text-xs mt-2" role="alert">
+      {$torStore.securityWarning}
+    </p>
   {/if}
+  <div class="mt-2">
+    <MetricsChart {metrics} />
+  </div>
 </div>
