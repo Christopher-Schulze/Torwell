@@ -3,10 +3,21 @@
   import { X, Edit3 } from "lucide-svelte";
   import { uiStore } from "$lib/stores/uiStore";
 
-  const availableBridges = [
-    "Bridge obfs4 192.0.2.1:443 0123456789ABCDEF0123456789ABCDEF01234567 cert=AAAA iat-mode=0",
-    "Bridge obfs4 192.0.2.2:443 89ABCDEF0123456789ABCDEF0123456789ABCDEF cert=BBBB iat-mode=0",
-  ];
+  const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
+
+  let availableBridges: string[] = [];
+  let exitCountries: { code: string; name: string }[] = [];
+
+  async function loadPresets() {
+    try {
+      const res = await fetch(presetURL);
+      const data = await res.json();
+      availableBridges = data.bridges ?? [];
+      exitCountries = data.exitCountries ?? [];
+    } catch (e) {
+      console.error('Failed to load presets', e);
+    }
+  }
 
   let selectedBridges: string[] = [];
   let torrcConfig = "";
@@ -31,6 +42,7 @@
     maxLogLines = $uiStore.settings.maxLogLines;
     exitCountry = $uiStore.settings.exitCountry ?? null;
     uiStore.actions.setExitCountry(exitCountry);
+    if (availableBridges.length === 0) loadPresets();
     tick().then(() => closeButton && closeButton.focus());
   } else if (previouslyFocused) {
     tick().then(() => previouslyFocused && previouslyFocused.focus());
@@ -174,11 +186,9 @@
             aria-label="Exit country"
           >
             <option value="">Auto</option>
-            <option value="DE">Germany</option>
-            <option value="US">USA</option>
-            <option value="FR">France</option>
-            <option value="GB">UK</option>
-            <option value="NL">Netherlands</option>
+            {#each exitCountries as c}
+              <option value={c.code}>{c.name}</option>
+            {/each}
           </select>
           <button
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
