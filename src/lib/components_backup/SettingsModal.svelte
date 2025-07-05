@@ -106,7 +106,7 @@
     tabindex="-1"
   >
     <section
-      class="glass-lg rounded-2xl w-[90%] max-w-2xl min-h-[500px] p-6 flex flex-col"
+      class="bg-black/40 backdrop-blur-3xl rounded-2xl border border-white/10 w-[90%] max-w-2xl min-h-[500px] p-6 flex flex-col"
       on:click|stopPropagation
       on:keydown={trapFocus}
       bind:this={modalEl}

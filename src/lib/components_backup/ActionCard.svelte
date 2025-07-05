@@ -55,7 +55,7 @@
 
 </script>
 
-<div class="glass-md rounded-xl p-6" tabindex="0" role="region">
+<div class="bg-black/20 rounded-xl p-6" tabindex="0" role="region">
 	<!-- Error Message -->
 {#if $torStore.errorMessage}
                 <div class="mb-4 p-3 bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg flex items-center gap-2" role="alert" aria-live="assertive">
@@ -74,7 +74,7 @@
 		<!-- Connect/Disconnect Button -->
 		{#if isStopped}
                         <button
-                                class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-green-600/20 text-green-200 hover:bg-green-600/30 border border-green-500/30 transform hover:scale-105"
+                                class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-green-600/20 text-green-200 hover:bg-green-600/30 border border-green-500/30 transform hover:scale-105"
                                 on:click={handleConnect}
                                 aria-label="Connect to Tor"
                         >
@@ -82,7 +82,7 @@
 			</button>
 		{:else if isConnecting}
 			<button
-                                class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
+				class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
 				disabled={true}
 			>
                                 <div class="animate-spin"><RefreshCw size={16} /></div>
@@ -94,7 +94,7 @@
 			</button>
 		{:else if isConnected}
                         <button
-                                class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-red-600/20 text-red-200 hover:bg-red-600/30 border border-red-500/30 transform hover:scale-105"
+                                class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-red-600/20 text-red-200 hover:bg-red-600/30 border border-red-500/30 transform hover:scale-105"
                                 on:click={handleDisconnect}
                                 aria-label="Disconnect from Tor"
                         >
@@ -102,7 +102,7 @@
 			</button>
 		{:else if isDisconnecting}
 			<button
-                                class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
+				class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
 				disabled={true}
 			>
 				<div class="animate-spin"><RefreshCw size={16} /></div>
@@ -112,7 +112,7 @@
 		
 		<!-- New Circuit Button -->
                 <button
-                        class="glass-sm py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm {isConnected && !isCreatingCircuit ? 'bg-black/50 text-white hover:bg-black/60 cursor-pointer transform hover:scale-105' : 'bg-black/30 text-gray-400 cursor-not-allowed opacity-50'}"
+                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm {isConnected && !isCreatingCircuit ? 'bg-black/50 text-white hover:bg-black/60 cursor-pointer transform hover:scale-105' : 'bg-black/30 text-gray-400 cursor-not-allowed opacity-50'}"
                         on:click={handleNewCircuit}
                         disabled={!isConnected || isCreatingCircuit}
                         aria-label="Request new circuit"
@@ -127,7 +127,7 @@
 		
 		<!-- Logs Button -->
                 <button
-                        class="glass-sm py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
+                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
                         on:click={() => dispatch('openLogs')}
                         aria-label="Open logs"
                 >
@@ -136,7 +136,7 @@
 		
 		<!-- Settings Button -->
                 <button
-                        class="glass-sm py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
+                        class="py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
                         on:click={() => dispatch('openSettings')}
                         aria-label="Open settings"
                 >
