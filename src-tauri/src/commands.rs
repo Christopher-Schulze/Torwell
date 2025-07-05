@@ -1,4 +1,5 @@
 use crate::error::{Error, Result};
+use crate::icmp;
 use crate::state::{AppState, LogEntry};
 use crate::tor_manager::BridgePreset;
 use governor::{
@@ -6,10 +7,10 @@ use governor::{
     state::{InMemoryState, NotKeyed},
     Quota, RateLimiter,
 };
+use keyring;
 use log::Level;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use keyring;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
@@ -17,7 +18,6 @@ use std::time::Duration;
 use std::time::Instant;
 use sysinfo::{PidExt, System, SystemExt};
 use tauri::{Manager, State};
-use crate::icmp;
 use tokio::sync::Mutex;
 
 /// Total bytes sent and received through Tor.
@@ -121,13 +121,18 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             )
                             .await;
                     });
+                    let step = match err {
+                        Error::ConnectionFailed { step, .. } | Error::Identity { step, .. } => step,
+                        _ => "",
+                    };
                     let _ = app_handle.emit_all(
                         "tor-status-update",
                         serde_json::json!({
                             "status": "RETRYING",
                             "retryCount": attempt,
                             "retryDelay": delay.as_secs(),
-                            "errorMessage": err_str
+                            "errorMessage": err_str,
+                            "errorStep": step
                         }),
                     );
                 },
@@ -159,11 +164,18 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 state_clone.update_tray_menu().await;
             }
             Err(e) => {
+                let step = match &e {
+                    Error::ConnectionFailed { step, .. } | Error::Identity { step, .. } => {
+                        step.as_str()
+                    }
+                    _ => "",
+                };
                 if let Err(e_emit) = app_handle.emit_all(
                     "tor-status-update",
                     serde_json::json!({
                         "status": "ERROR",
                         "errorMessage": e.to_string(),
+                        "errorStep": step,
                         "bootstrapMessage": "",
                         "retryCount": 0, "retryDelay": 0
                     }),
@@ -190,7 +202,7 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
     }
 
     state.tor_manager.disconnect().await?;
-    
+
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
         serde_json::json!({ "status": "DISCONNECTED", "bootstrapProgress": 0, "bootstrapMessage": "", "retryCount": 0, "retryDelay": 0 }),
@@ -322,7 +334,7 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
     track_call("new_identity").await;
     check_api_rate()?;
     state.tor_manager.new_identity().await?; // potential metric: measure time to build new circuit
-    // Emit event to update frontend
+                                             // Emit event to update frontend
     app_handle.emit_all(
         "tor-status-update",
         serde_json::json!({ "status": "NEW_IDENTITY" }),
@@ -404,8 +416,8 @@ pub async fn get_secure_key(state: State<'_, AppState>, token: String) -> Result
         log::error!("get_secure_key: invalid token");
         return Err(Error::InvalidToken);
     }
-    let entry = keyring::Entry::new("torwell84", "aes-key")
-        .map_err(|e| Error::Io(e.to_string()))?;
+    let entry =
+        keyring::Entry::new("torwell84", "aes-key").map_err(|e| Error::Io(e.to_string()))?;
     match entry.get_password() {
         Ok(v) => Ok(Some(v)),
         Err(keyring::Error::NoEntry) => Ok(None),
@@ -414,14 +426,20 @@ pub async fn get_secure_key(state: State<'_, AppState>, token: String) -> Result
 }
 
 #[tauri::command]
-pub async fn set_secure_key(state: State<'_, AppState>, token: String, value: String) -> Result<()> {
+pub async fn set_secure_key(
+    state: State<'_, AppState>,
+    token: String,
+    value: String,
+) -> Result<()> {
     track_call("set_secure_key").await;
     check_api_rate()?;
     if !state.validate_session(&token).await {
         log::error!("set_secure_key: invalid token");
         return Err(Error::InvalidToken);
     }
-    let entry = keyring::Entry::new("torwell84", "aes-key")
-        .map_err(|e| Error::Io(e.to_string()))?;
-    entry.set_password(&value).map_err(|e| Error::Io(e.to_string()))
+    let entry =
+        keyring::Entry::new("torwell84", "aes-key").map_err(|e| Error::Io(e.to_string()))?;
+    entry
+        .set_password(&value)
+        .map_err(|e| Error::Io(e.to_string()))
 }

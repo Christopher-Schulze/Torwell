@@ -265,6 +265,16 @@ async fn connect_rate_limited() {
     assert!(matches!(last, Err(Error::RateLimited(_))));
 }
 
+#[tokio::test]
+async fn set_exit_country_invalid_error_variant() {
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.set_exit_country(Some("zzz".into())).await;
+    match res {
+        Err(Error::ConnectionFailed { step, .. }) => assert_eq!(step, "set_exit_country"),
+        _ => panic!("expected connection failed"),
+    }
+}
+
 #[test]
 fn bridge_preset_loading() {
     let json = r#"{ "presets": [ { "name": "set1", "bridges": ["b1", "b2"] } ] }"#;

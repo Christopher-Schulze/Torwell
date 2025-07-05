@@ -14,6 +14,7 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::num::NonZeroU32;
+use std::path::Path;
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -21,7 +22,6 @@ use tokio::sync::Mutex;
 use tor_circmgr::isolation::{IsolationToken, StreamIsolation};
 use tor_dirmgr::Timeliness;
 use tor_geoip::{CountryCode, GeoipDb};
-use std::path::Path;
 
 #[cfg(test)]
 pub(crate) static GEOIP_INIT_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -279,7 +279,10 @@ impl<C: TorClientBehavior> TorManager<C> {
                 }
                 builder.bridges(bridge_builder);
             }
-            builder.build().map_err(|e| Error::Tor(e.to_string()))
+            builder.build().map_err(|e| Error::ConnectionFailed {
+                step: "config_build".into(),
+                source: e.to_string(),
+            })
         }
     }
 
@@ -292,16 +295,13 @@ impl<C: TorClientBehavior> TorManager<C> {
             return Err(Error::AlreadyConnected);
         }
         progress(0, "starting".into());
-        let config = self
-            .build_config()
-            .await
-            .map_err(|e| {
-                log::error!("connect_once: build_config failed: {}", e);
-                Error::ConnectionFailed {
-                    step: "build_config".into(),
-                    source: e.to_string(),
-                }
-            })?;
+        let config = self.build_config().await.map_err(|e| {
+            log::error!("connect_once: build_config failed: {}", e);
+            Error::ConnectionFailed {
+                step: "build_config".into(),
+                source: e.to_string(),
+            }
+        })?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
             .map_err(|e| {
@@ -395,12 +395,10 @@ impl<C: TorClientBehavior> TorManager<C> {
             .map(|sa| sa.ip().to_string())
             .unwrap_or_else(|_| ip.split(':').next().unwrap_or(ip).to_string());
 
-        let ip_addr = addr
-            .parse::<IpAddr>()
-            .map_err(|_| {
-                log::error!("lookup_country_code: invalid address parsed {addr}");
-                Error::Lookup(format!("invalid address: {}", addr))
-            })?;
+        let ip_addr = addr.parse::<IpAddr>().map_err(|_| {
+            log::error!("lookup_country_code: invalid address parsed {addr}");
+            Error::Lookup(format!("invalid address: {}", addr))
+        })?;
         if let Some(cc) = self.geoip_db.lookup_country_code(ip_addr) {
             let code = cc.as_ref().to_string();
             cache.insert(ip.to_string(), code.clone());
@@ -416,7 +414,10 @@ impl<C: TorClientBehavior> TorManager<C> {
         if let Some(cc) = country {
             let code = CountryCode::new(&cc).map_err(|e| {
                 log::error!("set_exit_country: invalid code {} - {}", cc, e);
-                Error::Tor(e.to_string())
+                Error::ConnectionFailed {
+                    step: "set_exit_country".into(),
+                    source: e.to_string(),
+                }
             })?;
             *guard = Some(code);
         } else {
@@ -462,16 +463,13 @@ impl<C: TorClientBehavior> TorManager<C> {
         }
 
         // Force new configuration and circuits
-        let config = self
-            .build_config()
-            .await
-            .map_err(|e| {
-                log::error!("new_identity: build_config failed: {}", e);
-                Error::Identity {
-                    step: "build_config".into(),
-                    source: e.to_string(),
-                }
-            })?;
+        let config = self.build_config().await.map_err(|e| {
+            log::error!("new_identity: build_config failed: {}", e);
+            Error::Identity {
+                step: "build_config".into(),
+                source: e.to_string(),
+            }
+        })?;
         client.reconfigure(&config).map_err(|e| {
             log::error!("new_identity: reconfigure failed: {}", e);
             Error::Identity {
@@ -482,16 +480,13 @@ impl<C: TorClientBehavior> TorManager<C> {
         client.retire_all_circs();
 
         // Build fresh circuit
-        client
-            .build_new_circuit()
-            .await
-            .map_err(|e| {
-                log::error!("new_identity: build_circuit failed: {}", e);
-                Error::Identity {
-                    step: "build_circuit".into(),
-                    source: e,
-                }
-            })?;
+        client.build_new_circuit().await.map_err(|e| {
+            log::error!("new_identity: build_circuit failed: {}", e);
+            Error::Identity {
+                step: "build_circuit".into(),
+                source: e,
+            }
+        })?;
 
         Ok(())
     }
