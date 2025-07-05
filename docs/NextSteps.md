@@ -176,6 +176,21 @@
   - Structured logging
   - Log aggregation
   - Alerting on critical errors
+  - Example log document:
+
+```json
+{
+  "timestamp": "2025-07-04T12:00:00Z",
+  "level": "INFO",
+  "service": "torwell-desktop",
+  "host": "workstation-01",
+  "message": "Circuit established",
+  "metrics": {
+    "circuit_build_ms": 1300,
+    "circuit_count": 5
+  }
+}
+```
 
 ### 5.3 Vor dem Release
 Bevor ein neuer Build veröffentlicht wird, sollten die folgenden Punkte abgearbeitet werden:

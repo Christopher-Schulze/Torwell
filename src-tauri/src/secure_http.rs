@@ -8,6 +8,7 @@ use rustls::version::{TLS12, TLS13};
 use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
 use serde::Deserialize;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -343,6 +344,13 @@ impl SecureHttpClient {
     pub async fn get_text(&self, url: &str) -> reqwest::Result<String> {
         let resp = self.get_with_hsts_check(url).await?;
         resp.text().await
+    }
+
+    /// Send JSON data to an HTTP endpoint using the pinned TLS configuration.
+    pub async fn post_json(&self, url: &str, body: &Value) -> reqwest::Result<()> {
+        let client = { self.client.lock().await.clone() };
+        client.post(url).json(body).send().await?;
+        Ok(())
     }
 
     pub async fn reload_certificates(&self) -> anyhow::Result<()> {

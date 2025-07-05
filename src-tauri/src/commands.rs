@@ -106,7 +106,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
         match tor_manager
             .connect_with_backoff(
                 5,
-                Duration::from_secs(60),
+                Duration::from_secs(60), // place to capture circuit build duration metrics
                 |attempt, delay, err| {
                     let err_str = err.to_string();
                     let sc = state_clone.clone();
@@ -254,7 +254,7 @@ pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStat
 pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
     track_call("get_metrics").await;
     check_api_rate()?;
-    let circ = state.tor_manager.circuit_metrics().await?;
+    let circ = state.tor_manager.circuit_metrics().await?; // capture more metrics like build time when available
     let mut sys = sysinfo::System::new();
     let pid = sysinfo::get_current_pid().map_err(|e| Error::Io(e.to_string()))?;
     sys.refresh_process(pid);
@@ -297,7 +297,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     track_call("new_identity").await;
     check_api_rate()?;
-    state.tor_manager.new_identity().await?;
+    state.tor_manager.new_identity().await?; // potential metric: measure time to build new circuit
     // Emit event to update frontend
     app_handle.emit_all(
         "tor-status-update",
