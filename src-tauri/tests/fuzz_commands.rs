@@ -2,6 +2,7 @@ use rand::{distributions::Alphanumeric, Rng};
 use std::path::PathBuf;
 use std::sync::Arc;
 use torwell84::commands;
+use torwell84::error::Error;
 use torwell84::secure_http::SecureHttpClient;
 use torwell84::session::SessionManager;
 use torwell84::state::AppState;
@@ -61,25 +62,52 @@ async fn fuzz_network_commands() {
     let token = state.create_session().await;
     let mut rng = rand::thread_rng();
 
-    // fuzz ping_host
-    for _ in 0..50 {
-        let len = rng.gen_range(1..16);
-        let host: String = (&mut rng)
-            .sample_iter(&Alphanumeric)
-            .take(len)
-            .map(char::from)
-            .collect();
-        let count = rng.gen_range(0..15);
-        let _ = commands::ping_host(state, token.clone(), Some(host), Some(count)).await;
+    let mut rate_limited = false;
+
+    for _ in 0..100 {
+        match rng.gen_range(0..4) {
+            // ping_host with random host and count
+            0 => {
+                let len = rng.gen_range(1..16);
+                let host: String = (&mut rng)
+                    .sample_iter(&Alphanumeric)
+                    .take(len)
+                    .map(char::from)
+                    .collect();
+                let count = rng.gen_range(0..15);
+                let res = commands::ping_host(state, token.clone(), Some(host), Some(count)).await;
+                if matches!(res, Err(Error::RateLimited(_))) {
+                    rate_limited = true;
+                }
+            }
+            // set_exit_country with random code
+            1 => {
+                let country: String = (&mut rng)
+                    .sample_iter(&Alphanumeric)
+                    .take(2)
+                    .map(char::from)
+                    .collect();
+                let res = commands::set_exit_country(state, Some(country)).await;
+                if matches!(res, Err(Error::RateLimited(_))) {
+                    rate_limited = true;
+                }
+            }
+            // get_active_circuit
+            2 => {
+                let res = commands::get_active_circuit(state).await;
+                if matches!(res, Err(Error::RateLimited(_))) {
+                    rate_limited = true;
+                }
+            }
+            // get_metrics
+            _ => {
+                let res = commands::get_metrics(state).await;
+                if matches!(res, Err(Error::RateLimited(_))) {
+                    rate_limited = true;
+                }
+            }
+        }
     }
 
-    // fuzz set_exit_country
-    for _ in 0..50 {
-        let country: String = (&mut rng)
-            .sample_iter(&Alphanumeric)
-            .take(2)
-            .map(char::from)
-            .collect();
-        let _ = commands::set_exit_country(state, Some(country)).await;
-    }
+    assert!(rate_limited);
 }
