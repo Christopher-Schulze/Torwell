@@ -144,4 +144,5 @@ Das Backend akzeptiert verschiedene Umgebungsvariablen zur Laufzeitkonfiguration
 - `TORWELL_MAX_LOG_LINES` – Maximale Anzahl von Logzeilen, die in `torwell.log` aufbewahrt werden (Standard `1000`).
 - `TORWELL_MAX_MEMORY_MB` – Schwellenwert für Speichernutzung, ab dem Warnungen ausgegeben werden (Standard `1024`).
 - `TORWELL_MAX_CIRCUITS` – Maximale Anzahl erlaubter paralleler Tor-Circuits (Standard `20`).
+- Bei Überschreitung dieser Limits erscheint ein Warnhinweis im Systemtray-Menü.
 

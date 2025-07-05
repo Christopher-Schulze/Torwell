@@ -81,6 +81,7 @@ fn mock_state() -> AppState<MockTorClient> {
         max_memory_mb: 1024,
         max_circuits: 20,
         session: SessionManager::new(std::time::Duration::from_secs(60)),
+        tray_warning: Arc::new(Mutex::new(None)),
     }
 }
 

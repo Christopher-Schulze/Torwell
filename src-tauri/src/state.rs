@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use sysinfo::{PidExt, System, SystemExt};
-use tauri::AppHandle;
+use tauri::{AppHandle, CustomMenuItem, SystemTrayMenu};
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
@@ -80,6 +80,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub session: Arc<SessionManager>,
     /// Handle used to emit frontend events
     pub app_handle: Arc<Mutex<Option<AppHandle>>>,
+    /// Current warning shown in the tray menu
+    pub tray_warning: Arc<Mutex<Option<String>>>,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -135,6 +137,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                     .unwrap_or(DEFAULT_SESSION_TTL),
             )),
             app_handle: Arc::new(Mutex::new(None)),
+            tray_warning: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -190,6 +193,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     .unwrap_or(DEFAULT_SESSION_TTL),
             )),
             app_handle: Arc::new(Mutex::new(None)),
+            tray_warning: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -309,6 +313,8 @@ impl<C: TorClientBehavior> AppState<C> {
             );
             let _ = self.add_log(Level::Warn, msg.clone()).await;
             let _ = self.tor_manager.close_all_circuits().await;
+            *self.tray_warning.lock().await = Some(msg.clone());
+            self.update_tray_menu().await;
             self.emit_security_warning(msg).await;
         }
 
@@ -319,6 +325,8 @@ impl<C: TorClientBehavior> AppState<C> {
             );
             let _ = self.add_log(Level::Warn, msg.clone()).await;
             let _ = self.tor_manager.close_all_circuits().await;
+            *self.tray_warning.lock().await = Some(msg.clone());
+            self.update_tray_menu().await;
             self.emit_security_warning(msg).await;
         }
         // Additional metrics like circuit build times could be stored here
@@ -389,6 +397,20 @@ impl<C: TorClientBehavior> AppState<C> {
     /// Store the application handle for emitting events
     pub async fn register_handle(&self, handle: AppHandle) {
         *self.app_handle.lock().await = Some(handle);
+    }
+
+    /// Update the system tray menu with current warning if set
+    async fn update_tray_menu(&self) {
+        if let Some(handle) = self.app_handle.lock().await.as_ref() {
+            let mut menu = SystemTrayMenu::new()
+                .add_item(CustomMenuItem::new("show", "Show"))
+                .add_item(CustomMenuItem::new("quit", "Quit"));
+            if let Some(w) = self.tray_warning.lock().await.clone() {
+                menu = menu.add_item(CustomMenuItem::new("warning", w));
+            }
+            let tray = handle.tray_handle();
+            let _ = tray.set_menu(menu);
+        }
     }
 
     /// Emit a security warning event to the frontend

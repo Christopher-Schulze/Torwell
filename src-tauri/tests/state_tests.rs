@@ -79,6 +79,7 @@ async fn update_metrics_closes_circuits_on_limit() {
         max_circuits: 1,
         session: SessionManager::new(Duration::from_secs(60)),
         app_handle: Arc::new(Mutex::new(None)),
+        tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("state.log").await;
     state.update_metrics(2 * 1024 * 1024, 2).await;
@@ -86,4 +87,60 @@ async fn update_metrics_closes_circuits_on_limit() {
     assert!(*flag.lock().unwrap());
     let logs = state.read_logs().await.unwrap();
     assert!(!logs.is_empty());
+}
+
+#[tokio::test]
+async fn tray_warning_on_memory_limit() {
+    let flag = Arc::new(StdMutex::new(false));
+    DummyClient::push(DummyClient::new(flag));
+    let manager: TorManager<DummyClient> = TorManager::new();
+    manager.connect().await.unwrap();
+
+    let state = AppState {
+        tor_manager: Arc::new(manager),
+        http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        log_file: PathBuf::from("mem.log"),
+        log_lock: Arc::new(Mutex::new(())),
+        retry_counter: Arc::new(Mutex::new(0)),
+        max_log_lines: Arc::new(Mutex::new(1000)),
+        memory_usage: Arc::new(Mutex::new(0)),
+        circuit_count: Arc::new(Mutex::new(0)),
+        latency_ms: Arc::new(Mutex::new(0)),
+        max_memory_mb: 1,
+        max_circuits: 10,
+        session: SessionManager::new(Duration::from_secs(60)),
+        app_handle: Arc::new(Mutex::new(None)),
+        tray_warning: Arc::new(Mutex::new(None)),
+    };
+    let _ = tokio::fs::remove_file("mem.log").await;
+    state.update_metrics(2 * 1024 * 1024, 0).await;
+    assert!(state.tray_warning.lock().await.as_ref().unwrap().contains("memory"));
+}
+
+#[tokio::test]
+async fn tray_warning_on_circuit_limit() {
+    let flag = Arc::new(StdMutex::new(false));
+    DummyClient::push(DummyClient::new(flag));
+    let manager: TorManager<DummyClient> = TorManager::new();
+    manager.connect().await.unwrap();
+
+    let state = AppState {
+        tor_manager: Arc::new(manager),
+        http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        log_file: PathBuf::from("circ.log"),
+        log_lock: Arc::new(Mutex::new(())),
+        retry_counter: Arc::new(Mutex::new(0)),
+        max_log_lines: Arc::new(Mutex::new(1000)),
+        memory_usage: Arc::new(Mutex::new(0)),
+        circuit_count: Arc::new(Mutex::new(0)),
+        latency_ms: Arc::new(Mutex::new(0)),
+        max_memory_mb: 1024,
+        max_circuits: 1,
+        session: SessionManager::new(Duration::from_secs(60)),
+        app_handle: Arc::new(Mutex::new(None)),
+        tray_warning: Arc::new(Mutex::new(None)),
+    };
+    let _ = tokio::fs::remove_file("circ.log").await;
+    state.update_metrics(0, 2).await;
+    assert!(state.tray_warning.lock().await.as_ref().unwrap().contains("circuit"));
 }
