@@ -35,3 +35,7 @@ Die Abhängigkeitsanalysen wurden gemäß dem Security Audit Plan durchgeführt.
 Ein neues Testskript `src-tauri/tests/fuzz_commands.rs` führt zufällige Aufrufe der Tauri-Commands aus. Dabei werden insbesondere `ping_host` und `set_exit_country` mit zufälligen Hostnamen, Aufrufzählern und Länderkürzeln gefüttert. Die Fuzzing-Schleifen helfen, unerwartete Panics und Validierungsfehler frühzeitig zu erkennen.
 
 Bei ersten Durchläufen traten keine Abstürze auf. Ungültige Eingaben wurden korrekt mit Fehlermeldungen beantwortet und das Rate Limiting griff wie erwartet.
+
+## Aktueller Stand (2025-07-05)
+
+Aktuell sind keine weiteren offenen Findings bekannt.

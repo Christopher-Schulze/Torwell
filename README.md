@@ -340,6 +340,9 @@ The connection code already implements backoff with a maximum total time and log
 ## ⚠ Known Limitations
 See [docs/Limitations.md](docs/Limitations.md) for features that are currently impossible to implement, including per-circuit metrics.
 
+## 🔐 Security Findings
+Aktuelle Erkenntnisse aus Audits sind im Dokument [docs/SecurityFindings.md](docs/SecurityFindings.md) zusammengefasst.
+
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
