@@ -78,9 +78,11 @@ fn mock_state() -> AppState<MockTorClient> {
         max_log_lines: Arc::new(Mutex::new(1000)),
         memory_usage: Arc::new(Mutex::new(0)),
         circuit_count: Arc::new(Mutex::new(0)),
+        latency_ms: Arc::new(Mutex::new(0)),
         max_memory_mb: 1024,
         max_circuits: 20,
         session: SessionManager::new(std::time::Duration::from_secs(60)),
+        app_handle: Arc::new(Mutex::new(None)),
         tray_warning: Arc::new(Mutex::new(None)),
     }
 }
@@ -299,4 +301,20 @@ async fn ping_host_count_capped() {
     // should succeed using localhost even when count exceeds limit
     let res = commands::ping_host(Some("127.0.0.1".into()), Some(100)).await;
     assert!(res.is_ok());
+}
+
+#[tokio::test]
+async fn tray_warning_set_and_cleared() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    // trigger warning
+    state.update_metrics(2 * 1024 * 1024, 0).await;
+    assert!(state.tray_warning.lock().await.is_some());
+
+    // clear warning
+    state.clear_tray_warning().await;
+    assert!(state.tray_warning.lock().await.is_none());
 }
