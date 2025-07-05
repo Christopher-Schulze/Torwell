@@ -137,8 +137,8 @@ async fn bridge_parse_error() {
         .unwrap();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConfigError { step, .. }) => assert_eq!(step, "build_config"),
-        _ => panic!("expected config error"),
+        Err(Error::ConnectionFailed { step, .. }) => assert_eq!(step, "build_config"),
+        _ => panic!("expected connection failure"),
     }
 }
 
@@ -148,11 +148,11 @@ async fn bootstrap_error_context() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager.connect().await;
     match res {
-        Err(Error::NetworkFailure { step, source }) => {
+        Err(Error::ConnectionFailed { step, source }) => {
             assert_eq!(step, "bootstrap");
             assert!(source.contains("boot"));
         }
-        _ => panic!("expected network failure"),
+        _ => panic!("expected connection failure"),
     }
 }
 
@@ -237,6 +237,24 @@ async fn new_identity_build_config_error() {
         Err(Error::Identity { step, source: _ }) => assert_eq!(step, "build_config"),
         _ => panic!("expected identity error"),
     }
+}
+
+#[tokio::test]
+async fn new_identity_rate_limited() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: true,
+    }));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+
+    // Consume the allowed tokens
+    for _ in 0..10 {
+        manager.new_identity().await.unwrap();
+    }
+
+    let res = manager.new_identity().await;
+    assert!(matches!(res, Err(Error::RateLimitExceeded(_))));
 }
 
 #[tokio::test]
