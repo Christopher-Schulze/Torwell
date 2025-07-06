@@ -10,7 +10,16 @@
   const MAX_MEMORY_MB = 1024;
   const MAX_CIRCUITS = 20;
 
-  $: latest = metrics[metrics.length - 1] ?? { memoryMB: 0, circuitCount: 0, latencyMs: 0, oldestAge: 0, time: 0 };
+  $: latest =
+    metrics[metrics.length - 1] ?? {
+      memoryMB: 0,
+      circuitCount: 0,
+      latencyMs: 0,
+      oldestAge: 0,
+      avgCreateMs: 0,
+      failedAttempts: 0,
+      time: 0,
+    };
 
   onMount(() => {
     listen<any>('metrics-update', (event) => {
@@ -19,7 +28,9 @@
         memoryMB: Math.round(event.payload.memory_bytes / 1_000_000),
         circuitCount: event.payload.circuit_count,
         latencyMs: event.payload.latency_ms,
-        oldestAge: event.payload.oldest_age ?? 0
+        oldestAge: event.payload.oldest_age ?? 0,
+        avgCreateMs: event.payload.avg_create_ms ?? 0,
+        failedAttempts: event.payload.failed_attempts ?? 0,
       };
       metrics = [...metrics, point].slice(-MAX_POINTS);
     });
@@ -39,6 +50,12 @@
       {#if latest.circuitCount > MAX_CIRCUITS}
         <p class="text-sm text-red-400" role="alert">Circuit count high</p>
       {/if}
+    </div>
+    <div class="flex-1">
+      <p class="text-sm text-white">Avg build: {latest.avgCreateMs} ms</p>
+    </div>
+    <div class="flex-1">
+      <p class="text-sm text-white">Failures: {latest.failedAttempts}</p>
     </div>
   </div>
   <MetricsChart {metrics} />

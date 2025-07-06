@@ -63,6 +63,10 @@ pub struct CircuitMetrics {
     pub count: usize,
     /// Age of the oldest circuit in seconds.
     pub oldest_age: u64,
+    /// Average circuit creation time in milliseconds.
+    pub avg_create_ms: u64,
+    /// Number of failed circuit creation attempts.
+    pub failed_attempts: u64,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
@@ -751,13 +755,36 @@ impl TorManager {
                     .max()
                     .unwrap_or(0);
 
-                return Ok(CircuitMetrics { count, oldest_age });
+                let mut total_build = 0u64;
+                let mut build_count = 0u64;
+                let mut failed_attempts = 0u64;
+                for c in &circs {
+                    if let Some(d) = c.build_duration() {
+                        total_build += d.as_millis() as u64;
+                        build_count += 1;
+                    }
+                    failed_attempts += c.failed_attempts().unwrap_or(0) as u64;
+                }
+                let avg_create_ms = if build_count > 0 {
+                    total_build / build_count
+                } else {
+                    0
+                };
+
+                return Ok(CircuitMetrics {
+                    count,
+                    oldest_age,
+                    avg_create_ms,
+                    failed_attempts,
+                });
             }
         }
 
         Ok(CircuitMetrics {
             count: 0,
             oldest_age: 0,
+            avg_create_ms: 0,
+            failed_attempts: 0,
         })
     }
 }
