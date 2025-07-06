@@ -28,6 +28,15 @@ Edit `src-tauri/certs/cert_config.json` to point to your production update serve
   "cert_url": "https://updates.example.com/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
+  "update_interval": 86400,
   "note": "Production certificate update endpoint"
 }
 ```
+
+## Automatischer Update-Dienst
+
+The application reads `update_interval` from the configuration file at startup.
+If the value is greater than zero a background task periodically calls
+`update_certificates_from` to refresh the pinned certificate. You can override
+the interval at runtime using the `TORWELL_UPDATE_INTERVAL` environment
+variable.
