@@ -6,7 +6,8 @@
 	export let middleCountry = 'Germany';
 	export let exitCountry = 'Germany';
 	export let isActive = true;
-	export let cloudflareEnabled = false;
+        import { uiStore } from '$lib/stores/uiStore';
+        $: cloudflareEnabled = $uiStore.cloudflareEnabled;
 
 	// Node data with IPs and names
         export let nodeData: { nickname: string; ip_address: string; country: string }[] = [];
@@ -22,8 +23,6 @@
 	};
 
         const countries = ['Germany','France','Belgium','Switzerland','Liechtenstein','Luxembourg','Austria','Spain','Italy','Portugal','Russia','Romania','Turkey','UK','USA','Canada','Mexico','Brazil','Argentina','Japan','China','Antarctica'];
-
-        import { uiStore } from '$lib/stores/uiStore';
 
         const exitCountryOptions = [
                 { code: 'DE', name: 'Germany' },

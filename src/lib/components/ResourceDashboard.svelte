@@ -7,8 +7,28 @@
   let metrics: MetricPoint[] = [];
   const MAX_POINTS = 30;
 
+  const width = 120;
+  const height = 40;
+
+  function buildPath(data: MetricPoint[], field: keyof MetricPoint): string {
+    if (data.length === 0) return "";
+    const maxVal = Math.max(...data.map((d) => d[field] as number), 1);
+    const step = width / Math.max(data.length - 1, 1);
+    let d = `M0 ${height}`;
+    data.forEach((pt, idx) => {
+      const x = idx * step;
+      const y = height - ((pt[field] as number) / maxVal) * height;
+      d += ` L${x} ${y}`;
+    });
+    d += ` L${width} ${height} Z`;
+    return d;
+  }
+
   const MAX_MEMORY_MB = 1024;
   const MAX_CIRCUITS = 20;
+
+  $: cpuPath = buildPath(metrics, 'cpuPercent');
+  $: networkPath = buildPath(metrics, 'networkBytes');
 
   $: latest =
     metrics[metrics.length - 1] ?? {
@@ -69,9 +89,19 @@
   <div class="flex gap-4">
     <div class="flex-1">
       <p class="text-sm text-white">CPU: {latest.cpuPercent.toFixed(1)} %</p>
+      <svg {width} {height} class="text-yellow-400" aria-label="CPU usage chart" role="img">
+        {#if cpuPath}
+          <path d={cpuPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
+        {/if}
+      </svg>
     </div>
     <div class="flex-1">
       <p class="text-sm text-white">Network: {latest.networkBytes} B/s</p>
+      <svg {width} {height} class="text-purple-400" aria-label="Network usage chart" role="img">
+        {#if networkPath}
+          <path d={networkPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
+        {/if}
+      </svg>
     </div>
   </div>
   <MetricsChart {metrics} />
