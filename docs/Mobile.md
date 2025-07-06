@@ -33,3 +33,11 @@ A dedicated GitHub workflow (`mobile.yml`) builds the Android and iOS apps. The 
 - `ios-ipa` provides the `.ipa` bundle.
 
 If no binary is produced, the workflow uploads a placeholder archive so the artifact list is always available. Download the desired artifact from the workflow run page to test the mobile build without setting up the full toolchain locally.
+
+## CI Artifacts herunterladen
+
+Die Artefakte kannst du direkt aus dem Mobile-Workflow herunterladen:
+
+1. Rufe in GitHub den gewünschten Workflow-Lauf auf.
+2. Scrolle zum Abschnitt **Artifacts**.
+3. Lade das ZIP `android-apk` oder `ios-ipa` herunter.

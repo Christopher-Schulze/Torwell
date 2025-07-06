@@ -37,6 +37,7 @@ jobs:
             echo "path=$APK" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: android-apk
           path: ${{ steps.apk.outputs.path }}
@@ -70,6 +71,7 @@ jobs:
             echo "path=$IPA" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ios-ipa
           path: ${{ steps.ipa.outputs.path }}
