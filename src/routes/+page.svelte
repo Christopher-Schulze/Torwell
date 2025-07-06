@@ -128,7 +128,6 @@
       isActive={$torStore.status === "CONNECTED"}
       nodeData={activeCircuit}
       isolatedCircuits={isolatedCircuits}
-      cloudflareEnabled={false}
     />
 
     <ActionCard

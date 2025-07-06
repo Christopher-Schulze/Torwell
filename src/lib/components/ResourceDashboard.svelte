@@ -4,6 +4,26 @@
   import MetricsChart from './MetricsChart.svelte';
   import type { MetricPoint } from '$lib/stores/torStore';
 
+  const CHART_WIDTH = 120;
+  const CHART_HEIGHT = 40;
+
+  function buildPath(data: MetricPoint[], field: keyof MetricPoint): string {
+    if (data.length === 0) return '';
+    const maxVal = Math.max(...data.map((d) => d[field] as number), 1);
+    const step = CHART_WIDTH / Math.max(data.length - 1, 1);
+    let d = `M0 ${CHART_HEIGHT}`;
+    data.forEach((pt, idx) => {
+      const x = idx * step;
+      const y = CHART_HEIGHT - ((pt[field] as number) / maxVal) * CHART_HEIGHT;
+      d += ` L${x} ${y}`;
+    });
+    d += ` L${CHART_WIDTH} ${CHART_HEIGHT} Z`;
+    return d;
+  }
+
+  $: cpuPath = buildPath(metrics, 'cpuPercent');
+  $: networkPath = buildPath(metrics, 'networkBytes');
+
   let metrics: MetricPoint[] = [];
   const MAX_POINTS = 30;
 
@@ -74,7 +94,43 @@
       <p class="text-sm text-white">Network: {latest.networkBytes} B/s</p>
     </div>
   </div>
-  <MetricsChart {metrics} />
+  <div class="flex gap-2 items-end">
+    <MetricsChart {metrics} />
+    <svg
+      width={CHART_WIDTH}
+      height={CHART_HEIGHT}
+      class="text-purple-400"
+      role="img"
+      aria-label="CPU usage chart"
+    >
+      {#if cpuPath}
+        <path
+          d={cpuPath}
+          fill="currentColor"
+          fill-opacity="0.3"
+          stroke="currentColor"
+          stroke-width="1"
+        />
+      {/if}
+    </svg>
+    <svg
+      width={CHART_WIDTH}
+      height={CHART_HEIGHT}
+      class="text-cyan-400"
+      role="img"
+      aria-label="Network usage chart"
+    >
+      {#if networkPath}
+        <path
+          d={networkPath}
+          fill="currentColor"
+          fill-opacity="0.3"
+          stroke="currentColor"
+          stroke-width="1"
+        />
+      {/if}
+    </svg>
+  </div>
 </div>
 
 <style>

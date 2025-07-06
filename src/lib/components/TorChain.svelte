@@ -5,8 +5,8 @@
 	export let entryCountry = 'Germany';
 	export let middleCountry = 'Germany';
 	export let exitCountry = 'Germany';
-	export let isActive = true;
-	export let cloudflareEnabled = false;
+        export let isActive = true;
+        let cloudflareEnabled = false;
 
 	// Node data with IPs and names
         export let nodeData: { nickname: string; ip_address: string; country: string }[] = [];
@@ -49,6 +49,7 @@
 
         let selectedExitCountry: string | null = null;
         $: selectedExitCountry = $uiStore.settings.exitCountry;
+        $: cloudflareEnabled = $uiStore.settings.workerList.length > 0;
 
         function changeExitCountry(event: Event) {
                 const value = (event.target as HTMLSelectElement).value;

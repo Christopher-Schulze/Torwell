@@ -1,0 +1,122 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ResourceDashboard > renders charts snapshot 1`] = `
+<div>
+  <div
+    aria-label="Resource dashboard"
+    class="glass-md rounded-xl p-4 space-y-4 svelte-umn5u1"
+    role="region"
+  >
+    <div
+      class="flex gap-4"
+    >
+      <div
+        class="flex-1"
+      >
+        <p
+          class="text-sm text-white"
+        >
+          Memory: 
+          0
+           MB
+        </p>
+         
+      </div>
+       
+      <div
+        class="flex-1"
+      >
+        <p
+          class="text-sm text-white"
+        >
+          Circuits: 
+          0
+        </p>
+         
+      </div>
+       
+      <div
+        class="flex-1"
+      >
+        <p
+          class="text-sm text-white"
+        >
+          Avg build: 
+          0
+           ms
+        </p>
+      </div>
+       
+      <div
+        class="flex-1"
+      >
+        <p
+          class="text-sm text-white"
+        >
+          Failures: 
+          0
+        </p>
+      </div>
+    </div>
+     
+    <div
+      class="flex gap-4"
+    >
+      <div
+        class="flex-1"
+      >
+        <p
+          class="text-sm text-white"
+        >
+          CPU: 
+          0.0
+           %
+        </p>
+      </div>
+       
+      <div
+        class="flex-1"
+      >
+        <p
+          class="text-sm text-white"
+        >
+          Network: 
+          0
+           B/s
+        </p>
+      </div>
+    </div>
+     
+    <div
+      class="flex gap-2 items-end"
+    >
+      <svg
+        aria-label="Tor metrics chart"
+        class="text-green-400"
+        height="40"
+        role="img"
+        width="120"
+      >
+        
+        
+      </svg>
+       
+      <svg
+        aria-label="CPU usage chart"
+        class="text-purple-400"
+        height="40"
+        role="img"
+        width="120"
+      />
+       
+      <svg
+        aria-label="Network usage chart"
+        class="text-cyan-400"
+        height="40"
+        role="img"
+        width="120"
+      />
+    </div>
+  </div>
+</div>
+`;

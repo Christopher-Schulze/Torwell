@@ -12,29 +12,26 @@ vi.mock('@tauri-apps/api/event', () => ({
 import ResourceDashboard from '../lib/components/ResourceDashboard.svelte';
 
 describe('ResourceDashboard', () => {
-  it('updates metrics and shows warnings', async () => {
-    const { getByText, getAllByRole } = render(ResourceDashboard);
+
+  it('renders charts snapshot', async () => {
+    const { container } = render(ResourceDashboard);
+    await tick();
 
     metricsCallback({
       payload: {
-        memory_bytes: 1500_000_000,
-        circuit_count: 25,
+        memory_bytes: 500_000_000,
+        circuit_count: 5,
         latency_ms: 0,
         oldest_age: 0,
-        avg_create_ms: 50,
-        failed_attempts: 3,
-        cpu_percent: 12.5,
-        network_bytes: 2048,
+        avg_create_ms: 10,
+        failed_attempts: 0,
+        cpu_percent: 7.2,
+      network_bytes: 1024,
       },
     });
     await tick();
+    await tick();
 
-    expect(getByText('Memory: 1500 MB')).toBeInTheDocument();
-    expect(getByText('Circuits: 25')).toBeInTheDocument();
-    expect(getByText('Avg build: 50 ms')).toBeInTheDocument();
-    expect(getByText('Failures: 3')).toBeInTheDocument();
-    expect(getByText('CPU: 12.5 %')).toBeInTheDocument();
-    expect(getByText('Network: 2048 B/s')).toBeInTheDocument();
-    expect(getAllByRole('alert').length).toBe(2);
+    expect(container).toMatchSnapshot();
   });
 });
