@@ -40,6 +40,8 @@ jobs:
         with:
           name: android-apk
           path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 7
 
   ios:
     runs-on: macos-latest
@@ -73,3 +75,5 @@ jobs:
         with:
           name: ios-ipa
           path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
+          retention-days: 7

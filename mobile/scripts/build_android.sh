@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 set -e
+# Verify required commands are available
+for cmd in bun cargo npx; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Error: $cmd is not installed or not in PATH" >&2
+    exit 1
+  fi
+done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")/.."
 
