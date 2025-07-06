@@ -135,6 +135,23 @@ describe('SettingsModal persistence', () => {
     expect(select.value).toBe('Default');
   });
 
+  it('calls setBridgePreset action', async () => {
+    const { uiStore } = await import('../lib/stores/uiStore');
+    const spy = vi.spyOn(uiStore.actions, 'setBridgePreset');
+
+    const { getByLabelText, getByRole } = render(SettingsModal, { props: { show: true } });
+    await Promise.resolve();
+
+    await fireEvent.change(getByLabelText('Bridge preset'), { target: { value: 'Default' } });
+    await fireEvent.click(getByRole('button', { name: 'Apply Preset' }));
+
+    expect(spy).toHaveBeenCalledWith('Default', [BRIDGE]);
+
+    const stored = await db.settings.get(1);
+    expect(stored?.bridgePreset).toBe('Default');
+    expect(stored?.bridges).toEqual([BRIDGE]);
+  });
+
   it('selects exit country and persists', async () => {
     const { getByLabelText, getByRole, unmount } = render(SettingsModal, { props: { show: true } });
     await Promise.resolve();

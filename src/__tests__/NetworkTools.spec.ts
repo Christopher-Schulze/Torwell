@@ -14,4 +14,19 @@ describe('NetworkTools', () => {
     await fireEvent.click(getByText('DNS Lookup'));
     expect(invoke).toHaveBeenNthCalledWith(2, 'dns_lookup', { token: 42, host: 'example.com' });
   });
+
+  it('shows traceroute output', async () => {
+    (invoke as any).mockReset();
+    (invoke as any)
+      .mockResolvedValueOnce(42)
+      .mockResolvedValueOnce(['hop1', 'hop2']);
+
+    const { getByText, getByLabelText, findByText } = render(NetworkTools);
+    const input = getByLabelText('Host') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'example.com' } });
+    await fireEvent.click(getByText('Traceroute'));
+
+    await findByText('Route: hop1 -> hop2');
+    expect(invoke).toHaveBeenNthCalledWith(2, 'traceroute_host', { token: 42, host: 'example.com', maxHops: 8 });
+  });
 });
