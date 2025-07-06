@@ -45,6 +45,14 @@ als 60 gültigen Aufrufen greift der globale Rate Limiter und liefert
 `Error::RateLimitExceeded`. Somit funktionieren die Sitzungsprüfung und das
 Rate‑Limiting wie vorgesehen.
 
+Seit dem letzten Update enthalten auch Verbindungs- und Identitätsfehler eine
+genaue Beschreibung des Schritts, in dem sie auftraten. Beispiele:
+
+```text
+Error::ConnectionFailed { step: "bootstrap", source: "bootstrap: connection lost" }
+Error::Identity { step: "build_circuit", source: "build_circuit: timeout" }
+```
+
 ## Aktueller Stand (2025-07-05)
 
 Aktuell sind keine weiteren offenen Findings bekannt.
