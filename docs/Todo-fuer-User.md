@@ -28,3 +28,7 @@ Dieses Dokument beschreibt, wie du den Beispiel‑Worker aus dem Ordner `cf work
 Trage die URL deines Workers in der Anwendung unter **Settings → Worker List** ein und hinterlege das geheime Token im Feld **Worker token**. Du kannst mehrere Adressen hinzufügen. Torwell84 probiert sie nacheinander aus und rotiert automatisch weiter, wenn ein Endpunkt nicht erreichbar ist. Alternativ kannst du Adressen in `src/lib/bridge_presets.json` hinterlegen, damit sie beim ersten Start bereits vorgeschlagen werden.
 
 Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Verbindungen mit dem gesetzten Token authentifiziert. Mehrere Worker erhöhen Zuverlässigkeit und ermöglichen eine einfache horizontale Skalierung.
+
+## Hardware Security Module verwenden
+
+Unter **Settings → HSM Configuration** kannst du den Pfad zur PKCS#11‑Bibliothek und den Slot angeben. Nach dem Speichern werden die Werte im Backend übernommen und für neue TLS‑Verbindungen genutzt.

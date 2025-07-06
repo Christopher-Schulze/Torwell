@@ -11,6 +11,8 @@ type AppSettings = {
   bridges: string[];
   bridgePreset: string | null;
   maxLogLines: number;
+  hsm_lib: string | null;
+  hsm_slot: number | null;
 };
 
 type UIState = {
@@ -34,6 +36,8 @@ function createUIStore() {
       bridges: [],
       bridgePreset: null,
       maxLogLines: 1000,
+      hsm_lib: null,
+      hsm_slot: null,
     },
     error: null,
   });
@@ -75,6 +79,8 @@ function createUIStore() {
               bridges: storedSettings.bridges ?? [],
               bridgePreset: storedSettings.bridgePreset ?? null,
               maxLogLines: storedSettings.maxLogLines ?? 1000,
+              hsm_lib: storedSettings.hsm_lib ?? null,
+              hsm_slot: storedSettings.hsm_slot ?? null,
             },
           }));
 
@@ -91,6 +97,10 @@ function createUIStore() {
           await invoke("set_worker_config", {
             workers: storedSettings.workerList,
             token: storedSettings.workerToken ?? "",
+          });
+          await invoke("set_hsm_config", {
+            lib: storedSettings.hsm_lib ?? null,
+            slot: storedSettings.hsm_slot ?? null,
           });
         }
       } catch (err) {
@@ -251,6 +261,26 @@ function createUIStore() {
         update((state) => ({
           ...state,
           error: `Failed to save worker config: ${message}`,
+        }));
+      }
+    },
+
+    saveHsmConfig: async (lib: string | null, slot: number | null) => {
+      try {
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          hsm_lib: lib,
+          hsm_slot: slot,
+        };
+        await invoke("set_hsm_config", { lib, slot });
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to save HSM config: ${message}`,
         }));
       }
     },

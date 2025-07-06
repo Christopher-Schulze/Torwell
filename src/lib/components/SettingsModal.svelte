@@ -29,6 +29,8 @@
   let workerToken = "";
   let maxLogLines = 1000;
   let exitCountry: string | null = null;
+  let hsmLib: string | null = null;
+  let hsmSlot: number | null = null;
   // import TorrcEditorModal from './TorrcEditorModal.svelte';
 
   export let show: boolean;
@@ -49,6 +51,8 @@
     workerToken = $uiStore.settings.workerToken;
     maxLogLines = $uiStore.settings.maxLogLines;
     exitCountry = $uiStore.settings.exitCountry ?? null;
+    hsmLib = $uiStore.settings.hsm_lib;
+    hsmSlot = $uiStore.settings.hsm_slot;
     uiStore.actions.setExitCountry(exitCountry);
     if (availableBridges.length === 0) loadPresets();
     tick().then(() => closeButton && closeButton.focus());
@@ -113,6 +117,11 @@
 
   function saveExitCountry() {
     uiStore.actions.setExitCountry(exitCountry);
+  }
+
+  function saveHsm() {
+    const slotNum = hsmSlot === null ? null : Number(hsmSlot);
+    uiStore.actions.saveHsmConfig(hsmLib, isNaN(slotNum as number) ? null : slotNum);
   }
 
   function applyPreset() {
@@ -332,6 +341,34 @@
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
             on:click={saveLogLimit}
             aria-label="Save log limit"
+          >
+            Save
+          </button>
+        </div>
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            HSM Configuration
+          </h3>
+          <input
+            type="text"
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm mb-2"
+            placeholder="/usr/lib/softhsm/libsofthsm2.so"
+            bind:value={hsmLib}
+            aria-label="HSM library path"
+          />
+          <input
+            type="number"
+            min="0"
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+            placeholder="0"
+            bind:value={hsmSlot}
+            aria-label="HSM slot"
+          />
+          <button
+            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={saveHsm}
+            aria-label="Save HSM configuration"
           >
             Save
           </button>
