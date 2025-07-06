@@ -51,3 +51,20 @@ TORWELL_HSM_SLOT=0 \
 TORWELL_HSM_PIN=1234 \
 bun tauri dev --features hsm
 ```
+
+### Test mode
+
+For automated tests or development without a physical device you can provide the
+client certificate and key via environment variables. Point `TORWELL_HSM_LIB` to
+either your YubiHSM library or the SoftHSM module and set the base64 encoded
+values:
+
+```bash
+TORWELL_HSM_LIB=/usr/lib/softhsm/libsofthsm2.so \
+TORWELL_HSM_MOCK_KEY=$(base64 -w0 src-tauri/tests_data/ca.key) \
+TORWELL_HSM_MOCK_CERT=$(base64 -w0 src-tauri/tests_data/ca.pem) \
+cargo test --features hsm
+```
+
+Replace the library path with `/usr/local/lib/libyubihsm_pkcs11.so` when using a
+YubiHSM in test mode.

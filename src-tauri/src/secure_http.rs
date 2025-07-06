@@ -247,7 +247,7 @@ impl SecureHttpClient {
         min_tls: reqwest::tls::Version,
     ) -> anyhow::Result<ClientConfig> {
         #[cfg(feature = "hsm")]
-        let hsm = init_hsm().ok();
+        let hsm = init_hsm().map_err(|e| anyhow!("failed to initialise HSM: {e}"))?;
 
         let mut store = RootCertStore::empty();
         let file = File::open(&path)?;
@@ -263,7 +263,9 @@ impl SecureHttpClient {
             builder.with_protocol_versions(&[&TLS12, &TLS13])?
         };
 
-        let mut config = if let Some((ctx, pair)) = hsm {
+        #[cfg(feature = "hsm")]
+        let mut config = {
+            let (ctx, pair) = hsm;
             let mut cfg = if let Some(keys) = pair {
                 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
                 if !keys.key.is_empty() && !keys.cert.is_empty() {
@@ -284,11 +286,11 @@ impl SecureHttpClient {
             };
             finalize_hsm(ctx);
             cfg
-        } else {
-            builder
-                .with_root_certificates(store.clone())
-                .with_no_client_auth()
         };
+        #[cfg(not(feature = "hsm"))]
+        let mut config = builder
+            .with_root_certificates(store.clone())
+            .with_no_client_auth();
 
         config.enable_ocsp_stapling = true;
         Ok(config)

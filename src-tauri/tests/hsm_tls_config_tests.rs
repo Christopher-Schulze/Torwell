@@ -1,20 +1,90 @@
 #[cfg(feature = "hsm")]
+fn setup_softhsm(dir: &tempfile::TempDir, key_pem: &[u8], cert_pem: &[u8]) {
+    use pkcs11::types::*;
+    use pkcs11::Ctx;
+    use std::io::BufReader;
+    use std::process::Command;
+
+    let conf_path = dir.path().join("softhsm2.conf");
+    let token_dir = dir.path().join("tokens");
+    std::fs::create_dir_all(&token_dir).unwrap();
+    std::fs::write(
+        &conf_path,
+        format!("directories.tokendir = {}\n", token_dir.display()),
+    )
+    .unwrap();
+    std::env::set_var("SOFTHSM2_CONF", &conf_path);
+
+    let status = Command::new("softhsm2-util")
+        .args([
+            "--init-token",
+            "--slot",
+            "0",
+            "--label",
+            "torwell",
+            "--so-pin",
+            "0000",
+            "--pin",
+            "1234",
+        ])
+        .status()
+        .expect("softhsm2-util not found");
+    assert!(status.success());
+
+    let mut ctx = Ctx::new("/usr/lib/softhsm/libsofthsm2.so").unwrap();
+    ctx.initialize(None).unwrap();
+    let session = ctx
+        .open_session(0, CKF_SERIAL_SESSION | CKF_RW_SESSION, None, None)
+        .unwrap();
+    ctx.login(session, CKU_USER, Some("1234")).unwrap();
+
+    let mut reader = BufReader::new(key_pem);
+    let key = rustls_pemfile::pkcs8_private_keys(&mut reader)
+        .next()
+        .unwrap()
+        .unwrap();
+    let mut reader = BufReader::new(cert_pem);
+    let cert = rustls_pemfile::certs(&mut reader).next().unwrap().unwrap();
+
+    let key_tpl = vec![
+        CK_ATTRIBUTE::new(CKA_CLASS).with_ck_ulong(&CKO_PRIVATE_KEY),
+        CK_ATTRIBUTE::new(CKA_KEY_TYPE).with_ck_ulong(&CKK_RSA),
+        CK_ATTRIBUTE::new(CKA_TOKEN).with_bool(&CK_TRUE),
+        CK_ATTRIBUTE::new(CKA_LABEL).with_string("tls-key"),
+        CK_ATTRIBUTE::new(CKA_VALUE).with_bytes(&key),
+    ];
+    ctx.create_object(session, &key_tpl).unwrap();
+
+    let cert_tpl = vec![
+        CK_ATTRIBUTE::new(CKA_CLASS).with_ck_ulong(&CKO_CERTIFICATE),
+        CK_ATTRIBUTE::new(CKA_CERTIFICATE_TYPE).with_ck_ulong(&CKC_X_509),
+        CK_ATTRIBUTE::new(CKA_TOKEN).with_bool(&CK_TRUE),
+        CK_ATTRIBUTE::new(CKA_LABEL).with_string("tls-cert"),
+        CK_ATTRIBUTE::new(CKA_VALUE).with_bytes(&cert),
+    ];
+    ctx.create_object(session, &cert_tpl).unwrap();
+
+    ctx.logout(session).unwrap();
+    ctx.close_session(session).unwrap();
+    ctx.finalize().unwrap();
+}
+
+#[cfg(feature = "hsm")]
 #[test]
 fn tls_config_with_min_tls_uses_hsm_keys() {
-    use base64::{engine::general_purpose, Engine as _};
-    use rustls::client::ResolvesClientCert;
     use reqwest::tls::Version;
+    use rustls::client::ResolvesClientCert;
     use std::fs;
     use tempfile::tempdir;
 
-    // Provide SoftHSM library so no real hardware is required.
     std::env::set_var("TORWELL_HSM_LIB", "/usr/lib/softhsm/libsofthsm2.so");
-    let key_b64 = general_purpose::STANDARD.encode(include_bytes!("../tests_data/ca.key"));
-    let cert_b64 = general_purpose::STANDARD.encode(include_bytes!("../tests_data/ca.pem"));
-    std::env::set_var("TORWELL_HSM_MOCK_KEY", &key_b64);
-    std::env::set_var("TORWELL_HSM_MOCK_CERT", &cert_b64);
 
     const CA_PEM: &str = include_str!("../tests_data/ca.pem");
+    const CA_KEY: &[u8] = include_bytes!("../tests_data/ca.key");
+
+    let dir = tempdir().unwrap();
+    setup_softhsm(&dir, CA_KEY, CA_PEM.as_bytes());
+
     let dir = tempdir().unwrap();
     let cert_path = dir.path().join("pinned.pem");
     fs::write(&cert_path, CA_PEM).unwrap();
@@ -24,18 +94,14 @@ fn tls_config_with_min_tls_uses_hsm_keys() {
     )
     .unwrap();
     assert!(cfg.client_auth_cert_resolver.has_certs());
-
-    std::env::remove_var("TORWELL_HSM_MOCK_KEY");
-    std::env::remove_var("TORWELL_HSM_MOCK_CERT");
 }
 
 #[cfg(feature = "hsm")]
 #[tokio::test]
 async fn init_signs_https_requests_with_hsm() {
-    use base64::{engine::general_purpose, Engine as _};
     use hyper::{server::conn::http1, service::service_fn, Body, Response};
-    use rustls::RootCertStore;
     use rustls::server::WebPkiClientVerifier;
+    use rustls::RootCertStore;
     use std::fs;
     use std::io::BufReader;
     use std::sync::Arc;
@@ -51,13 +117,13 @@ async fn init_signs_https_requests_with_hsm() {
     std::env::set_var("TORWELL_HSM_KEY_LABEL", "tls-key");
     std::env::set_var("TORWELL_HSM_CERT_LABEL", "tls-cert");
 
-    let key_b64 = general_purpose::STANDARD.encode(CA_KEY);
-    let cert_b64 = general_purpose::STANDARD.encode(CA_PEM.as_bytes());
-    std::env::set_var("TORWELL_HSM_MOCK_KEY", &key_b64);
-    std::env::set_var("TORWELL_HSM_MOCK_CERT", &cert_b64);
+    let temp = tempdir().unwrap();
+    setup_softhsm(&temp, CA_KEY, CA_PEM.as_bytes());
 
     let mut reader = BufReader::new(CA_PEM.as_bytes());
-    let certs: Vec<_> = rustls_pemfile::certs(&mut reader).collect::<Result<_, _>>().unwrap();
+    let certs: Vec<_> = rustls_pemfile::certs(&mut reader)
+        .collect::<Result<_, _>>()
+        .unwrap();
     let mut reader = BufReader::new(CA_KEY);
     let key = rustls_pemfile::pkcs8_private_keys(&mut reader)
         .next()
@@ -88,12 +154,9 @@ async fn init_signs_https_requests_with_hsm() {
     let server = tokio::spawn(async move {
         if let Ok((stream, _)) = listener.accept().await {
             let tls = acceptor.accept(stream).await.unwrap();
-            let service = service_fn(|_req| async {
-                Ok::<_, hyper::Error>(Response::new(Body::from("ok")))
-            });
-            let _ = http1::Builder::new()
-                .serve_connection(tls, service)
-                .await;
+            let service =
+                service_fn(|_req| async { Ok::<_, hyper::Error>(Response::new(Body::from("ok"))) });
+            let _ = http1::Builder::new().serve_connection(tls, service).await;
         }
     });
 
@@ -115,8 +178,4 @@ async fn init_signs_https_requests_with_hsm() {
     assert_eq!(body, "ok");
 
     server.await.unwrap();
-
-    std::env::remove_var("TORWELL_HSM_MOCK_KEY");
-    std::env::remove_var("TORWELL_HSM_MOCK_CERT");
 }
-
