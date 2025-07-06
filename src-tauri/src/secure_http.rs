@@ -92,22 +92,86 @@ fn parse_tls_version(v: Option<&str>) -> reqwest::tls::Version {
 }
 
 #[cfg(feature = "hsm")]
-pub(crate) fn init_hsm() -> anyhow::Result<Ctx> {
-    // Resolve the PKCS#11 module path from the environment or fall back to
-    // the system SoftHSM location.  This keeps the implementation usable on
-    // machines without a real HSM installed.
+pub struct HsmKeyPair {
+    pub key: Vec<u8>,
+    pub cert: Vec<u8>,
+}
+
+#[cfg(feature = "hsm")]
+pub(crate) fn init_hsm() -> anyhow::Result<(Ctx, Option<HsmKeyPair>)> {
+    use base64::{engine::general_purpose, Engine as _};
+    use pkcs11::types::*;
+
     let module = std::env::var("TORWELL_HSM_LIB")
         .unwrap_or_else(|_| "/usr/lib/softhsm/libsofthsm2.so".into());
+    let slot: CK_SLOT_ID = std::env::var("TORWELL_HSM_SLOT")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+    let pin = std::env::var("TORWELL_HSM_PIN").unwrap_or_else(|_| "1234".into());
+    let key_label = std::env::var("TORWELL_HSM_KEY_LABEL").unwrap_or_else(|_| "tls-key".into());
+    let cert_label = std::env::var("TORWELL_HSM_CERT_LABEL").unwrap_or_else(|_| "tls-cert".into());
 
-    // Create a PKCS#11 context and explicitly initialise the module.
-    let mut ctx = Ctx::new(module)?;
+    // Allow tests to bypass actual HSM access
+    if let (Ok(kb64), Ok(cb64)) = (
+        std::env::var("TORWELL_HSM_MOCK_KEY"),
+        std::env::var("TORWELL_HSM_MOCK_CERT"),
+    ) {
+        let mut ctx = Ctx::new(module)?;
+        ctx.initialize(None)?;
+        return Ok((
+            ctx,
+            Some(HsmKeyPair {
+                key: general_purpose::STANDARD.decode(kb64)?,
+                cert: general_purpose::STANDARD.decode(cb64)?,
+            }),
+        ));
+    }
+
+    let mut ctx = Ctx::new(module.clone())?;
     ctx.initialize(None)?;
-    Ok(ctx)
+
+    let session = ctx.open_session(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION, None, None)?;
+    ctx.login(session, CKU_USER, Some(&pin))?;
+
+    let mut tmpl = vec![
+        CK_ATTRIBUTE::new(CKA_CLASS).with_ck_ulong(&CKO_PRIVATE_KEY),
+        CK_ATTRIBUTE::new(CKA_LABEL).with_string(&key_label),
+    ];
+    ctx.find_objects_init(session, &tmpl)?;
+    let objs = ctx.find_objects(session, 1)?;
+    ctx.find_objects_final(session)?;
+    let key = if let Some(obj) = objs.get(0) {
+        let mut attr = vec![CK_ATTRIBUTE::new(CKA_VALUE)];
+        let (_, attrs) = ctx.get_attribute_value(session, *obj, &mut attr)?;
+        attrs[0].get_bytes().unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let mut tmpl = vec![
+        CK_ATTRIBUTE::new(CKA_CLASS).with_ck_ulong(&CKO_CERTIFICATE),
+        CK_ATTRIBUTE::new(CKA_LABEL).with_string(&cert_label),
+    ];
+    ctx.find_objects_init(session, &tmpl)?;
+    let objs = ctx.find_objects(session, 1)?;
+    ctx.find_objects_final(session)?;
+    let cert = if let Some(obj) = objs.get(0) {
+        let mut attr = vec![CK_ATTRIBUTE::new(CKA_VALUE)];
+        let (_, attrs) = ctx.get_attribute_value(session, *obj, &mut attr)?;
+        attrs[0].get_bytes().unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let _ = ctx.logout(session);
+    let _ = ctx.close_session(session);
+
+    Ok((ctx, Some(HsmKeyPair { key, cert })))
 }
 
 #[cfg(feature = "hsm")]
 pub(crate) fn finalize_hsm(mut ctx: Ctx) {
-    // Ignore errors during finalisation as they should not affect shutdown.
     let _ = ctx.finalize();
 }
 
@@ -176,7 +240,7 @@ impl SecureHttpClient {
         min_tls: reqwest::tls::Version,
     ) -> anyhow::Result<ClientConfig> {
         #[cfg(feature = "hsm")]
-        let hsm_ctx = init_hsm().ok();
+        let hsm = init_hsm().ok();
 
         let mut store = RootCertStore::empty();
         let file = File::open(&path)?;
@@ -192,14 +256,34 @@ impl SecureHttpClient {
             builder.with_protocol_versions(&[&TLS12, &TLS13])?
         };
 
-        let mut config = builder.with_root_certificates(store).with_no_client_auth();
+        let mut config = if let Some((ctx, pair)) = hsm {
+            let mut cfg = if let Some(keys) = pair {
+                use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+                if !keys.key.is_empty() && !keys.cert.is_empty() {
+                    let certs = vec![CertificateDer::from(keys.cert).into_owned()];
+                    let key = PrivateKeyDer::try_from(keys.key)?;
+                    builder
+                        .with_root_certificates(store.clone())
+                        .with_client_auth_cert(certs, key)?
+                } else {
+                    builder
+                        .with_root_certificates(store.clone())
+                        .with_no_client_auth()
+                }
+            } else {
+                builder
+                    .with_root_certificates(store.clone())
+                    .with_no_client_auth()
+            };
+            finalize_hsm(ctx);
+            cfg
+        } else {
+            builder
+                .with_root_certificates(store.clone())
+                .with_no_client_auth()
+        };
 
         config.enable_ocsp_stapling = true;
-
-        #[cfg(feature = "hsm")]
-        if let Some(ctx) = hsm_ctx {
-            finalize_hsm(ctx);
-        }
         Ok(config)
     }
 
