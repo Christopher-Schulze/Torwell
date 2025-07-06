@@ -137,7 +137,7 @@ async fn bridge_parse_error() {
         .unwrap();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::ConnectionFailed { step, source, .. }) => {
             assert_eq!(step, "build_config");
             assert!(source.contains("bridge parsing failed"));
         }
@@ -151,9 +151,27 @@ async fn bootstrap_error_context() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::ConnectionFailed { step, source, .. }) => {
             assert_eq!(step, "bootstrap");
             assert!(source.contains("boot"));
+        }
+        _ => panic!("expected connection failure"),
+    }
+}
+
+#[tokio::test]
+async fn connection_failed_contains_context() {
+    MockTorClient::push_result(Err("ctx".into()));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.connect().await;
+    match res {
+        Err(Error::ConnectionFailed {
+            elapsed_ms,
+            last_error,
+            ..
+        }) => {
+            assert!(elapsed_ms > 0);
+            assert_eq!(last_error, "ctx");
         }
         _ => panic!("expected connection failure"),
     }

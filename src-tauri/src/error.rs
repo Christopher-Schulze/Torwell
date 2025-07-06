@@ -36,8 +36,15 @@ pub enum Error {
     #[error("Network error: {0}")]
     Network(String),
 
-    #[error("connection failed during {step}: {source}")]
-    ConnectionFailed { step: String, source: String },
+    #[error(
+        "connection failed during {step} after {elapsed_ms}ms: {source} (last error: {last_error})"
+    )]
+    ConnectionFailed {
+        step: String,
+        source: String,
+        elapsed_ms: u64,
+        last_error: String,
+    },
 
     #[error("identity change failed during {step}: {source}")]
     Identity { step: String, source: String },

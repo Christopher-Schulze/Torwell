@@ -290,6 +290,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     where
         P: FnMut(u8, String) + Send,
     {
+        let start = std::time::Instant::now();
         if self.is_connected().await {
             log::error!("connect_once: already connected");
             return Err(Error::AlreadyConnected);
@@ -297,18 +298,24 @@ impl<C: TorClientBehavior> TorManager<C> {
         progress(0, "starting".into());
         let config = self.build_config().await.map_err(|e| {
             log::error!("connect_once: build_config failed: {e}");
+            let err_str = e.to_string();
             Error::ConnectionFailed {
                 step: "build_config".into(),
-                source: format!("build_config: {e}"),
+                source: format!("build_config: {err_str}"),
+                elapsed_ms: start.elapsed().as_millis() as u64,
+                last_error: err_str,
             }
         })?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
             .map_err(|e| {
                 log::error!("connect_once: bootstrap failed: {e}");
+                let err_str = e.to_string();
                 Error::ConnectionFailed {
                     step: "bootstrap".into(),
-                    source: format!("bootstrap: {e}"),
+                    source: format!("bootstrap: {err_str}"),
+                    elapsed_ms: start.elapsed().as_millis() as u64,
+                    last_error: err_str,
                 }
             })?;
         *self.client.lock().await = Some(tor_client);

@@ -122,7 +122,8 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             .await;
                     });
                     let (step, source) = match err {
-                        Error::ConnectionFailed { step, source } | Error::Identity { step, source } => (step, source),
+                        Error::ConnectionFailed { step, source, .. }
+                        | Error::Identity { step, source } => (step, source),
                         _ => ("", ""),
                     };
                     let _ = app_handle.emit_all(
@@ -166,9 +167,8 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
             }
             Err(e) => {
                 let (step, source) = match &e {
-                    Error::ConnectionFailed { step, source } | Error::Identity { step, source } => {
-                        (step.as_str(), source.as_str())
-                    }
+                    Error::ConnectionFailed { step, source, .. }
+                    | Error::Identity { step, source } => (step.as_str(), source.as_str()),
                     _ => ("", ""),
                 };
                 if let Err(e_emit) = app_handle.emit_all(
@@ -468,8 +468,7 @@ pub async fn traceroute_host(
     let limit = max_hops.unwrap_or(30) as usize;
     let hops = tokio::task::spawn_blocking(move || {
         let addr = format!("{}:0", host_clone);
-        let trace: TraceResult = traceroute::execute(addr.as_str())
-            .map_err(|e| e.to_string())?;
+        let trace: TraceResult = traceroute::execute(addr.as_str()).map_err(|e| e.to_string())?;
         let mut out = Vec::new();
         for hop in trace.take(limit) {
             let hop = hop.map_err(|e| e.to_string())?;
