@@ -1,18 +1,89 @@
 #[cfg(feature = "hsm")]
 #[test]
 fn tls_config_with_min_tls_uses_hsm_keys() {
-    use base64::{engine::general_purpose, Engine as _};
-    use rustls::client::ResolvesClientCert;
     use reqwest::tls::Version;
+    use rustls::client::ResolvesClientCert;
     use std::fs;
+    use std::process::Command;
     use tempfile::tempdir;
 
-    // Provide SoftHSM library so no real hardware is required.
+    const KEY: &str = "../tests_data/ca.key";
+    const CERT: &str = "../tests_data/ca.pem";
+
     std::env::set_var("TORWELL_HSM_LIB", "/usr/lib/softhsm/libsofthsm2.so");
-    let key_b64 = general_purpose::STANDARD.encode(include_bytes!("../tests_data/ca.key"));
-    let cert_b64 = general_purpose::STANDARD.encode(include_bytes!("../tests_data/ca.pem"));
-    std::env::set_var("TORWELL_HSM_MOCK_KEY", &key_b64);
-    std::env::set_var("TORWELL_HSM_MOCK_CERT", &cert_b64);
+
+    let dir = tempdir().unwrap();
+    let conf = dir.path().join("softhsm2.conf");
+    let tokens = dir.path().join("tokens");
+    fs::create_dir_all(&tokens).unwrap();
+    fs::write(
+        &conf,
+        format!("directories.tokendir = {}\n", tokens.display()),
+    )
+    .unwrap();
+    std::env::set_var("SOFTHSM2_CONF", &conf);
+
+    Command::new("softhsm2-util")
+        .args([
+            "--init-token",
+            "--slot",
+            "0",
+            "--label",
+            "torwell",
+            "--so-pin",
+            "0102030405060708",
+            "--pin",
+            "1234",
+        ])
+        .status()
+        .unwrap();
+    Command::new("softhsm2-util")
+        .args([
+            "--import", KEY, "--token", "torwell", "--label", "tls-key", "--id", "01", "--pin",
+            "1234",
+        ])
+        .status()
+        .unwrap();
+
+    let out = Command::new("softhsm2-util")
+        .arg("--show-slots")
+        .output()
+        .unwrap();
+    let txt = String::from_utf8(out.stdout).unwrap();
+    let slot = txt
+        .split("Slot ")
+        .filter_map(|s| {
+            if s.contains("Label:            torwell") {
+                s.lines().next().and_then(|l| l.trim().parse::<u64>().ok())
+            } else {
+                None
+            }
+        })
+        .expect("slot not found");
+    Command::new("pkcs11-tool")
+        .args([
+            "--module",
+            "/usr/lib/softhsm/libsofthsm2.so",
+            "--slot",
+            &slot.to_string(),
+            "--pin",
+            "1234",
+            "-w",
+            CERT,
+            "-y",
+            "cert",
+            "-d",
+            "01",
+            "-a",
+            "tls-cert",
+        ])
+        .status()
+        .unwrap();
+
+    std::env::set_var("TORWELL_HSM_SLOT", slot.to_string());
+    std::env::set_var("TORWELL_HSM_PIN", "1234");
+    std::env::set_var("TORWELL_HSM_KEY_LABEL", "tls-key");
+    std::env::set_var("TORWELL_HSM_CERT_LABEL", "tls-cert");
 
     const CA_PEM: &str = include_str!("../tests_data/ca.pem");
     let dir = tempdir().unwrap();
@@ -24,18 +95,14 @@ fn tls_config_with_min_tls_uses_hsm_keys() {
     )
     .unwrap();
     assert!(cfg.client_auth_cert_resolver.has_certs());
-
-    std::env::remove_var("TORWELL_HSM_MOCK_KEY");
-    std::env::remove_var("TORWELL_HSM_MOCK_CERT");
 }
 
 #[cfg(feature = "hsm")]
 #[tokio::test]
 async fn init_signs_https_requests_with_hsm() {
-    use base64::{engine::general_purpose, Engine as _};
     use hyper::{server::conn::http1, service::service_fn, Body, Response};
-    use rustls::RootCertStore;
     use rustls::server::WebPkiClientVerifier;
+    use rustls::RootCertStore;
     use std::fs;
     use std::io::BufReader;
     use std::sync::Arc;
@@ -45,19 +112,94 @@ async fn init_signs_https_requests_with_hsm() {
     const CA_PEM: &str = include_str!("../tests_data/ca.pem");
     const CA_KEY: &[u8] = include_bytes!("../tests_data/ca.key");
 
+    use std::process::Command;
+
     std::env::set_var("TORWELL_HSM_LIB", "/usr/lib/softhsm/libsofthsm2.so");
-    std::env::set_var("TORWELL_HSM_SLOT", "0");
+
+    let hsm_dir = tempdir().unwrap();
+    let conf = hsm_dir.path().join("softhsm2.conf");
+    let tokens = hsm_dir.path().join("tokens");
+    fs::create_dir_all(&tokens).unwrap();
+    fs::write(
+        &conf,
+        format!("directories.tokendir = {}\n", tokens.display()),
+    )
+    .unwrap();
+    std::env::set_var("SOFTHSM2_CONF", &conf);
+
+    Command::new("softhsm2-util")
+        .args([
+            "--init-token",
+            "--slot",
+            "0",
+            "--label",
+            "torwell",
+            "--so-pin",
+            "0102030405060708",
+            "--pin",
+            "1234",
+        ])
+        .status()
+        .unwrap();
+    Command::new("softhsm2-util")
+        .args([
+            "--import",
+            "../tests_data/ca.key",
+            "--token",
+            "torwell",
+            "--label",
+            "tls-key",
+            "--id",
+            "01",
+            "--pin",
+            "1234",
+        ])
+        .status()
+        .unwrap();
+    let out = Command::new("softhsm2-util")
+        .arg("--show-slots")
+        .output()
+        .unwrap();
+    let txt = String::from_utf8(out.stdout).unwrap();
+    let slot = txt
+        .split("Slot ")
+        .filter_map(|s| {
+            if s.contains("Label:            torwell") {
+                s.lines().next().and_then(|l| l.trim().parse::<u64>().ok())
+            } else {
+                None
+            }
+        })
+        .expect("slot not found");
+    Command::new("pkcs11-tool")
+        .args([
+            "--module",
+            "/usr/lib/softhsm/libsofthsm2.so",
+            "--slot",
+            &slot.to_string(),
+            "--pin",
+            "1234",
+            "-w",
+            "../tests_data/ca.pem",
+            "-y",
+            "cert",
+            "-d",
+            "01",
+            "-a",
+            "tls-cert",
+        ])
+        .status()
+        .unwrap();
+
+    std::env::set_var("TORWELL_HSM_SLOT", slot.to_string());
     std::env::set_var("TORWELL_HSM_PIN", "1234");
     std::env::set_var("TORWELL_HSM_KEY_LABEL", "tls-key");
     std::env::set_var("TORWELL_HSM_CERT_LABEL", "tls-cert");
 
-    let key_b64 = general_purpose::STANDARD.encode(CA_KEY);
-    let cert_b64 = general_purpose::STANDARD.encode(CA_PEM.as_bytes());
-    std::env::set_var("TORWELL_HSM_MOCK_KEY", &key_b64);
-    std::env::set_var("TORWELL_HSM_MOCK_CERT", &cert_b64);
-
     let mut reader = BufReader::new(CA_PEM.as_bytes());
-    let certs: Vec<_> = rustls_pemfile::certs(&mut reader).collect::<Result<_, _>>().unwrap();
+    let certs: Vec<_> = rustls_pemfile::certs(&mut reader)
+        .collect::<Result<_, _>>()
+        .unwrap();
     let mut reader = BufReader::new(CA_KEY);
     let key = rustls_pemfile::pkcs8_private_keys(&mut reader)
         .next()
@@ -88,12 +230,9 @@ async fn init_signs_https_requests_with_hsm() {
     let server = tokio::spawn(async move {
         if let Ok((stream, _)) = listener.accept().await {
             let tls = acceptor.accept(stream).await.unwrap();
-            let service = service_fn(|_req| async {
-                Ok::<_, hyper::Error>(Response::new(Body::from("ok")))
-            });
-            let _ = http1::Builder::new()
-                .serve_connection(tls, service)
-                .await;
+            let service =
+                service_fn(|_req| async { Ok::<_, hyper::Error>(Response::new(Body::from("ok"))) });
+            let _ = http1::Builder::new().serve_connection(tls, service).await;
         }
     });
 
@@ -115,8 +254,4 @@ async fn init_signs_https_requests_with_hsm() {
     assert_eq!(body, "ok");
 
     server.await.unwrap();
-
-    std::env::remove_var("TORWELL_HSM_MOCK_KEY");
-    std::env::remove_var("TORWELL_HSM_MOCK_CERT");
 }
-

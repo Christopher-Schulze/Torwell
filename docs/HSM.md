@@ -51,3 +51,32 @@ TORWELL_HSM_SLOT=0 \
 TORWELL_HSM_PIN=1234 \
 bun tauri dev --features hsm
 ```
+
+## Minimal example for testing
+
+For automated tests or quick experiments you can use SoftHSM without
+permanent state. The snippet below creates a temporary token, imports a
+key pair and certificate and runs the tests with HSM support enabled.
+
+```bash
+TMP=/tmp/hsm-test
+mkdir -p "$TMP/tokens"
+cat >"$TMP/softhsm2.conf" <<EOF
+directories.tokendir = $TMP/tokens
+EOF
+export SOFTHSM2_CONF="$TMP/softhsm2.conf"
+softhsm2-util --init-token --slot 0 --label torwell \
+    --so-pin 0102030405060708 --pin 1234
+softhsm2-util --import path/to/key.pem --token torwell \
+    --label tls-key --id 01 --pin 1234
+pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --token-label torwell \
+    --pin 1234 -w path/to/cert.pem -y cert -d 01 -a tls-cert
+export TORWELL_HSM_LIB=/usr/lib/softhsm/libsofthsm2.so
+export TORWELL_HSM_SLOT=$(softhsm2-util --show-slots | \
+    awk '/Label:\s*torwell/{getline;print $2}')
+export TORWELL_HSM_PIN=1234
+cargo test --features hsm
+```
+
+When using a YubiHSM replace the library path with the location of
+`libyubihsm_pkcs11.so` and omit the SoftHSM setup steps.
