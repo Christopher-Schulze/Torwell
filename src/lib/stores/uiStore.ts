@@ -16,6 +16,7 @@ type AppSettings = {
 type UIState = {
   isLogsModalOpen: boolean;
   isSettingsModalOpen: boolean;
+  cloudflareEnabled: boolean;
   settings: AppSettings;
   error: string | null;
 };
@@ -24,6 +25,7 @@ function createUIStore() {
   const { subscribe, update, set } = writable<UIState>({
     isLogsModalOpen: false,
     isSettingsModalOpen: false,
+    cloudflareEnabled: false,
     settings: {
       workerList: ["worker1.example.com", "worker2.example.com"], // Default values
       torrcConfig: "# Default torrc config\n",
@@ -55,6 +57,9 @@ function createUIStore() {
       update((state) => ({ ...state, isSettingsModalOpen: true })),
     closeSettingsModal: () =>
       update((state) => ({ ...state, isSettingsModalOpen: false })),
+
+    setCloudflareEnabled: (val: boolean) =>
+      update((state) => ({ ...state, cloudflareEnabled: val })),
 
     loadSettings: async () => {
       try {
