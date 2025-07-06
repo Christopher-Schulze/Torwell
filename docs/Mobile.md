@@ -24,3 +24,12 @@ When compiled with the `mobile` feature, the Rust backend automatically launches
 a small HTTP server listening on `http://127.0.0.1:1421`. The Capacitor shell
 communicates with this server to control the Tor connection. Make sure requests
 target this port when running the mobile app.
+
+## CI Artifacts
+
+A dedicated GitHub workflow (`mobile.yml`) builds the Android and iOS apps. The resulting packages are uploaded as artifacts on each run:
+
+- `android-apk` contains the built `.apk` file.
+- `ios-ipa` provides the `.ipa` bundle.
+
+If no binary is produced, the workflow uploads a placeholder archive so the artifact list is always available. Download the desired artifact from the workflow run page to test the mobile build without setting up the full toolchain locally.

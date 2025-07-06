@@ -1,0 +1,75 @@
+name: Mobile
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: task mobile:android
+      - name: Find APK
+        id: apk
+        run: |
+          APK=$(find . -name '*.apk' | head -n 1 || true)
+          if [ -z "$APK" ]; then
+            echo "Creating placeholder APK"
+            mkdir -p dist
+            echo "APK missing" > dist/placeholder.txt
+            zip -j dist/placeholder.apk.zip dist/placeholder.txt
+            echo "path=dist/placeholder.apk.zip" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=$APK" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ${{ steps.apk.outputs.path }}
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: task mobile:ios
+      - name: Find IPA
+        id: ipa
+        run: |
+          IPA=$(find . -name '*.ipa' | head -n 1 || true)
+          if [ -z "$IPA" ]; then
+            echo "Creating placeholder IPA"
+            mkdir -p dist
+            echo "IPA missing" > dist/placeholder.txt
+            zip -j dist/placeholder.ipa.zip dist/placeholder.txt
+            echo "path=dist/placeholder.ipa.zip" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=$IPA" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: ${{ steps.ipa.outputs.path }}
