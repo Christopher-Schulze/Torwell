@@ -299,7 +299,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             log::error!("connect_once: build_config failed: {e}");
             Error::ConnectionFailed {
                 step: "build_config".into(),
-                source: e.to_string(),
+                source: format!("build_config: {e}"),
             }
         })?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
@@ -308,7 +308,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                 log::error!("connect_once: bootstrap failed: {e}");
                 Error::ConnectionFailed {
                     step: "bootstrap".into(),
-                    source: e,
+                    source: format!("bootstrap: {e}"),
                 }
             })?;
         *self.client.lock().await = Some(tor_client);
@@ -467,14 +467,14 @@ impl<C: TorClientBehavior> TorManager<C> {
             log::error!("new_identity: build_config failed: {}", e);
             Error::Identity {
                 step: "build_config".into(),
-                source: e.to_string(),
+                source: format!("build_config: {}", e),
             }
         })?;
         client.reconfigure(&config).map_err(|e| {
             log::error!("new_identity: reconfigure failed: {}", e);
             Error::Identity {
                 step: "reconfigure".into(),
-                source: e,
+                source: format!("reconfigure: {e}"),
             }
         })?;
         client.retire_all_circs();
@@ -484,7 +484,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             log::error!("new_identity: build_circuit failed: {}", e);
             Error::Identity {
                 step: "build_circuit".into(),
-                source: e,
+                source: format!("build_circuit: {e}"),
             }
         })?;
 

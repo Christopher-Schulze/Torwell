@@ -121,9 +121,9 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             )
                             .await;
                     });
-                    let step = match err {
-                        Error::ConnectionFailed { step, .. } | Error::Identity { step, .. } => step,
-                        _ => "",
+                    let (step, source) = match err {
+                        Error::ConnectionFailed { step, source } | Error::Identity { step, source } => (step, source),
+                        _ => ("", ""),
                     };
                     let _ = app_handle.emit_all(
                         "tor-status-update",
@@ -132,7 +132,8 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             "retryCount": attempt,
                             "retryDelay": delay.as_secs(),
                             "errorMessage": err_str,
-                            "errorStep": step
+                            "errorStep": step,
+                            "errorSource": source
                         }),
                     );
                 },
@@ -164,11 +165,11 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 state_clone.update_tray_menu().await;
             }
             Err(e) => {
-                let step = match &e {
-                    Error::ConnectionFailed { step, .. } | Error::Identity { step, .. } => {
-                        step.as_str()
+                let (step, source) = match &e {
+                    Error::ConnectionFailed { step, source } | Error::Identity { step, source } => {
+                        (step.as_str(), source.as_str())
                     }
-                    _ => "",
+                    _ => ("", ""),
                 };
                 if let Err(e_emit) = app_handle.emit_all(
                     "tor-status-update",
@@ -176,6 +177,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                         "status": "ERROR",
                         "errorMessage": e.to_string(),
                         "errorStep": step,
+                        "errorSource": source,
                         "bootstrapMessage": "",
                         "retryCount": 0, "retryDelay": 0
                     }),
