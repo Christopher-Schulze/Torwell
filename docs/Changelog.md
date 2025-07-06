@@ -1,3 +1,8 @@
+## [2.3.1] - 2025-07-06
+- Attempted to run cargo test, cargo clippy, bun run check and bun run lint:a11y; all failed due to missing toolchain components or commands.
+- bun run tauri build could not run because Tauri CLI was not found.
+- Service torwell84.service and journalctl logs unavailable in container.
+
 ## [2.3.0] - 2025-07-06
 - Add circuit management commands and UI
 - Add HSM initialization example and tests
