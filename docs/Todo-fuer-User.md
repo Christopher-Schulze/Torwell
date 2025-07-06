@@ -25,6 +25,6 @@ Dieses Dokument beschreibt, wie du den Beispiel‑Worker aus dem Ordner `cf work
 
 ## Proxy in Torwell84 einrichten
 
-Trage die URL deines Workers in der Anwendung unter **Settings → Worker List** ein. Alternativ kannst du die Adresse in `src/lib/bridge_presets.json` hinterlegen, damit sie beim ersten Start bereits vorgeschlagen wird.
+Trage die URL deines Workers in der Anwendung unter **Settings → Worker List** ein und hinterlege das geheime Token im Feld **Worker token**. Alternativ kannst du die Adresse in `src/lib/bridge_presets.json` hinterlegen, damit sie beim ersten Start bereits vorgeschlagen wird.
 
 Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Verbindungen mit dem gesetzten Token authentifiziert.

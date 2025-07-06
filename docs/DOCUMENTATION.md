@@ -50,6 +50,21 @@ The frontend remains visually and functionally identical to the original design,
 - Comprehensive changelog tracking
 - Task list for future improvements
 
+### 3.4 Hardware Security Module
+Support for PKCS#11 modules is available when compiling with the `hsm` feature.
+`SecureHttpClient` loads the library specified by the `TORWELL_HSM_LIB`
+environment variable and can access keys on a hardware token.
+
+### 3.5 Circuit Management
+The command `build_new_circuit` allows creating additional circuits on demand.
+`circuit_metrics` returns the number of currently open circuits and the age of
+the oldest one if built with the `experimental-api` feature.
+
+### 3.6 Mobile Workflow
+Running `task mobile:android` or `task mobile:ios` builds a Capacitor-based
+mobile shell. The backend runs a small HTTP bridge on port 1421 when compiled
+with the `mobile` feature so that the web app can control the Tor client.
+
 ## 4. Build Process
 
 The application is built as a standard Tauri project:
