@@ -368,6 +368,25 @@ impl SecureHttpClient {
         *self.worker_token.lock().await = token;
     }
 
+    /// Update HSM library path and slot then reload TLS configuration
+    pub async fn set_hsm_config(
+        &self,
+        lib: Option<String>,
+        slot: Option<u64>,
+    ) -> anyhow::Result<()> {
+        if let Some(l) = lib {
+            std::env::set_var("TORWELL_HSM_LIB", &l);
+        } else {
+            std::env::remove_var("TORWELL_HSM_LIB");
+        }
+        if let Some(s) = slot {
+            std::env::set_var("TORWELL_HSM_SLOT", s.to_string());
+        } else {
+            std::env::remove_var("TORWELL_HSM_SLOT");
+        }
+        self.reload_certificates().await
+    }
+
     async fn emit_warning(&self, msg: String) {
         if let Some(cb) = self.warning_cb.lock().await.as_ref() {
             cb(msg);

@@ -54,20 +54,21 @@ async function loadKey(db: AppDatabase): Promise<CryptoKey> {
     }
   }
 
-  return crypto.subtle.importKey(
-    "raw",
-    b64ToBuf(keyB64),
-    "AES-GCM",
-    true,
-    ["encrypt", "decrypt"]
-  );
+  return crypto.subtle.importKey("raw", b64ToBuf(keyB64), "AES-GCM", true, [
+    "encrypt",
+    "decrypt",
+  ]);
 }
 
 async function encryptString(db: AppDatabase, value: string): Promise<string> {
   const key = await loadKey(db);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(value);
-  const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+  const cipher = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encoded,
+  );
   const combined = new Uint8Array(iv.byteLength + cipher.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(cipher), iv.byteLength);
@@ -79,23 +80,37 @@ async function decryptString(db: AppDatabase, value: string): Promise<string> {
   const iv = data.slice(0, 12);
   const cipher = data.slice(12);
   const key = await loadKey(db);
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    cipher,
+  );
   return new TextDecoder().decode(plain);
 }
 
-async function encryptFields(db: AppDatabase, obj: Partial<Settings>): Promise<void> {
+async function encryptFields(
+  db: AppDatabase,
+  obj: Partial<Settings>,
+): Promise<void> {
   if (obj.bridges) {
-    obj.bridges = await Promise.all(obj.bridges.map((b) => encryptString(db, b)));
+    obj.bridges = await Promise.all(
+      obj.bridges.map((b) => encryptString(db, b)),
+    );
   }
   if (obj.exitCountry != null) {
     obj.exitCountry = await encryptString(db, obj.exitCountry);
   }
 }
 
-async function decryptFields(db: AppDatabase, obj: Settings | undefined): Promise<Settings | undefined> {
+async function decryptFields(
+  db: AppDatabase,
+  obj: Settings | undefined,
+): Promise<Settings | undefined> {
   if (!obj) return obj;
   if (obj.bridges) {
-    obj.bridges = await Promise.all(obj.bridges.map((b) => decryptString(db, b)));
+    obj.bridges = await Promise.all(
+      obj.bridges.map((b) => decryptString(db, b)),
+    );
   }
   if (obj.exitCountry != null) {
     obj.exitCountry = await decryptString(db, obj.exitCountry);
@@ -112,6 +127,8 @@ export interface Settings {
   bridges?: string[];
   bridgePreset?: string | null;
   maxLogLines?: number;
+  hsm_lib?: string | null;
+  hsm_slot?: number | null;
 }
 
 export class AppDatabase extends Dexie {
@@ -134,6 +151,11 @@ export class AppDatabase extends Dexie {
     this.version(4).stores({
       settings:
         "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset",
+      meta: "&id",
+    });
+    this.version(5).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot",
       meta: "&id",
     });
 

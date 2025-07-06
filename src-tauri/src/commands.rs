@@ -274,6 +274,22 @@ pub async fn set_worker_config(
 }
 
 #[tauri::command]
+pub async fn set_hsm_config(
+    state: State<'_, AppState>,
+    lib: Option<String>,
+    slot: Option<u64>,
+) -> Result<()> {
+    check_api_rate()?;
+    state
+        .http_client
+        .set_hsm_config(lib, slot)
+        .await
+        .map_err(|e| Error::Io(e.to_string()))?
+        ;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn list_bridge_presets() -> Result<Vec<BridgePreset>> {
     crate::tor_manager::load_default_bridge_presets()
 }
