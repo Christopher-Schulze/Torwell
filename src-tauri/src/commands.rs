@@ -122,7 +122,8 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             .await;
                     });
                     let (step, source) = match err {
-                        Error::ConnectionFailed { step, source } | Error::Identity { step, source } => (step, source),
+                        Error::ConnectionFailed { step, source }
+                        | Error::Identity { step, source } => (step, source),
                         _ => ("", ""),
                     };
                     let _ = app_handle.emit_all(
@@ -468,8 +469,7 @@ pub async fn traceroute_host(
     let limit = max_hops.unwrap_or(30) as usize;
     let hops = tokio::task::spawn_blocking(move || {
         let addr = format!("{}:0", host_clone);
-        let trace: TraceResult = traceroute::execute(addr.as_str())
-            .map_err(|e| e.to_string())?;
+        let trace: TraceResult = traceroute::execute(addr.as_str()).map_err(|e| e.to_string())?;
         let mut out = Vec::new();
         for hop in trace.take(limit) {
             let hop = hop.map_err(|e| e.to_string())?;
@@ -516,4 +516,26 @@ pub async fn set_secure_key(
     entry
         .set_password(&value)
         .map_err(|e| Error::Io(e.to_string()))
+}
+
+#[tauri::command]
+pub async fn reconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("reconnect").await;
+    check_api_rate()?;
+
+    // Attempt graceful disconnect; ignore errors if already disconnected
+    let _ = state.tor_manager.disconnect().await;
+
+    // Reuse existing connect logic
+    connect(app_handle, state).await
+}
+
+#[tauri::command]
+pub async fn show_dashboard(app_handle: tauri::AppHandle) -> Result<()> {
+    if let Some(window) = app_handle.get_window("main") {
+        let _ = window.emit("open-dashboard", ());
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+    Ok(())
 }
