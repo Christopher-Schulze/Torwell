@@ -25,5 +25,5 @@ cargo build --release --manifest-path "$ROOT_DIR/src-tauri/Cargo.toml" --feature
 # Build the Android app using Capacitor
 cd "$SCRIPT_DIR/.."
 bun install
-npx cap sync android
+npx cap copy android
 npx cap build android

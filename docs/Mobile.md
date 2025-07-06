@@ -16,7 +16,14 @@ The Svelte frontend is reused by pointing `webDir` to the compiled web assets.
    Each task performs the following:
    - `bun run build` generates the web assets in `build/`.
    - `cargo build --release --manifest-path src-tauri/Cargo.toml --features mobile` compiles the Rust backend so the HTTP bridge is included.
-   - The Capacitor CLI then syncs and builds the native project.
+   - The Capacitor CLI then copies the assets and builds the native project.
+
+3. To create the final application packages manually run:
+
+   ```bash
+   ./mobile/scripts/build_android.sh   # generates the APK
+   ./mobile/scripts/build_ios.sh       # generates the IPA (macOS required)
+   ```
 
 ## IPC Bridge
 

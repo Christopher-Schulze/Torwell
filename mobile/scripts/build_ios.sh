@@ -25,5 +25,5 @@ cargo build --release --manifest-path "$ROOT_DIR/src-tauri/Cargo.toml" --feature
 # Build the iOS app using Capacitor
 cd "$SCRIPT_DIR/.."
 bun install
-npx cap sync ios
+npx cap copy ios
 npx cap build ios
