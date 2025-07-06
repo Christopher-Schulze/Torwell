@@ -32,6 +32,8 @@ export interface MetricPoint {
   oldestAge: number;
   avgCreateMs: number;
   failedAttempts: number;
+  cpuPercent: number;
+  networkBytes: number;
 }
 
 function createTorStore() {
@@ -62,6 +64,8 @@ function createTorStore() {
       oldestAge: event.payload.oldest_age ?? 0,
       avgCreateMs: event.payload.avg_create_ms ?? 0,
       failedAttempts: event.payload.failed_attempts ?? 0,
+      cpuPercent: event.payload.cpu_percent ?? 0,
+      networkBytes: event.payload.network_bytes ?? 0,
     };
     update((state) => {
       const metrics = [...state.metrics, point].slice(-MAX_POINTS);
