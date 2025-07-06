@@ -315,21 +315,33 @@
 		</div>
 		
 		<!-- Cloudflare Card -->
-		<div class="bg-black/50 rounded-xl p-4 flex flex-col min-h-[200px] {cloudflareEnabled ? '' : 'opacity-50'}">
+                <div class="bg-black/50 rounded-xl p-4 flex flex-col min-h-[200px] {cloudflareEnabled ? '' : 'opacity-50'}" tabindex="0" aria-label="Cloudflare node">
 			<div class="flex justify-center items-center h-12 mb-2">
 				<div class="text-3xl {cloudflareEnabled ? '' : 'opacity-50'}">☁️</div>
 			</div>
 			<div class="text-center flex-1 flex flex-col justify-center space-y-1">
 				<div class="text-sm {cloudflareEnabled ? 'text-white' : 'text-gray-300'} font-medium h-5 flex items-center justify-center">Cloudflare</div>
-				<div class="text-xs {cloudflareEnabled ? 'text-gray-200' : 'text-gray-400'} h-4 flex items-center justify-center">
-					-
-				</div>
-				<div class="text-lg h-6 flex items-center justify-center">
-					-
-				</div>
-				<div class="text-xs text-gray-200 h-4 flex items-center justify-center">
-					-
-				</div>
+                                <div class="text-xs {cloudflareEnabled ? 'text-gray-200' : 'text-gray-400'} h-4 flex items-center justify-center">
+                                        {#if isConnected && cloudflareEnabled && nodeData[3]}
+                                                {nodeData[3].ip_address}
+                                        {:else}
+                                                -
+                                        {/if}
+                                </div>
+                                <div class="text-lg h-6 flex items-center justify-center">
+                                        {#if isConnected && cloudflareEnabled && nodeData[3]}
+                                                {getCountryFlag(nodeData[3].country)}
+                                        {:else}
+                                                -
+                                        {/if}
+                                </div>
+                                <div class="text-xs text-gray-200 h-4 flex items-center justify-center">
+                                        {#if isConnected && cloudflareEnabled && nodeData[3]}
+                                                {nodeData[3].nickname}
+                                        {:else}
+                                                -
+                                        {/if}
+                                </div>
 			</div>
 		</div>
 	</div>
