@@ -341,14 +341,22 @@ impl<C: TorClientBehavior> TorManager<C> {
         let start = std::time::Instant::now();
         let mut attempt = 0;
         let mut delay = INITIAL_BACKOFF;
+        let mut last_error = String::new();
         loop {
             if start.elapsed() >= max_total_time {
                 log::error!("connect_with_backoff: timeout after {:?}", max_total_time);
-                return Err(Error::Timeout);
+                return Err(Error::ConnectionFailed {
+                    step: "timeout".into(),
+                    source: last_error,
+                });
             }
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
+                    if attempt == 0 && matches!(e, Error::AlreadyConnected) {
+                        return Err(e);
+                    }
+                    last_error = e.to_string();
                     attempt += 1;
                     on_retry(attempt, delay, &e);
                     if attempt > max_retries {
@@ -357,14 +365,17 @@ impl<C: TorClientBehavior> TorManager<C> {
                             attempt,
                             e
                         );
-                        return Err(Error::RetriesExceeded {
-                            attempts: attempt,
-                            error: e.to_string(),
+                        return Err(Error::ConnectionFailed {
+                            step: "retries_exceeded".into(),
+                            source: last_error,
                         });
                     }
                     if start.elapsed() + delay > max_total_time {
                         log::error!("connect_with_backoff: total timeout reached");
-                        return Err(Error::Timeout);
+                        return Err(Error::ConnectionFailed {
+                            step: "timeout".into(),
+                            source: last_error,
+                        });
                     }
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, MAX_BACKOFF);
