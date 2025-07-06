@@ -132,14 +132,15 @@ cd src-tauri && cargo test
 ```
 
 ### UI Backup
-To back up the current Svelte components before experimenting with new designs,
-run:
+Before experimenting with new designs you can back up the current UI
+components by running:
 
 ```bash
 scripts/backup_ui.sh
 ```
-The script copies `src/lib/components` to `src/lib/components_backup` so you can
-easily restore the previous UI.
+The script copies `src/lib/components` into a `src/lib/components_backup`
+directory, creating it if necessary. This folder is not tracked in Git and can
+be removed once you no longer need the backup.
 
 
 
