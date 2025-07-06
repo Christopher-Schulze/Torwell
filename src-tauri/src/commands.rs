@@ -422,7 +422,6 @@ pub async fn ping_host(
         .map_err(|e| Error::Io(e.to_string()))
 }
 
-#[cfg(feature = "dns_lookup")]
 #[tauri::command]
 pub async fn dns_lookup(
     state: State<'_, AppState>,
@@ -445,7 +444,6 @@ pub async fn dns_lookup(
     Ok(entries.map(|a| a.ip().to_string()).collect())
 }
 
-#[cfg(feature = "traceroute")]
 #[tauri::command]
 pub async fn traceroute_host(
     state: State<'_, AppState>,
