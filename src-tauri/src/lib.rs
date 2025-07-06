@@ -33,12 +33,16 @@ pub fn run() {
     let connect = CustomMenuItem::new("connect", "Connect");
     let disconnect = CustomMenuItem::new("disconnect", "Disconnect");
     let logs = CustomMenuItem::new("show_logs", "Show Logs");
+    let dashboard = CustomMenuItem::new("show_dashboard", "Show Dashboard");
+    let reconnect = CustomMenuItem::new("reconnect", "Reconnect");
     let settings = CustomMenuItem::new("settings", "Settings");
     let tray_menu = SystemTrayMenu::new()
         .add_item(show.clone())
         .add_item(connect.clone())
         .add_item(disconnect.clone())
+        .add_item(reconnect.clone())
         .add_item(logs.clone())
+        .add_item(dashboard.clone())
         .add_item(settings.clone())
         .add_item(quit.clone());
     let tray = SystemTray::new().with_menu(tray_menu);
@@ -74,12 +78,28 @@ pub fn run() {
                         state.update_tray_menu().await;
                     });
                 }
+                "reconnect" => {
+                    let state = app.state::<AppState>();
+                    let handle = app.handle();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(e) = commands::reconnect(handle.clone(), state.clone()).await {
+                            log::error!("tray reconnect failed: {}", e);
+                        }
+                        state.update_tray_menu().await;
+                    });
+                }
                 "show_logs" => {
                     if let Some(window) = app.get_window("main") {
                         let _ = window.emit("open-logs", ());
                         let _ = window.show();
                         let _ = window.set_focus();
                     }
+                }
+                "show_dashboard" => {
+                    let handle = app.handle();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = commands::show_dashboard(handle).await;
+                    });
                 }
                 "settings" => {
                     if let Some(window) = app.get_window("main") {
@@ -149,6 +169,8 @@ pub fn run() {
             commands::traceroute_host,
             commands::get_secure_key,
             commands::set_secure_key,
+            commands::reconnect,
+            commands::show_dashboard,
             commands::request_token
         ])
         .run(tauri::generate_context!())

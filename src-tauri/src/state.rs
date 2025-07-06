@@ -437,7 +437,11 @@ impl<C: TorClientBehavior> AppState<C> {
     async fn update_tray_menu(&self) {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
             let connected = self.tor_manager.is_connected().await;
-            let status = if connected { "Connected" } else { "Disconnected" };
+            let status = if connected {
+                "Connected"
+            } else {
+                "Disconnected"
+            };
             let mut menu = SystemTrayMenu::new()
                 .add_item(CustomMenuItem::new("status", format!("Status: {}", status)).disabled())
                 .add_item(CustomMenuItem::new("show", "Show"));
@@ -449,6 +453,8 @@ impl<C: TorClientBehavior> AppState<C> {
             }
 
             menu = menu
+                .add_item(CustomMenuItem::new("reconnect", "Reconnect"))
+                .add_item(CustomMenuItem::new("show_dashboard", "Show Dashboard"))
                 .add_item(CustomMenuItem::new("show_logs", "Show Logs"))
                 .add_item(CustomMenuItem::new("settings", "Settings"))
                 .add_item(CustomMenuItem::new("quit", "Quit"));
