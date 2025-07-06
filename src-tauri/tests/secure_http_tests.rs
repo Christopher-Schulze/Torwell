@@ -8,6 +8,7 @@ use std::time::Duration;
 use tempfile::tempdir;
 use tokio::sync::mpsc;
 use torwell84::secure_http::{SecureHttpClient, DEFAULT_CONFIG_PATH};
+use urlencoding::encode;
 
 const CA_PEM: &str = include_str!("../tests_data/ca.pem");
 const NEW_CERT: &str = include_str!("../tests_data/new_cert.pem");
@@ -474,4 +475,59 @@ async fn tls_config_uses_hsm_keys() {
 
     std::env::remove_var("TORWELL_HSM_MOCK_KEY");
     std::env::remove_var("TORWELL_HSM_MOCK_CERT");
+}
+
+#[tokio::test]
+async fn worker_forwards_token() {
+    let worker = MockServer::start_async().await;
+    let target = "https://example.com/hello";
+    let encoded = encode(target);
+    worker
+        .mock_async(|when, then| {
+            when
+                .method(GET)
+                .path(format!("/proxy?url={}", encoded));
+            then.status(200).body("ok");
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+    client
+        .set_worker_config(vec![worker.url("/proxy")], Some("secret".into()))
+        .await;
+
+    let res = client.get_text(target).await.unwrap();
+    assert_eq!(res, "ok");
+}
+
+#[tokio::test]
+async fn update_fails_with_wrong_worker_token() {
+    let worker = MockServer::start_async().await;
+    let target = "https://example.com/cert.pem";
+    let encoded = encode(target);
+    worker
+        .mock_async(|when, then| {
+            when
+                .method(GET)
+                .header("X-Proxy-Token", "secret")
+                .path(format!("/proxy?url={}", encoded));
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+    client
+        .set_worker_config(vec![worker.url("/proxy")], Some("wrong".into()))
+        .await;
+
+    let res = client.update_certificates(target).await;
+    assert!(res.is_err());
 }
