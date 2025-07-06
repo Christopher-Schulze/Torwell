@@ -93,7 +93,13 @@ async fn connect_with_backoff_error() {
             |_| {},
         )
         .await;
-    assert!(matches!(res, Err(Error::RetriesExceeded { .. })));
+    match res {
+        Err(Error::ConnectionFailed { step, source }) => {
+            assert_eq!(step, "retries_exceeded");
+            assert!(source.contains("e2"));
+        }
+        _ => panic!("expected connection failure"),
+    }
 }
 
 #[tokio::test]
@@ -125,7 +131,10 @@ async fn connect_with_backoff_timeout() {
             |_| {},
         )
         .await;
-    assert!(matches!(res, Err(Error::Timeout)));
+    match res {
+        Err(Error::ConnectionFailed { step, .. }) => assert_eq!(step, "timeout"),
+        _ => panic!("expected timeout error"),
+    }
 }
 
 #[tokio::test]
