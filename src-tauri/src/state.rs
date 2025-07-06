@@ -394,6 +394,8 @@ impl<C: TorClientBehavior> AppState<C> {
                     Err(_) => crate::tor_manager::CircuitMetrics {
                         count: 0,
                         oldest_age: 0,
+                        avg_create_ms: 0,
+                        failed_attempts: 0,
                     },
                 };
                 // Potential place to record detailed circuit build metrics

@@ -30,6 +30,8 @@ export interface MetricPoint {
   circuitCount: number;
   latencyMs: number;
   oldestAge: number;
+  avgCreateMs: number;
+  failedAttempts: number;
 }
 
 function createTorStore() {
@@ -58,6 +60,8 @@ function createTorStore() {
       circuitCount: event.payload.circuit_count,
       latencyMs: event.payload.latency_ms,
       oldestAge: event.payload.oldest_age ?? 0,
+      avgCreateMs: event.payload.avg_create_ms ?? 0,
+      failedAttempts: event.payload.failed_attempts ?? 0,
     };
     update((state) => {
       const metrics = [...state.metrics, point].slice(-MAX_POINTS);
