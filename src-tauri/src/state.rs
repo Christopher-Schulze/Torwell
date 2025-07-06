@@ -452,10 +452,27 @@ impl<C: TorClientBehavior> AppState<C> {
                     Err(_) => 0,
                 };
 
-                self
-                    .update_metrics(mem, circ.count, circ.oldest_age, cpu, network)
+                self.update_metrics(mem, circ.count, circ.oldest_age, cpu, network)
                     .await;
                 self.update_latency(latency).await;
+
+                let failures = *self.http_client.update_failures.lock().await;
+                if failures >= 3 {
+                    let msg = format!("{failures} consecutive certificate update failures");
+                    *self.tray_warning.lock().await = Some(msg.clone());
+                    self.update_tray_menu().await;
+                } else if failures == 0 {
+                    let mut warn = self.tray_warning.lock().await;
+                    if warn
+                        .as_ref()
+                        .map(|w| w.contains("certificate update"))
+                        .unwrap_or(false)
+                    {
+                        *warn = None;
+                        drop(warn);
+                        self.update_tray_menu().await;
+                    }
+                }
 
                 let _ = handle.emit_all(
                     "metrics-update",

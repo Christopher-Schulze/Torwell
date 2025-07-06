@@ -216,6 +216,7 @@ pub struct SecureHttpClient {
     warning_cb: Arc<Mutex<Option<Box<dyn Fn(String) + Send + Sync>>>>,
     pending_warnings: Arc<Mutex<Vec<String>>>,
     update_failures: Arc<Mutex<u32>>,
+    update_backoff: Arc<Mutex<Option<Duration>>>,
     worker_urls: Arc<Mutex<Vec<String>>>,
     worker_token: Arc<Mutex<Option<String>>>,
 }
@@ -230,6 +231,7 @@ impl Clone for SecureHttpClient {
             warning_cb: self.warning_cb.clone(),
             pending_warnings: self.pending_warnings.clone(),
             update_failures: self.update_failures.clone(),
+            update_backoff: self.update_backoff.clone(),
             worker_urls: self.worker_urls.clone(),
             worker_token: self.worker_token.clone(),
         }
@@ -338,6 +340,7 @@ impl SecureHttpClient {
             warning_cb: Arc::new(Mutex::new(None)),
             pending_warnings: Arc::new(Mutex::new(Vec::new())),
             update_failures: Arc::new(Mutex::new(0)),
+            update_backoff: Arc::new(Mutex::new(None)),
             worker_urls: Arc::new(Mutex::new(Vec::new())),
             worker_token: Arc::new(Mutex::new(None)),
         })
@@ -614,6 +617,7 @@ impl SecureHttpClient {
                 Ok(_) => {
                     let mut cnt = self.update_failures.lock().await;
                     *cnt = 0;
+                    *self.update_backoff.lock().await = None;
                     return Ok(());
                 }
                 Err(e) => {
@@ -627,6 +631,7 @@ impl SecureHttpClient {
             if *cnt >= 3 {
                 self.emit_warning(format!("{} consecutive certificate update failures", *cnt))
                     .await;
+                *self.update_backoff.lock().await = Some(Duration::from_secs(60 * 60));
             }
         }
         Err(anyhow::anyhow!("all certificate update attempts failed"))
@@ -638,7 +643,11 @@ impl SecureHttpClient {
                 if let Err(e) = self.update_certificates_from(&urls).await {
                     log::error!("certificate update failed: {}", e);
                 }
-                tokio::time::sleep(interval).await;
+                let extra = {
+                    let mut guard = self.update_backoff.lock().await;
+                    guard.take().unwrap_or_else(|| Duration::from_secs(0))
+                };
+                tokio::time::sleep(interval + extra).await;
             }
         });
     }
