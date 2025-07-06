@@ -78,6 +78,10 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub oldest_circuit_age: Arc<Mutex<u64>>,
     /// Last recorded network latency in milliseconds
     pub latency_ms: Arc<Mutex<u64>>,
+    /// Current CPU usage percentage
+    pub cpu_usage: Arc<Mutex<f32>>,
+    /// Network throughput in bytes per second
+    pub network_throughput: Arc<Mutex<u64>>,
     /// Maximum memory usage before warning (in MB)
     pub max_memory_mb: u64,
     /// Maximum number of circuits before warning
@@ -133,6 +137,8 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             circuit_count: Arc::new(Mutex::new(0)),
             oldest_circuit_age: Arc::new(Mutex::new(0)),
             latency_ms: Arc::new(Mutex::new(0)),
+            cpu_usage: Arc::new(Mutex::new(0.0)),
+            network_throughput: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -194,6 +200,8 @@ impl<C: TorClientBehavior> AppState<C> {
             circuit_count: Arc::new(Mutex::new(0)),
             oldest_circuit_age: Arc::new(Mutex::new(0)),
             latency_ms: Arc::new(Mutex::new(0)),
+            cpu_usage: Arc::new(Mutex::new(0.0)),
+            network_throughput: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -323,10 +331,19 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Update stored metrics
-    pub async fn update_metrics(&self, memory: u64, circuits: usize, oldest_age: u64) {
+    pub async fn update_metrics(
+        &self,
+        memory: u64,
+        circuits: usize,
+        oldest_age: u64,
+        cpu: f32,
+        network: u64,
+    ) {
         *self.memory_usage.lock().await = memory;
         *self.circuit_count.lock().await = circuits;
         *self.oldest_circuit_age.lock().await = oldest_age;
+        *self.cpu_usage.lock().await = cpu;
+        *self.network_throughput.lock().await = network;
 
         let memory_mb = memory / 1024 / 1024;
         if memory_mb > self.max_memory_mb {
@@ -370,11 +387,13 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Retrieve current metrics
-    pub async fn metrics(&self) -> (u64, usize, u64) {
+    pub async fn metrics(&self) -> (u64, usize, u64, f32, u64) {
         let mem = *self.memory_usage.lock().await;
         let circ = *self.circuit_count.lock().await;
         let age = *self.oldest_circuit_age.lock().await;
-        (mem, circ, age)
+        let cpu = *self.cpu_usage.lock().await;
+        let net = *self.network_throughput.lock().await;
+        (mem, circ, age, cpu, net)
     }
 
     /// Retrieve current latency
@@ -386,6 +405,19 @@ impl<C: TorClientBehavior> AppState<C> {
     pub fn start_metrics_task(self: Arc<Self>, handle: AppHandle) {
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(30));
+            let mut sys = System::new();
+            let pid = match sysinfo::get_current_pid() {
+                Ok(p) => p,
+                Err(_) => return,
+            };
+            sys.refresh_process(pid);
+            sys.refresh_networks();
+            let mut prev_net: u64 = sys
+                .networks()
+                .iter()
+                .map(|(_, data)| data.total_received() + data.total_transmitted())
+                .sum();
+
             loop {
                 interval.tick().await;
 
@@ -398,23 +430,31 @@ impl<C: TorClientBehavior> AppState<C> {
                         failed_attempts: 0,
                     },
                 };
-                // Potential place to record detailed circuit build metrics
-                // e.g., duration of the last circuit construction.
 
-                let mut sys = System::new();
-                let pid = match sysinfo::get_current_pid() {
-                    Ok(p) => p,
-                    Err(_) => continue,
-                };
                 sys.refresh_process(pid);
+                sys.refresh_networks();
                 let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
+                let cpu = sys.process(pid).map(|p| p.cpu_usage()).unwrap_or(0.0);
+                let net_total: u64 = sys
+                    .networks()
+                    .iter()
+                    .map(|(_, data)| data.total_received() + data.total_transmitted())
+                    .sum();
+                let network = if net_total > prev_net {
+                    (net_total - prev_net) / 30
+                } else {
+                    0
+                };
+                prev_net = net_total;
 
                 let latency = match Self::measure_ping_latency().await {
                     Ok(v) => v,
                     Err(_) => 0,
                 };
 
-                self.update_metrics(mem, circ.count, circ.oldest_age).await;
+                self
+                    .update_metrics(mem, circ.count, circ.oldest_age, cpu, network)
+                    .await;
                 self.update_latency(latency).await;
 
                 let _ = handle.emit_all(
@@ -423,7 +463,9 @@ impl<C: TorClientBehavior> AppState<C> {
                         "memory_bytes": mem,
                         "circuit_count": circ.count,
                         "latency_ms": latency,
-                        "oldest_age": circ.oldest_age
+                        "oldest_age": circ.oldest_age,
+                        "cpu_percent": cpu,
+                        "network_bytes": network
                     }),
                 );
             }

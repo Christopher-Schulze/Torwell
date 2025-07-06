@@ -23,6 +23,8 @@ describe('ResourceDashboard', () => {
         oldest_age: 0,
         avg_create_ms: 50,
         failed_attempts: 3,
+        cpu_percent: 12.5,
+        network_bytes: 2048,
       },
     });
     await tick();
@@ -31,6 +33,8 @@ describe('ResourceDashboard', () => {
     expect(getByText('Circuits: 25')).toBeInTheDocument();
     expect(getByText('Avg build: 50 ms')).toBeInTheDocument();
     expect(getByText('Failures: 3')).toBeInTheDocument();
+    expect(getByText('CPU: 12.5 %')).toBeInTheDocument();
+    expect(getByText('Network: 2048 B/s')).toBeInTheDocument();
     expect(getAllByRole('alert').length).toBe(2);
   });
 });

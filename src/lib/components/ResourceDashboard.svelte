@@ -18,6 +18,8 @@
       oldestAge: 0,
       avgCreateMs: 0,
       failedAttempts: 0,
+      cpuPercent: 0,
+      networkBytes: 0,
       time: 0,
     };
 
@@ -31,6 +33,8 @@
         oldestAge: event.payload.oldest_age ?? 0,
         avgCreateMs: event.payload.avg_create_ms ?? 0,
         failedAttempts: event.payload.failed_attempts ?? 0,
+        cpuPercent: event.payload.cpu_percent ?? 0,
+        networkBytes: event.payload.network_bytes ?? 0,
       };
       metrics = [...metrics, point].slice(-MAX_POINTS);
     });
@@ -60,6 +64,14 @@
     </div>
     <div class="flex-1">
       <p class="text-sm text-white">Failures: {latest.failedAttempts}</p>
+    </div>
+  </div>
+  <div class="flex gap-4">
+    <div class="flex-1">
+      <p class="text-sm text-white">CPU: {latest.cpuPercent.toFixed(1)} %</p>
+    </div>
+    <div class="flex-1">
+      <p class="text-sm text-white">Network: {latest.networkBytes} B/s</p>
     </div>
   </div>
   <MetricsChart {metrics} />
