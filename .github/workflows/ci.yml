@@ -49,6 +49,28 @@ jobs:
       - run: bun audit
       - run: bun run lint:a11y
 
+  hsm-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SoftHSM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y softhsm2
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run cargo test with HSM
+        working-directory: src-tauri
+        env:
+          TORWELL_HSM_LIB: /usr/lib/softhsm/libsofthsm2.so
+          TORWELL_HSM_SLOT: 0
+          TORWELL_HSM_PIN: 1234
+          TORWELL_HSM_KEY_LABEL: tls-key
+          TORWELL_HSM_CERT_LABEL: tls-cert
+        run: cargo test --features hsm
+
   windows-tests:
     runs-on: windows-latest
     steps:
