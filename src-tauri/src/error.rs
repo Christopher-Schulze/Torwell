@@ -101,3 +101,13 @@ impl From<tor_proto::Error> for Error {
         Error::Network(err.to_string())
     }
 }
+
+/// Helper for consistent error logging and construction.
+pub fn report_error(step: &str, source: impl ToString) -> Error {
+    let msg = source.to_string();
+    log::error!("{step}: {msg}");
+    Error::NetworkFailure {
+        step: step.to_string(),
+        source: msg,
+    }
+}

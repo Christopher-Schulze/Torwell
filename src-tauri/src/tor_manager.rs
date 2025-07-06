@@ -1,5 +1,5 @@
 use crate::commands::RelayInfo;
-use crate::error::{Error, Result};
+use crate::error::{report_error, Error, Result};
 use arti_client::config::{
     BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
 };
@@ -299,22 +299,13 @@ impl<C: TorClientBehavior> TorManager<C> {
             return Err(Error::AlreadyConnected);
         }
         progress(0, "starting".into());
-        let config = self.build_config().await.map_err(|e| {
-            log::error!("connect_once: build_config failed: {e}");
-            Error::ConnectionFailed {
-                step: "build_config".into(),
-                source: format!("build_config: {e}"),
-            }
-        })?;
+        let config = self
+            .build_config()
+            .await
+            .map_err(|e| report_error("build_config", format!("build_config: {e}")))?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
-            .map_err(|e| {
-                log::error!("connect_once: bootstrap failed: {e}");
-                Error::ConnectionFailed {
-                    step: "bootstrap".into(),
-                    source: format!("bootstrap: {e}"),
-                }
-            })?;
+            .map_err(|e| report_error("bootstrap", format!("bootstrap: {e}")))?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -345,10 +336,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         loop {
             if start.elapsed() >= max_total_time {
                 log::error!("connect_with_backoff: timeout after {:?}", max_total_time);
-                return Err(Error::ConnectionFailed {
-                    step: "timeout".into(),
-                    source: last_error,
-                });
+                return Err(report_error("timeout", last_error));
             }
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
@@ -365,17 +353,11 @@ impl<C: TorClientBehavior> TorManager<C> {
                             attempt,
                             e
                         );
-                        return Err(Error::ConnectionFailed {
-                            step: "retries_exceeded".into(),
-                            source: last_error,
-                        });
+                        return Err(report_error("retries_exceeded", last_error));
                     }
                     if start.elapsed() + delay > max_total_time {
                         log::error!("connect_with_backoff: total timeout reached");
-                        return Err(Error::ConnectionFailed {
-                            step: "timeout".into(),
-                            source: last_error,
-                        });
+                        return Err(report_error("timeout", last_error));
                     }
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, MAX_BACKOFF);
@@ -478,30 +460,20 @@ impl<C: TorClientBehavior> TorManager<C> {
         }
 
         // Force new configuration and circuits
-        let config = self.build_config().await.map_err(|e| {
-            log::error!("new_identity: build_config failed: {}", e);
-            Error::Identity {
-                step: "build_config".into(),
-                source: format!("build_config: {}", e),
-            }
-        })?;
-        client.reconfigure(&config).map_err(|e| {
-            log::error!("new_identity: reconfigure failed: {}", e);
-            Error::Identity {
-                step: "reconfigure".into(),
-                source: format!("reconfigure: {e}"),
-            }
-        })?;
+        let config = self
+            .build_config()
+            .await
+            .map_err(|e| report_error("build_config", format!("build_config: {}", e)))?;
+        client
+            .reconfigure(&config)
+            .map_err(|e| report_error("reconfigure", format!("reconfigure: {e}")))?;
         client.retire_all_circs();
 
         // Build fresh circuit
-        client.build_new_circuit().await.map_err(|e| {
-            log::error!("new_identity: build_circuit failed: {}", e);
-            Error::Identity {
-                step: "build_circuit".into(),
-                source: format!("build_circuit: {e}"),
-            }
-        })?;
+        client
+            .build_new_circuit()
+            .await
+            .map_err(|e| report_error("build_circuit", format!("build_circuit: {e}")))?;
 
         Ok(())
     }
@@ -586,18 +558,11 @@ impl TorManager {
                 None,
             )
             .await
-            .map_err(|e| {
-                log::error!(
-                    "get_active_circuit: failed to build circuit with exit {:?}: {}",
-                    exit_pref.as_ref().map(|c| c.to_string()),
-                    e
-                );
-                Error::Circuit(e.to_string())
-            })?;
+            .map_err(|e| report_error("build_circuit", e))?;
 
         let hops: Vec<_> = circuit
             .path_ref()
-            .map_err(|e| Error::Circuit(e.to_string()))?
+            .map_err(|e| report_error("path", e))?
             .hops()
             .iter()
             .cloned()
@@ -676,19 +641,11 @@ impl TorManager {
             .circmgr()
             .get_or_launch_exit((&*netdir).into(), &[], isolation, prefs)
             .await
-            .map_err(|e| {
-                log::error!(
-                    "get_isolated_circuit: failed for domain {} with exit {:?}: {}",
-                    domain,
-                    exit_pref,
-                    e
-                );
-                Error::Circuit(e.to_string())
-            })?;
+            .map_err(|e| report_error("build_circuit", e))?;
 
         let hops: Vec<_> = circuit
             .path_ref()
-            .map_err(|e| Error::Circuit(e.to_string()))?
+            .map_err(|e| report_error("path", e))?
             .hops()
             .iter()
             .cloned()
