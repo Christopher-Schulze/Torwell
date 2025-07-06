@@ -250,6 +250,72 @@ function createUIStore() {
       }
     },
 
+    addWorkerUrl: async (url: string) => {
+      try {
+        const current = get({ subscribe });
+        const list = [...current.settings.workerList, url];
+        const newSettings: AppSettings = {
+          ...current.settings,
+          workerList: list,
+        };
+        await invoke("set_worker_config", {
+          workers: list,
+          token: current.settings.workerToken,
+        });
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to add worker url: ${message}`,
+        }));
+      }
+    },
+
+    removeWorkerUrl: async (index: number) => {
+      try {
+        const current = get({ subscribe });
+        const list = [...current.settings.workerList];
+        list.splice(index, 1);
+        const newSettings: AppSettings = {
+          ...current.settings,
+          workerList: list,
+        };
+        await invoke("set_worker_config", {
+          workers: list,
+          token: current.settings.workerToken,
+        });
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to remove worker url: ${message}`,
+        }));
+      }
+    },
+
+    setWorkerToken: async (token: string) => {
+      try {
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          workerToken: token,
+        };
+        await invoke("set_worker_config", { workers: current.settings.workerList, token });
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to set worker token: ${message}`,
+        }));
+      }
+    },
+
     setLogLimit: async (limit: number) => {
       try {
         await invoke("set_log_limit", { limit });

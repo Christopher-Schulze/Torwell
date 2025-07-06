@@ -24,7 +24,8 @@
   let selectedBridges: string[] = [];
   let selectedPreset: string | null = null;
   let torrcConfig = "";
-  let workerListString = "";
+  let workerList: string[] = [];
+  let newWorker = "";
   let workerToken = "";
   let maxLogLines = 1000;
   let exitCountry: string | null = null;
@@ -43,7 +44,8 @@
     selectedBridges = [...$uiStore.settings.bridges];
     selectedPreset = $uiStore.settings.bridgePreset ?? null;
     torrcConfig = $uiStore.settings.torrcConfig;
-    workerListString = $uiStore.settings.workerList.join("\n");
+    workerList = [...$uiStore.settings.workerList];
+    newWorker = "";
     workerToken = $uiStore.settings.workerToken;
     maxLogLines = $uiStore.settings.maxLogLines;
     exitCountry = $uiStore.settings.exitCountry ?? null;
@@ -83,12 +85,20 @@
     uiStore.actions.saveTorrcConfig(torrcConfig);
   }
 
+  function addWorker() {
+    const url = newWorker.trim();
+    if (url.length > 0) {
+      workerList = [...workerList, url];
+      newWorker = "";
+    }
+  }
+
+  function removeWorker(idx: number) {
+    workerList = workerList.filter((_, i) => i !== idx);
+  }
+
   function saveWorkers() {
-    const list = workerListString
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    uiStore.actions.saveWorkerConfig(list, workerToken);
+    uiStore.actions.saveWorkerConfig(workerList, workerToken);
   }
 
   function saveLogLimit() {
@@ -251,15 +261,41 @@
           <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
             Worker List
           </h3>
-          <textarea
-            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm font-mono"
-            rows="4"
-            bind:value={workerListString}
-            aria-label="Worker list"
-          ></textarea>
+          {#each workerList as url, idx}
+            <div class="flex items-center gap-2 mb-2">
+              <input
+                class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+                type="text"
+                bind:value={workerList[idx]}
+              />
+              <button
+                class="p-1 text-red-400 hover:text-red-300"
+                on:click={() => removeWorker(idx)}
+                aria-label="Remove worker"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          {/each}
+          <div class="flex items-center gap-2 mb-2">
+            <input
+              class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+              type="text"
+              bind:value={newWorker}
+              placeholder="https://worker.example.com"
+              aria-label="New worker url"
+            />
+            <button
+              class="text-sm py-2 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+              on:click={addWorker}
+              aria-label="Add worker"
+            >
+              Add
+            </button>
+          </div>
           <input
             type="text"
-            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm mt-2"
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
             bind:value={workerToken}
             placeholder="Worker token"
             aria-label="Worker token"
@@ -272,7 +308,7 @@
             Save
           </button>
           <p class="text-xs text-gray-200 mt-2">
-            One worker URL per line. <a href="/docs/Todo-fuer-User.md" target="_blank" class="underline">Mehr Infos in der Dokumentation</a>
+            Mehrere Worker sind möglich. <a href="/docs/Todo-fuer-User.md" target="_blank" class="underline">Mehr Infos in der Dokumentation</a>
           </p>
         </div>
 

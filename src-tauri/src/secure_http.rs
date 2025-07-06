@@ -218,6 +218,7 @@ pub struct SecureHttpClient {
     update_failures: Arc<Mutex<u32>>,
     worker_urls: Arc<Mutex<Vec<String>>>,
     worker_token: Arc<Mutex<Option<String>>>,
+    current_worker: Arc<Mutex<usize>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -232,6 +233,7 @@ impl Clone for SecureHttpClient {
             update_failures: self.update_failures.clone(),
             worker_urls: self.worker_urls.clone(),
             worker_token: self.worker_token.clone(),
+            current_worker: self.current_worker.clone(),
         }
     }
 }
@@ -337,6 +339,7 @@ impl SecureHttpClient {
             update_failures: Arc::new(Mutex::new(0)),
             worker_urls: Arc::new(Mutex::new(Vec::new())),
             worker_token: Arc::new(Mutex::new(None)),
+            current_worker: Arc::new(Mutex::new(0)),
         })
     }
 
@@ -363,6 +366,7 @@ impl SecureHttpClient {
     pub async fn set_worker_config(&self, workers: Vec<String>, token: Option<String>) {
         *self.worker_urls.lock().await = workers;
         *self.worker_token.lock().await = token;
+        *self.current_worker.lock().await = 0;
     }
 
     async fn emit_warning(&self, msg: String) {
@@ -484,25 +488,45 @@ impl SecureHttpClient {
             guard.clone()
         };
 
-        let worker = {
-            let guard = self.worker_urls.lock().await;
-            guard.get(0).cloned()
-        };
-        let resp = if let Some(w) = worker {
-            let mut target = w;
-            let encoded = encode(parsed.as_str());
-            if target.contains('?') {
-                target.push('&');
-            } else {
-                target.push('?');
+        let workers = { self.worker_urls.lock().await.clone() };
+        let token = { self.worker_token.lock().await.clone() };
+        let mut index = { *self.current_worker.lock().await };
+        let mut resp_opt = None;
+        if !workers.is_empty() {
+            for _ in 0..workers.len() {
+                let w = workers[index].clone();
+                let mut target = w.clone();
+                let encoded = encode(parsed.as_str());
+                if target.contains('?') {
+                    target.push('&');
+                } else {
+                    target.push('?');
+                }
+                target.push_str("url=");
+                target.push_str(&encoded);
+                let mut req = client.get(target);
+                if let Some(ref tok) = token {
+                    req = req.header("X-Proxy-Token", tok);
+                }
+                match req.send().await {
+                    Ok(r) => {
+                        resp_opt = Some(r);
+                        break;
+                    }
+                    Err(e) if e.is_connect() || e.is_timeout() => {
+                        index = (index + 1) % workers.len();
+                        continue;
+                    }
+                    Err(e) => return Err(e),
+                }
             }
-            target.push_str("url=");
-            target.push_str(&encoded);
-            let mut req = client.get(target);
-            if let Some(tok) = &*self.worker_token.lock().await {
-                req = req.header("X-Proxy-Token", tok);
+            {
+                let mut idx = self.current_worker.lock().await;
+                *idx = (index + 1) % workers.len();
             }
-            req.send().await?
+        }
+        let resp = if let Some(r) = resp_opt {
+            r
         } else {
             client.get(parsed.clone()).send().await?
         };
@@ -518,25 +542,44 @@ impl SecureHttpClient {
     /// Send JSON data to an HTTP endpoint using the pinned TLS configuration.
     pub async fn post_json(&self, url: &str, body: &Value) -> reqwest::Result<()> {
         let client = { self.client.lock().await.clone() };
-        let worker = {
-            let guard = self.worker_urls.lock().await;
-            guard.get(0).cloned()
-        };
-        let resp = if let Some(w) = worker {
-            let mut target = w;
-            let encoded = encode(url);
-            if target.contains('?') {
-                target.push('&');
-            } else {
-                target.push('?');
+        let workers = { self.worker_urls.lock().await.clone() };
+        let token = { self.worker_token.lock().await.clone() };
+        let mut index = { *self.current_worker.lock().await };
+        let mut resp_opt = None;
+        if !workers.is_empty() {
+            for _ in 0..workers.len() {
+                let mut target = workers[index].clone();
+                let encoded = encode(url);
+                if target.contains('?') {
+                    target.push('&');
+                } else {
+                    target.push('?');
+                }
+                target.push_str("url=");
+                target.push_str(&encoded);
+                let mut req = client.post(target).json(body);
+                if let Some(ref tok) = token {
+                    req = req.header("X-Proxy-Token", tok);
+                }
+                match req.send().await {
+                    Ok(r) => {
+                        resp_opt = Some(r);
+                        break;
+                    }
+                    Err(e) if e.is_connect() || e.is_timeout() => {
+                        index = (index + 1) % workers.len();
+                        continue;
+                    }
+                    Err(e) => return Err(e),
+                }
             }
-            target.push_str("url=");
-            target.push_str(&encoded);
-            let mut req = client.post(target).json(body);
-            if let Some(tok) = &*self.worker_token.lock().await {
-                req = req.header("X-Proxy-Token", tok);
+            {
+                let mut idx = self.current_worker.lock().await;
+                *idx = (index + 1) % workers.len();
             }
-            req.send().await?
+        }
+        let resp = if let Some(r) = resp_opt {
+            r
         } else {
             client.post(url).json(body).send().await?
         };

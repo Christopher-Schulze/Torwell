@@ -28,3 +28,9 @@ Dieses Dokument beschreibt, wie du den Beispiel‑Worker aus dem Ordner `cf work
 Trage die URL deines Workers in der Anwendung unter **Settings → Worker List** ein und hinterlege das geheime Token im Feld **Worker token**. Alternativ kannst du die Adresse in `src/lib/bridge_presets.json` hinterlegen, damit sie beim ersten Start bereits vorgeschlagen wird.
 
 Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Verbindungen mit dem gesetzten Token authentifiziert.
+
+## Skalierung und Ausfallsicherheit
+
+Du kannst beliebig viele Worker‑URLs hinterlegen. Im Einstellungsdialog lässt sich jede Adresse einzeln verwalten.
+Torwell rotiert automatisch durch diese Liste. Ist ein Worker nicht erreichbar, wird der nächste verwendet.
+So kannst du die Last auf mehrere Instanzen verteilen und Ausfälle abfangen.
