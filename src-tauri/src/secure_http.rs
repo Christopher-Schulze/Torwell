@@ -247,7 +247,10 @@ impl SecureHttpClient {
         min_tls: reqwest::tls::Version,
     ) -> anyhow::Result<ClientConfig> {
         #[cfg(feature = "hsm")]
-        let hsm = init_hsm().ok();
+        let hsm = match init_hsm() {
+            Ok(ctx) => Some(ctx),
+            Err(e) => return Err(anyhow!("failed to initialize HSM: {e}")),
+        };
 
         let mut store = RootCertStore::empty();
         let file = File::open(&path)?;
