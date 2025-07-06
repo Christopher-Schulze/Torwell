@@ -94,7 +94,7 @@ async fn connect_with_backoff_error() {
         )
         .await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "retries_exceeded");
             assert!(source.contains("e2"));
             assert!(source.contains("bootstrap"));
@@ -133,7 +133,7 @@ async fn connect_with_backoff_timeout() {
         )
         .await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "timeout");
             assert!(source.contains("e1"));
             assert!(source.contains("bootstrap"));
@@ -151,7 +151,7 @@ async fn bridge_parse_error() {
         .unwrap();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "build_config");
             assert!(source.contains("bridge parsing failed"));
         }
@@ -165,7 +165,7 @@ async fn bootstrap_error_context() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "bootstrap");
             assert!(source.contains("boot"));
         }
@@ -211,7 +211,7 @@ async fn new_identity_reconfigure_error() {
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::Identity { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "reconfigure");
             assert!(source.contains("reconf"));
         }
@@ -229,7 +229,7 @@ async fn new_identity_build_error() {
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::Identity { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "build_circuit");
             assert!(source.contains("build"));
         }
@@ -251,7 +251,7 @@ async fn new_identity_build_config_error() {
         .unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::Identity { step, source }) => {
+        Err(Error::NetworkFailure { step, source }) => {
             assert_eq!(step, "build_config");
             assert!(source.contains("bridge parsing failed"));
         }
