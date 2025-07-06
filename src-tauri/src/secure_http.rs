@@ -487,28 +487,40 @@ impl SecureHttpClient {
             guard.clone()
         };
 
-        let worker = {
-            let guard = self.worker_urls.lock().await;
-            guard.get(0).cloned()
-        };
-        let resp = if let Some(w) = worker {
-            let mut target = w;
-            let encoded = encode(parsed.as_str());
-            if target.contains('?') {
-                target.push('&');
-            } else {
-                target.push('?');
+        let token = { self.worker_token.lock().await.clone() };
+        let worker_count = { self.worker_urls.lock().await.len() };
+        for _ in 0..worker_count {
+            let worker = { self.worker_urls.lock().await.get(0).cloned() };
+            if let Some(w) = worker {
+                let mut target = w.clone();
+                let encoded = encode(parsed.as_str());
+                if target.contains('?') {
+                    target.push('&');
+                } else {
+                    target.push('?');
+                }
+                target.push_str("url=");
+                target.push_str(&encoded);
+                let mut req = client.get(target);
+                if let Some(tok) = token.as_ref() {
+                    req = req.header("X-Proxy-Token", tok);
+                }
+                match req.send().await {
+                    Ok(resp) => {
+                        self.handle_hsts_header(&resp).await;
+                        return Ok(resp);
+                    }
+                    Err(e) => {
+                        log::warn!("worker {} unreachable: {}", w, e);
+                        let mut guard = self.worker_urls.lock().await;
+                        if !guard.is_empty() {
+                            guard.rotate_left(1);
+                        }
+                    }
+                }
             }
-            target.push_str("url=");
-            target.push_str(&encoded);
-            let mut req = client.get(target);
-            if let Some(tok) = &*self.worker_token.lock().await {
-                req = req.header("X-Proxy-Token", tok);
-            }
-            req.send().await?
-        } else {
-            client.get(parsed.clone()).send().await?
-        };
+        }
+        let resp = client.get(parsed.clone()).send().await?;
         self.handle_hsts_header(&resp).await;
         Ok(resp)
     }
@@ -521,28 +533,40 @@ impl SecureHttpClient {
     /// Send JSON data to an HTTP endpoint using the pinned TLS configuration.
     pub async fn post_json(&self, url: &str, body: &Value) -> reqwest::Result<()> {
         let client = { self.client.lock().await.clone() };
-        let worker = {
-            let guard = self.worker_urls.lock().await;
-            guard.get(0).cloned()
-        };
-        let resp = if let Some(w) = worker {
-            let mut target = w;
-            let encoded = encode(url);
-            if target.contains('?') {
-                target.push('&');
-            } else {
-                target.push('?');
+        let token = { self.worker_token.lock().await.clone() };
+        let worker_count = { self.worker_urls.lock().await.len() };
+        for _ in 0..worker_count {
+            let worker = { self.worker_urls.lock().await.get(0).cloned() };
+            if let Some(w) = worker {
+                let mut target = w.clone();
+                let encoded = encode(url);
+                if target.contains('?') {
+                    target.push('&');
+                } else {
+                    target.push('?');
+                }
+                target.push_str("url=");
+                target.push_str(&encoded);
+                let mut req = client.post(target).json(body);
+                if let Some(tok) = token.as_ref() {
+                    req = req.header("X-Proxy-Token", tok);
+                }
+                match req.send().await {
+                    Ok(resp) => {
+                        self.handle_hsts_header(&resp).await;
+                        return Ok(());
+                    }
+                    Err(e) => {
+                        log::warn!("worker {} unreachable: {}", w, e);
+                        let mut guard = self.worker_urls.lock().await;
+                        if !guard.is_empty() {
+                            guard.rotate_left(1);
+                        }
+                    }
+                }
             }
-            target.push_str("url=");
-            target.push_str(&encoded);
-            let mut req = client.post(target).json(body);
-            if let Some(tok) = &*self.worker_token.lock().await {
-                req = req.header("X-Proxy-Token", tok);
-            }
-            req.send().await?
-        } else {
-            client.post(url).json(body).send().await?
-        };
+        }
+        let resp = client.post(url).json(body).send().await?;
         self.handle_hsts_header(&resp).await;
         Ok(())
     }

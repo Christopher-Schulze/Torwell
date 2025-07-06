@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, tick } from "svelte";
-  import { X, Edit3 } from "lucide-svelte";
+  import { X, Edit3, Plus } from "lucide-svelte";
   import { uiStore } from "$lib/stores/uiStore";
 
   const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
@@ -24,7 +24,8 @@
   let selectedBridges: string[] = [];
   let selectedPreset: string | null = null;
   let torrcConfig = "";
-  let workerListString = "";
+  let workerList: string[] = [];
+  let newWorker = "";
   let workerToken = "";
   let maxLogLines = 1000;
   let exitCountry: string | null = null;
@@ -43,7 +44,8 @@
     selectedBridges = [...$uiStore.settings.bridges];
     selectedPreset = $uiStore.settings.bridgePreset ?? null;
     torrcConfig = $uiStore.settings.torrcConfig;
-    workerListString = $uiStore.settings.workerList.join("\n");
+    workerList = [...$uiStore.settings.workerList];
+    newWorker = "";
     workerToken = $uiStore.settings.workerToken;
     maxLogLines = $uiStore.settings.maxLogLines;
     exitCountry = $uiStore.settings.exitCountry ?? null;
@@ -84,11 +86,22 @@
   }
 
   function saveWorkers() {
-    const list = workerListString
-      .split(/\r?\n/)
+    const list = workerList
       .map((l) => l.trim())
       .filter((l) => l.length > 0);
     uiStore.actions.saveWorkerConfig(list, workerToken);
+  }
+
+  function addWorker() {
+    const url = newWorker.trim();
+    if (url && !workerList.includes(url)) {
+      workerList = [...workerList, url];
+      newWorker = "";
+    }
+  }
+
+  function removeWorker(index: number) {
+    workerList = workerList.filter((_, i) => i !== index);
   }
 
   function saveLogLimit() {
@@ -251,12 +264,39 @@
           <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
             Worker List
           </h3>
-          <textarea
-            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm font-mono"
-            rows="4"
-            bind:value={workerListString}
-            aria-label="Worker list"
-          ></textarea>
+          {#each workerList as w, i}
+            <div class="flex items-center gap-2 mb-2">
+              <input
+                type="text"
+                class="flex-grow bg-black/50 rounded border border-white/20 p-2 text-sm"
+                bind:value={workerList[i]}
+                aria-label={`Worker URL ${i}`}
+              />
+              <button
+                class="p-1 rounded hover:bg-red-600/40"
+                on:click={() => removeWorker(i)}
+                aria-label="Remove worker"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          {/each}
+          <div class="flex items-center gap-2 mb-2">
+            <input
+              type="text"
+              class="flex-grow bg-black/50 rounded border border-white/20 p-2 text-sm"
+              placeholder="https://proxy.example.com"
+              bind:value={newWorker}
+              aria-label="New worker URL"
+            />
+            <button
+              class="p-1 rounded hover:bg-green-600/40"
+              on:click={addWorker}
+              aria-label="Add worker"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
           <input
             type="text"
             class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm mt-2"
@@ -272,7 +312,8 @@
             Save
           </button>
           <p class="text-xs text-gray-200 mt-2">
-            One worker URL per line. <a href="/docs/Todo-fuer-User.md" target="_blank" class="underline">Mehr Infos in der Dokumentation</a>
+            Multiple workers improve reliability.
+            <a href="/docs/Todo-fuer-User.md" target="_blank" class="underline">Mehr Infos in der Dokumentation</a>
           </p>
         </div>
 

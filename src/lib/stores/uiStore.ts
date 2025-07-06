@@ -255,6 +255,25 @@ function createUIStore() {
       }
     },
 
+    addWorker: async (url: string) => {
+      const current = get({ subscribe });
+      if (!current.settings.workerList.includes(url)) {
+        const workers = [...current.settings.workerList, url];
+        await actions.saveWorkerConfig(workers, current.settings.workerToken);
+      }
+    },
+
+    removeWorker: async (url: string) => {
+      const current = get({ subscribe });
+      const workers = current.settings.workerList.filter((w) => w !== url);
+      await actions.saveWorkerConfig(workers, current.settings.workerToken);
+    },
+
+    setWorkerToken: async (token: string) => {
+      const current = get({ subscribe });
+      await actions.saveWorkerConfig(current.settings.workerList, token);
+    },
+
     setLogLimit: async (limit: number) => {
       try {
         await invoke("set_log_limit", { limit });
