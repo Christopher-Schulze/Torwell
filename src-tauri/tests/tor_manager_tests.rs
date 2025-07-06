@@ -137,7 +137,10 @@ async fn bridge_parse_error() {
         .unwrap();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, .. }) => assert_eq!(step, "build_config"),
+        Err(Error::ConnectionFailed { step, source }) => {
+            assert_eq!(step, "build_config");
+            assert!(source.contains("bridge parsing failed"));
+        }
         _ => panic!("expected connection failure"),
     }
 }
@@ -234,7 +237,10 @@ async fn new_identity_build_config_error() {
         .unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::Identity { step, source: _ }) => assert_eq!(step, "build_config"),
+        Err(Error::Identity { step, source }) => {
+            assert_eq!(step, "build_config");
+            assert!(source.contains("bridge parsing failed"));
+        }
         _ => panic!("expected identity error"),
     }
 }
