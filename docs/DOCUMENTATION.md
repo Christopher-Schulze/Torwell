@@ -162,3 +162,11 @@ async function fetchLogs() {
 
 Die Tokens verfallen nach der in `TORWELL_SESSION_TTL` definierten Zeitspanne. Erhält der Client einen `401`-Fehler oder eine Meldung "Invalid session token", sollte umgehend ein neues Token angefordert und der Befehl erneut ausgeführt werden.
 
+## 15. UI Backup
+
+Vor Experimenten mit neuen Layouts kann die aktuelle Benutzeroberfläche
+gesichert werden. Das Skript `scripts/backup_ui.sh` kopiert dazu den Inhalt von
+`src/lib/components` in das Verzeichnis `src/lib/components_backup` und legt es
+bei Bedarf an. Dieser Ordner ist in `.gitignore` eingetragen und wird nicht ins
+Repository übernommen.
+
