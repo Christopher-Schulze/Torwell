@@ -41,6 +41,8 @@ struct CertConfig {
     fallback_cert_url: Option<String>,
     #[serde(default = "default_min_tls_version")]
     min_tls_version: Option<String>,
+    #[serde(default = "default_update_interval")]
+    update_interval: u64,
 }
 
 fn default_cert_path() -> String {
@@ -53,6 +55,10 @@ fn default_cert_url() -> String {
 
 fn default_min_tls_version() -> Option<String> {
     Some("1.2".to_string())
+}
+
+fn default_update_interval() -> u64 {
+    60 * 60 * 24
 }
 
 impl CertConfig {
@@ -73,6 +79,7 @@ impl Default for CertConfig {
             cert_url: DEFAULT_CERT_URL.to_string(),
             fallback_cert_url: None,
             min_tls_version: default_min_tls_version(),
+            update_interval: default_update_interval(),
         }
     }
 }
@@ -320,6 +327,11 @@ impl SecureHttpClient {
         if let Ok(env_fallback) = std::env::var("TORWELL_FALLBACK_CERT_URL") {
             cfg.fallback_cert_url = Some(env_fallback);
         }
+        if let Ok(env_int) = std::env::var("TORWELL_UPDATE_INTERVAL") {
+            if let Ok(sec) = env_int.parse::<u64>() {
+                cfg.update_interval = sec;
+            }
+        }
 
         if let Some(path) = cert_path {
             cfg.cert_path = path;
@@ -330,6 +342,7 @@ impl SecureHttpClient {
         if let Some(fallback) = fallback_cert_url {
             cfg.fallback_cert_url = Some(fallback);
         }
+        let update_interval = interval.unwrap_or_else(|| Duration::from_secs(cfg.update_interval));
 
         if cfg.cert_url.contains("example.com") {
             log::warn!(
@@ -358,8 +371,8 @@ impl SecureHttpClient {
             log::error!("initial certificate update failed: {}", e);
         }
 
-        if let Some(int) = interval {
-            client.clone().schedule_updates(urls, int);
+        if update_interval.as_secs() > 0 {
+            client.clone().schedule_updates(urls, update_interval);
         }
         Ok(client)
     }

@@ -41,7 +41,8 @@ locations during development.
   "cert_path": "src-tauri/certs/server.pem",
   "cert_url": "https://updates.torwell.com/certs/server.pem",
   "fallback_cert_url": null,
-  "min_tls_version": "1.2"
+  "min_tls_version": "1.2",
+  "update_interval": 86400
 }
 ```
 
@@ -49,7 +50,8 @@ locations during development.
 endpoint used to retrieve updates. If the primary endpoint fails, an optional
 `fallback_cert_url` can provide an alternative location. `min_tls_version`
 defines the minimum TLS protocol version the client will accept (either `1.2`
-or `1.3`).
+or `1.3`). `update_interval` defines how often (in seconds) the application
+checks for new certificates.
 
 When calling `SecureHttpClient::init` you can override these values without
 modifying the file:
@@ -210,4 +212,12 @@ und Probleme frühzeitig erkannt werden.
 - Sollte keine Hintergrundaufgabe laufen, kann `schedule_updates` nach dem
   Austausch manuell angestoßen werden, um den neuen PEM-Inhalt sofort
   einzulesen.
+
+## Automatischer Update-Dienst
+
+Beim Start liest `SecureHttpClient` das Feld `update_interval` aus
+`cert_config.json`. Ist der Wert größer als 0, startet eine Hintergrundaufgabe,
+die in diesem Abstand `update_certificates_from` aufruft. Das Intervall kann
+alternativ über die Umgebungsvariable `TORWELL_UPDATE_INTERVAL` angepasst
+werden. So bleiben die Zertifikate automatisch aktuell.
 \nSee `GeoIPDatabase.md` for configuring an external GeoIP database.

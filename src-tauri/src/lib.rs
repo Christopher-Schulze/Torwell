@@ -19,7 +19,7 @@ pub fn run() {
             None,
             None,
             None,
-            Some(Duration::from_secs(60 * 60 * 24)),
+            None,
         )
         .expect("failed to initialize http client")
     });

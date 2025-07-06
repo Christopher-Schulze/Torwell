@@ -29,3 +29,9 @@ PREVIOUS_TAG=$(git tag --sort=-v:refname | sed -n '2p')
 
 cat "$CHANGELOG" >> .changelog.tmp
 mv .changelog.tmp "$CHANGELOG"
+
+# Optionally trigger a certificate update on release
+if [ -n "$CERT_UPDATE_URL" ]; then
+  curl -fsS -X POST "$CERT_UPDATE_URL" || \
+    echo "Warning: certificate update request failed" >&2
+fi
