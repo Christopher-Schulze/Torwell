@@ -22,7 +22,7 @@
     };
 
   onMount(() => {
-    listen<any>('metrics-update', (event) => {
+    const unlisten = listen<any>('metrics-update', (event) => {
       const point: MetricPoint = {
         time: Date.now(),
         memoryMB: Math.round(event.payload.memory_bytes / 1_000_000),
@@ -34,6 +34,10 @@
       };
       metrics = [...metrics, point].slice(-MAX_POINTS);
     });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   });
 </script>
 
