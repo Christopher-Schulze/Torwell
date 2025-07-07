@@ -358,7 +358,12 @@ impl<C: TorClientBehavior> TorManager<C> {
         loop {
             if start.elapsed() >= max_total_time {
                 log::error!("connect_with_backoff: timeout after {:?}", max_total_time);
-                return Err(log_and_convert_error(ConnectionStep::Timeout, last_error));
+                let msg = if last_error.is_empty() {
+                    format!("timeout after {:?}", max_total_time)
+                } else {
+                    format!("timeout after {:?}: {}", max_total_time, last_error)
+                };
+                return Err(log_and_convert_error(ConnectionStep::Timeout, msg));
             }
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
@@ -379,14 +384,24 @@ impl<C: TorClientBehavior> TorManager<C> {
                             attempt,
                             e
                         );
+                        let msg = if last_error.is_empty() {
+                            format!("retries exceeded after {} attempts", attempt)
+                        } else {
+                            format!("retries exceeded after {} attempts: {}", attempt, last_error)
+                        };
                         return Err(log_and_convert_error(
                             ConnectionStep::RetriesExceeded,
-                            last_error,
+                            msg,
                         ));
                     }
                     if start.elapsed() + delay > max_total_time {
                         log::error!("connect_with_backoff: total timeout reached");
-                        return Err(log_and_convert_error(ConnectionStep::Timeout, last_error));
+                        let msg = if last_error.is_empty() {
+                            format!("timeout after {:?}", max_total_time)
+                        } else {
+                            format!("timeout after {:?}: {}", max_total_time, last_error)
+                        };
+                        return Err(log_and_convert_error(ConnectionStep::Timeout, msg));
                     }
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, MAX_BACKOFF);
