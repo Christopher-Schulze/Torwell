@@ -1,9 +1,20 @@
 <script>
-        export let connectionProgress = 0; // 0-100
-        export let currentStatus = 'Idle'; // Current Tor status
-        export let retryCount = 0;
-        export let retryDelay = 0;
-        export let bootstrapMessage = '';
+export let connectionProgress = 0; // 0-100
+export let currentStatus = 'Idle'; // Current Tor status
+export let retryCount = 0;
+export let retryDelay = 0;
+export let bootstrapMessage = '';
+
+const statusMap: Record<string, string> = {
+    DISCONNECTED: 'Disconnected',
+    CONNECTING: 'Connecting',
+    RETRYING: 'Retrying',
+    CONNECTED: 'Connected',
+    DISCONNECTING: 'Disconnecting',
+    ERROR: 'Error',
+};
+
+$: statusText = statusMap[currentStatus] ?? currentStatus;
 
 	// Animation for status text changes
 	let isAnimating = false;
@@ -43,11 +54,13 @@
                         <p
                                 class="text-xs font-medium text-white absolute transition-all duration-300 {isAnimating ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100'}"
                         >
-                                {currentStatus}
+                                {statusText}
                         </p>
                 </div>
                 {#if currentStatus === 'RETRYING'}
                         <p class="text-xs text-yellow-300">retry {retryCount} in {retryDelay}s</p>
+                {:else if currentStatus === 'ERROR'}
+                        <p class="text-xs text-red-300">connection failed</p>
                 {/if}
         </div>
 </div>

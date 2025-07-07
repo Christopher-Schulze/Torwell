@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from "$lib/api";
-  import { addToast } from "$lib/stores/toastStore";
+  import { addToast, addErrorToast } from "$lib/stores/toastStore";
   let host = "";
   let dns: string[] = [];
   let route: string[] = [];
@@ -22,9 +22,9 @@
     loading = true;
     try {
       dns = (await invoke("dns_lookup", { host })) as string[];
-    } catch (e) {
+    } catch (e: any) {
       dns = [];
-      addToast('DNS lookup failed', 'error');
+      addErrorToast('dns', e?.message ?? String(e));
     } finally {
       loading = false;
     }
@@ -35,9 +35,9 @@
     loading = true;
     try {
       route = (await invoke("traceroute_host", { host, maxHops: 8 })) as string[];
-    } catch (e) {
+    } catch (e: any) {
       route = [];
-      addToast('Traceroute failed', 'error');
+      addErrorToast('traceroute', e?.message ?? String(e));
     } finally {
       loading = false;
     }
