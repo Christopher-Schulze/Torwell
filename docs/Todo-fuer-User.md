@@ -42,6 +42,12 @@ Um sehr große Listen einzubinden, kannst du das Skript `scripts/import_workers.
 bun scripts/import_workers.ts worker-list.txt meinToken
 ```
 
+Alternativ steht das CLI-Skript bereit:
+
+```bash
+bun scripts/import_workers_cli.ts worker-list.txt meinToken
+```
+
 Damit lassen sich hunderte URLs bequem importieren.
 
 ## Hardware Security Module verwenden

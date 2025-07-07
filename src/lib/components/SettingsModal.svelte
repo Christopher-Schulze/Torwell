@@ -4,7 +4,7 @@
   import { uiStore } from "$lib/stores/uiStore";
   import TorrcEditorModal from './TorrcEditorModal.svelte';
   import WorkerSetupModal from './WorkerSetupModal.svelte';
-  import { importWorkers } from '../../../scripts/import_workers.ts';
+  import { parseWorkerList } from '../../../scripts/import_workers.ts';
 
   const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
 
@@ -36,6 +36,7 @@
   let hsmSlot: number | null = null;
   let geoipPath: string | null = null;
   let filePicker: HTMLInputElement | null = null;
+  $: importProgress = $uiStore.importProgress;
 
   export let show: boolean;
 
@@ -115,13 +116,9 @@
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
     const text = await input.files[0].text();
-    const list = text
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    workerList = list;
-    await importWorkers(text, workerToken);
-    await uiStore.actions.importWorkerList(list);
+    const { workers } = parseWorkerList(text);
+    workerList = workers;
+    await uiStore.actions.importWorkersFromText(text);
   }
 
   function exportFile() {
@@ -349,12 +346,15 @@
           />
           <button
             class="text-sm py-2 px-4 mb-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-            on:click={() => filePicker && filePicker.click()}
-            aria-label="Import worker list"
-          >
-            Import Worker List
-          </button>
-          <button
+          on:click={() => filePicker && filePicker.click()}
+          aria-label="Import worker list"
+        >
+          Import Worker List
+        </button>
+        {#if importProgress !== null}
+          <p class="text-xs mt-1">{importProgress}%</p>
+        {/if}
+        <button
             class="text-sm py-2 px-4 mb-2 ml-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
             on:click={exportFile}
             aria-label="Export worker list"

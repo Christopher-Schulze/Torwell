@@ -2,6 +2,7 @@ import { writable, get } from "svelte/store";
 import { db } from "$lib/database";
 import type { Settings } from "$lib/database";
 import { invoke } from "@tauri-apps/api/tauri";
+import { parseWorkerList } from "../../../scripts/import_workers.ts";
 
 type AppSettings = {
   workerList: string[];
@@ -23,6 +24,7 @@ type UIState = {
   cloudflareEnabled: boolean;
   settings: AppSettings;
   error: string | null;
+  importProgress: number | null;
 };
 
 function createUIStore() {
@@ -44,6 +46,7 @@ function createUIStore() {
       geoipPath: null,
     },
     error: null,
+    importProgress: null,
   });
 
   const actions = {
@@ -334,6 +337,20 @@ function createUIStore() {
     exportWorkerList: () => {
       const current = get({ subscribe });
       return [...current.settings.workerList];
+    },
+
+    setImportProgress: (val: number | null) =>
+      update((state) => ({ ...state, importProgress: val })),
+
+    importWorkersFromText: async (text: string) => {
+      const { workers } = parseWorkerList(text);
+      const total = workers.length;
+      actions.setImportProgress(0);
+      const current = get({ subscribe });
+      await actions.saveWorkerConfig(workers, current.settings.workerToken);
+      actions.setImportProgress(100);
+      setTimeout(() => actions.setImportProgress(null), 500);
+      return total;
     },
 
     setLogLimit: async (limit: number) => {
