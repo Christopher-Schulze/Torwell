@@ -18,12 +18,12 @@ tasks:
   dev:
     desc: "Starts the application in development mode with hot-reloading."
     cmds:
-      - bun tauri dev
+      - bun tauri dev --features experimental-api
 
   build:
     desc: "Builds the application for production."
     cmds:
-      - bun tauri build
+      - bun tauri build --features experimental-api
 
   mobile:android:
     desc: "Build the Android app using Capacitor"

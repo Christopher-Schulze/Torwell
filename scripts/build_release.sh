@@ -15,6 +15,6 @@ done
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 (cd "$ROOT_DIR" && bun install)
-(cd "$ROOT_DIR" && bun run tauri build)
+(cd "$ROOT_DIR" && bun run tauri build --features experimental-api)
 
 echo "Bundles written to $ROOT_DIR/src-tauri/target/release/bundle"
