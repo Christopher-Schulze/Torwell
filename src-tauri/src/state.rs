@@ -881,6 +881,8 @@ impl<C: TorClientBehavior> AppState<C> {
             }
 
             let tray = handle.tray_handle();
+            // Fully recreate the tray menu to avoid stale entries
+            let _ = tray.set_menu(SystemTrayMenu::new());
             let _ = tray.set_menu(menu);
         }
     }
