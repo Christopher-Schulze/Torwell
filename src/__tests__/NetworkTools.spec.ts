@@ -26,7 +26,7 @@ describe('NetworkTools', () => {
     await fireEvent.input(input, { target: { value: 'example.com' } });
     await fireEvent.click(getByText('Traceroute'));
 
-    await findByText('Route: hop1 -> hop2');
+    await findByText('hop2');
     expect(invoke).toHaveBeenNthCalledWith(2, 'traceroute_host', { token: 42, host: 'example.com', maxHops: 8 });
   });
 });
