@@ -93,3 +93,24 @@ async fn http_bridge_reports_connect() {
         .unwrap();
     assert_eq!(body, "CONNECTED");
 }
+
+#[cfg(feature = "mobile")]
+#[tokio::test]
+async fn http_bridge_sets_workers() {
+    let state = mock_state();
+    torwell84::http_bridge::start(state.clone());
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let client = reqwest::Client::new();
+    let res = client
+        .post("http://127.0.0.1:1421/workers")
+        .json(&serde_json::json!({
+            "workers": ["https://example.com"],
+            "token": "abc"
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::NO_CONTENT);
+}
