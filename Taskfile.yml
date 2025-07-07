@@ -35,6 +35,15 @@ tasks:
     cmds:
       - ./mobile/scripts/build_ios.sh
 
+  mobile:release:
+    desc: "Build Android and iOS apps and collect artifacts"
+    cmds:
+      - task mobile:android
+      - task mobile:ios
+      - mkdir -p mobile/dist
+      - cp mobile/android/*.apk mobile/dist/ 2>/dev/null || true
+      - cp mobile/ios/*.ipa mobile/dist/ 2>/dev/null || true
+
   release:
     desc: "Build MSI/DEB/DMG packages for the current platform"
     cmds:

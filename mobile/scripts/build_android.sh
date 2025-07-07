@@ -31,3 +31,14 @@ cd "$SCRIPT_DIR/.."
 bun install
 npx cap copy android
 npx cap build android
+
+# Copy the generated APK to a predictable location
+APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1 || true)
+if [ -n "$APK_PATH" ]; then
+  DEST_DIR="$SCRIPT_DIR/../android"
+  mkdir -p "$DEST_DIR"
+  cp "$APK_PATH" "$DEST_DIR/"
+  echo "APK copied to $DEST_DIR/$(basename "$APK_PATH")"
+else
+  echo "No APK produced" >&2
+fi
