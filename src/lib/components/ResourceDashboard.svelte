@@ -32,6 +32,7 @@
   $: networkPath = buildPath(metrics, 'networkBytes');
   $: avgPath = buildPath(metrics, 'avgCreateMs');
   $: failPath = buildPath(metrics, 'failedAttempts');
+  $: pingPath = buildPath(metrics, 'latencyMs');
 
   $: latest =
     metrics[metrics.length - 1] ?? {
@@ -115,6 +116,14 @@
       <svg {width} {height} class="text-purple-400" aria-label="Network usage chart" role="img">
         {#if networkPath}
           <path d={networkPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
+        {/if}
+      </svg>
+    </div>
+    <div class="flex-1">
+      <p class="text-sm text-white">Ping: {latest.latencyMs} ms</p>
+      <svg {width} {height} class="text-blue-400" aria-label="Ping chart" role="img">
+        {#if pingPath}
+          <path d={pingPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
         {/if}
       </svg>
     </div>

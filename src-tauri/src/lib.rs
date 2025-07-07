@@ -195,6 +195,7 @@ pub fn run() {
             commands::set_update_interval,
             commands::set_geoip_path,
             commands::ping_host,
+            commands::ping_host_series,
             commands::dns_lookup,
             commands::traceroute_host,
             commands::get_secure_key,

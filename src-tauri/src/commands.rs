@@ -551,6 +551,30 @@ pub async fn ping_host(
 }
 
 #[tauri::command]
+pub async fn ping_host_series(
+    state: State<'_, AppState>,
+    token: String,
+    host: Option<String>,
+    count: Option<u8>,
+) -> Result<Vec<u64>> {
+    track_call("ping_host_series").await;
+    check_api_rate()?;
+    if !state.validate_session(&token).await {
+        log::error!("ping_host_series: invalid token");
+        return Err(Error::InvalidToken);
+    }
+    let host = host.unwrap_or_else(|| "google.com".to_string());
+    if !HOST_RE.is_match(&host) {
+        log::error!("ping_host_series: invalid host '{}'", host);
+        return Err(Error::Io("invalid host".into()));
+    }
+    let count = count.unwrap_or(5).min(MAX_PING_COUNT);
+    icmp::ping_host_series(&host, count)
+        .await
+        .map_err(|e| Error::Io(e.to_string()))
+}
+
+#[tauri::command]
 pub async fn dns_lookup(
     state: State<'_, AppState>,
     token: String,

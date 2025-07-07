@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { vi } from 'vitest';
 
-vi.mock('@tauri-apps/api/tauri', () => ({ invoke: vi.fn(async () => 42) }));
+vi.mock('@tauri-apps/api/tauri', () => ({ invoke: vi.fn(async () => [42]) }));
 
 import StatusCard from '../lib/components/StatusCard.svelte';
 import { invoke } from '@tauri-apps/api/tauri';
@@ -20,7 +20,7 @@ describe('StatusCard', () => {
     expect(getByRole('region')).toHaveAttribute('aria-label', 'Status information');
   });
 
-  it('invokes ping_host when ping button clicked', async () => {
+  it('invokes ping_host_series when ping button clicked', async () => {
     const { getByRole, findByText } = render(StatusCard, {
       props: {
         status: 'CONNECTED',
@@ -31,7 +31,7 @@ describe('StatusCard', () => {
 
     await fireEvent.click(getByRole('button', { name: /run ping test/i }));
 
-    expect(invoke).toHaveBeenNthCalledWith(2, 'ping_host', {
+    expect(invoke).toHaveBeenNthCalledWith(2, 'ping_host_series', {
       token: 42,
       host: 'google.com',
       count: 5
