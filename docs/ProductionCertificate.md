@@ -16,7 +16,7 @@ Place `server.pem` on your update server. Renew the file every 90 days.
 
 ## 2. Adjust `cert_config.json`
 
-Use the example configuration in `docs/examples/cert_config.json` as a template. Copy it to `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. The repository no longer ships a certificate file. Place your production PEM in `/etc/torwell/server.pem` or adjust `cert_path` accordingly.
+Use the example configuration in `docs/examples/cert_config.json` as a template. Copy it to `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. The repository no longer ships a certificate file. Place your production PEM in `/etc/torwell/server.pem` or adjust `cert_path` accordingly.  Windows and macOS paths can be configured via `cert_path_windows` and `cert_path_macos`.
 
 ```json
 {
@@ -27,7 +27,29 @@ Use the example configuration in `docs/examples/cert_config.json` as a template.
 }
 ```
 
-## 3. Override via Environment Variables
+## 3. Set Up Your Update Endpoint
+
+Host `server.pem` on a web server reachable via HTTPS. The path must match the `cert_url` value from the configuration file, e.g. `https://updates.example.com/certs/server.pem`.  Ensure the file is replaced whenever a new certificate is issued.
+
+Automate uploads with a cronjob that calls a small script after each renewal:
+
+```bash
+# /etc/cron.d/torwell-cert-renew
+0 3 * * * root /usr/local/bin/push_cert.sh
+```
+
+`push_cert.sh` copies the fresh PEM to the update server:
+
+```bash
+#!/bin/bash
+set -e
+scp /pki/torwell/server.pem \
+    user@updates.example.com:/var/www/certs/server.pem
+```
+
+Running this job ensures that clients can fetch the new certificate during the next update check.
+
+## 4. Override via Environment Variables
 
 Instead of editing the configuration file you can override the values at runtime:
 
@@ -39,7 +61,7 @@ export TORWELL_FALLBACK_CERT_URL=https://backup.example.com/server.pem
 
 `SecureHttpClient` prefers environment variables over `cert_config.json` when no parameters are passed to `init`.
 
-## 4. Rotation Script Example
+## 5. Rotation Script Example
 
 Automate certificate updates with a small script that copies the new PEM to the update server. Trigger it from a cronjob or CI pipeline.
 

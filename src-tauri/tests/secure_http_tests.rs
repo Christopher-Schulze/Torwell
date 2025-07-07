@@ -497,6 +497,54 @@ async fn warning_after_multiple_update_failures() {
     assert!(warning.contains("consecutive certificate update failures"));
 }
 
+#[tokio::test]
+async fn local_update_and_warning_on_failures() {
+    // first return a valid certificate from a local server
+    let success = MockServer::start_async().await;
+    success
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+
+    client
+        .update_certificates(&success.url("/cert.pem"))
+        .await
+        .unwrap();
+
+    let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+
+    // now simulate repeated failures from another local server
+    let fail = MockServer::start_async().await;
+    fail
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(500);
+        })
+        .await;
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    client
+        .set_warning_callback(move |msg| {
+            let _ = tx.send(msg);
+        })
+        .await;
+
+    for _ in 0..3 {
+        let _ = client.update_certificates(&fail.url("/cert.pem")).await;
+    }
+
+    let warning = rx.recv().await.unwrap();
+    assert!(warning.contains("consecutive certificate update failures"));
+}
+
 #[cfg(feature = "hsm")]
 #[test]
 fn init_and_finalize_hsm_with_softhsm() {
