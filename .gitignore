@@ -50,3 +50,4 @@ src-tauri/Cargo.lock
 # UI backup directory created by scripts/backup_ui.sh
 src/lib/components_backup/
 
+!src-tauri/bin/

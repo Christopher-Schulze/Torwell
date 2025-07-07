@@ -88,3 +88,16 @@ Depending on the operating system this produces:
 
 Copy the resulting package to the production machine and install it before
 enabling the systemd service.
+
+## Command Line Utility
+
+The release also includes the `torwellctl` binary for headless
+administration. It can import or export worker lists, trigger a manual
+certificate update and print stored metrics.
+
+```bash
+torwellctl import-workers workers.txt
+torwellctl export-workers
+torwellctl update-cert
+torwellctl show-metrics
+```

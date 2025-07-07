@@ -38,6 +38,7 @@ urlencoding = "2"
 base64 = "0.21"
 anyhow = "1"
 sysinfo = "0.30"
+clap = { version = "4", features = ["derive"] }
 governor = "0.10.0"
 axum = "0.7"
 directories = "6.0"
@@ -74,3 +75,7 @@ custom-protocol = ["tauri/custom-protocol"]
 mobile = []
 hsm = ["pkcs11"]
 experimental-api = ["arti-client/experimental-api"]
+
+[[bin]]
+name = "torwellctl"
+path = "bin/torwellctl.rs"

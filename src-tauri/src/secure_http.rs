@@ -371,6 +371,11 @@ impl SecureHttpClient {
         *self.worker_token.lock().await = token;
     }
 
+    /// Retrieve the configured proxy workers
+    pub async fn worker_urls(&self) -> Vec<String> {
+        self.worker_urls.lock().await.clone()
+    }
+
     /// Update HSM library path and slot then reload TLS configuration
     pub async fn set_hsm_config(
         &self,
