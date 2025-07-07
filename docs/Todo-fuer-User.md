@@ -32,6 +32,18 @@ Ab Version 2.3 kannst du die aktuelle Liste auch über **Export Worker List** al
 
 Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Verbindungen mit dem gesetzten Token authentifiziert. Mehrere Worker erhöhen Zuverlässigkeit und ermöglichen eine einfache horizontale Skalierung.
 
+## Token-Verwaltung und Batch-Import
+
+Das Feld **Worker token** sollte den geheimen Wert enthalten, den du beim Deploy des Workers unter `SECRET_TOKEN` definiert hast. Beim Speichern prüft Torwell84 automatisch, ob der Token gültig ist und warnt dich bei Fehlern.
+
+Um sehr große Listen einzubinden, kannst du das Skript `scripts/import_workers.ts` verwenden:
+
+```bash
+bun scripts/import_workers.ts worker-list.txt meinToken
+```
+
+Damit lassen sich hunderte URLs bequem importieren.
+
 ## Hardware Security Module verwenden
 
 Unter **Settings → HSM Configuration** kannst du den Pfad zur PKCS#11‑Bibliothek und den Slot angeben. Nach dem Speichern werden die Werte im Backend übernommen und für neue TLS‑Verbindungen genutzt.

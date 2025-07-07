@@ -160,6 +160,7 @@ pub fn run() {
             commands::set_exit_country,
             commands::set_bridges,
             commands::set_worker_config,
+            commands::validate_worker_token,
             commands::set_hsm_config,
             commands::list_bridge_presets,
             commands::get_traffic_stats,
