@@ -198,6 +198,7 @@ pub fn run() {
             commands::ping_host_series,
             commands::dns_lookup,
             commands::traceroute_host,
+            commands::lookup_country,
             commands::get_secure_key,
             commands::set_secure_key,
             commands::reconnect,

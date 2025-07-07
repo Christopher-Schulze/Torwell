@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "$lib/api";
+  import { invoke, lookupCountry } from "$lib/api";
   import { addToast, addErrorToast } from "$lib/stores/toastStore";
   let host = "";
   let dns: string[] = [];
@@ -7,17 +7,6 @@
   let countries: string[] = [];
   let loading = false;
 
-  async function lookupCountry(ip: string): Promise<string> {
-    try {
-      const res = await fetch(`https://ipapi.co/${ip}/country/`);
-      if (res.ok) {
-        return (await res.text()).trim();
-      }
-    } catch (_) {
-      // ignore
-    }
-    return "??";
-  }
 
   function copyDns() {
     navigator.clipboard.writeText(dns.join('\n'));

@@ -352,3 +352,14 @@ async fn tray_warning_set_and_cleared() {
     state.clear_tray_warning().await;
     assert!(state.tray_warning.lock().await.is_none());
 }
+
+#[tokio::test]
+async fn command_lookup_country() {
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let state = app.state::<AppState<MockTorClient>>();
+    let code = commands::lookup_country(state, "8.8.8.8".into())
+        .await
+        .unwrap();
+    assert!(!code.is_empty());
+}
