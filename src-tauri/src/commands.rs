@@ -46,6 +46,7 @@ pub struct Metrics {
     pub cpu_percent: f32,
     pub network_bytes: u64,
     pub total_network_bytes: u64,
+    pub complete: bool,
 }
 
 const INVOCATION_WINDOW: Duration = Duration::from_secs(60);
@@ -413,6 +414,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
         cpu_percent: cpu,
         network_bytes: net,
         total_network_bytes: *state.network_total.lock().await,
+        complete: circ.complete,
     })
 }
 

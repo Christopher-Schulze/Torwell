@@ -35,6 +35,7 @@ export interface MetricPoint {
   cpuPercent: number;
   networkBytes: number;
   networkTotal: number;
+  complete: boolean;
 }
 
 function createTorStore() {
@@ -68,6 +69,7 @@ function createTorStore() {
       cpuPercent: event.payload.cpu_percent ?? 0,
       networkBytes: event.payload.network_bytes ?? 0,
       networkTotal: event.payload.total_network_bytes ?? 0,
+      complete: event.payload.complete ?? true,
     };
     update((state) => {
       const metrics = [...state.metrics, point].slice(-MAX_POINTS);

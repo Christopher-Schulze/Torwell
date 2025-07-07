@@ -46,6 +46,7 @@
       networkBytes: 0,
       networkTotal: 0,
       time: 0,
+      complete: true,
     };
 
   onMount(() => {
@@ -53,7 +54,7 @@
     (async () => {
       try {
         const data = await invoke<MetricPoint[]>('load_metrics');
-        metrics = data.slice(-MAX_POINTS);
+        metrics = data.map((m) => ({ complete: true, ...m })).slice(-MAX_POINTS);
       } catch (e) {
         console.error('Failed to load metrics', e);
       }
@@ -70,6 +71,7 @@
           cpuPercent: event.payload.cpu_percent ?? 0,
           networkBytes: event.payload.network_bytes ?? 0,
           networkTotal: event.payload.total_network_bytes ?? 0,
+          complete: event.payload.complete ?? true,
         };
         metrics = [...metrics, point].slice(-MAX_POINTS);
       });
@@ -82,6 +84,9 @@
 </script>
 
 <div class="glass-md rounded-xl p-4 space-y-4" role="region" aria-label="Resource dashboard">
+  {#if !latest.complete}
+    <p class="text-xs text-gray-300">Einige Metriken sind unbekannt</p>
+  {/if}
   <div class="flex gap-4">
     <div class="flex-1">
       <p class="text-sm text-white">Memory: {latest.memoryMB} MB</p>
