@@ -39,12 +39,14 @@ locations during development.
 ```json
 {
   "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://updates.torwell.com/certs/server.pem",
+  "cert_url": "https://certs.torwell.com/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "update_interval": 86400
 }
 ```
+
+**Hinweis:** Vor Produktionseinführung müssen `cert_url` und ggf. `cert_path` auf den eigenen Update-Server zeigen.
 
 `cert_path` is where the PEM file is written. `cert_url` specifies the HTTPS
 endpoint used to retrieve updates. If the primary endpoint fails, an optional
@@ -82,7 +84,7 @@ let client = SecureHttpClient::init(
 
 ## Konfiguration
 
-Der Standardwert für `cert_url` verweist auf `https://updates.torwell.com/certs/server.pem` und dient lediglich als Platzhalter.
+Der Standardwert für `cert_url` verweist auf `https://certs.torwell.com/server.pem` und dient lediglich als Platzhalter.
 Für produktive Einsätze muss dieser Wert auf den eigenen Update-Server zeigen.
 Dazu öffnen Sie `src-tauri/certs/cert_config.json` und ersetzen die URL durch den gewünschten Endpunkt.
 Alternativ können Sie beim Aufruf von `SecureHttpClient::init` einen abweichenden Wert übergeben, ohne die Datei zu verändern.
@@ -138,7 +140,7 @@ Das Skript `push_cert.sh` könnte beispielsweise so aussehen:
 #!/bin/bash
 set -e
 scp /pki/torwell/server.pem \
-    user@updates.torwell.com:/var/www/certs/server.pem
+    user@certs.torwell.com:/var/www/certs/server.pem
 ```
 
 Nach der Übertragung steht das neue Zertifikat umgehend für alle Clients zum
@@ -155,7 +157,7 @@ Neustart der Anwendung erforderlich ist.
 ### Rotation Workflow
 
 1. Lege das neue Zertifikat auf dem Produktionsserver unter
-   `https://updates.torwell.com/certs/server.pem` ab.
+   `https://certs.torwell.com/server.pem` ab.
 2. Beim Start liest `SecureHttpClient` `cert_config.json` ein und
    verwendet `cert_url`, sofern keine Umgebungsvariable gesetzt ist.
    Wird `TORWELL_CERT_URL` definiert, hat dieser Wert Vorrang.
@@ -181,7 +183,7 @@ sicherstellt, dass immer ein gültiges Zertifikat vorliegt.
 
 1. **Quellserver**
    Das frische Zertifikat wird von der unternehmensinternen PKI erzeugt und auf
-   dem Update-Server unter `https://updates.torwell.com/certs/server.pem` abgelegt. Der
+   dem Update-Server unter `https://certs.torwell.com/server.pem` abgelegt. Der
    Pfad ist in `cert_config.json` hinterlegt und kann über
    `TORWELL_CERT_URL` überschrieben werden.
 2. **Zeitplan**
