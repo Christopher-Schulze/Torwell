@@ -129,6 +129,7 @@ export interface Settings {
   maxLogLines?: number;
   hsm_lib?: string | null;
   hsm_slot?: number | null;
+  updateInterval?: number;
 }
 
 export class AppDatabase extends Dexie {
@@ -156,6 +157,11 @@ export class AppDatabase extends Dexie {
     this.version(5).stores({
       settings:
         "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot",
+      meta: "&id",
+    });
+    this.version(6).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval",
       meta: "&id",
     });
 

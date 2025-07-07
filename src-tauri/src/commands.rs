@@ -291,6 +291,13 @@ pub async fn set_hsm_config(
 }
 
 #[tauri::command]
+pub async fn set_update_interval(state: State<'_, AppState>, interval: u64) -> Result<()> {
+    check_api_rate()?;
+    state.set_update_interval(interval).await;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn list_bridge_presets() -> Result<Vec<BridgePreset>> {
     crate::tor_manager::load_default_bridge_presets()
 }

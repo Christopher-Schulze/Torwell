@@ -13,6 +13,7 @@ type AppSettings = {
   maxLogLines: number;
   hsm_lib: string | null;
   hsm_slot: number | null;
+  updateInterval: number;
 };
 
 type UIState = {
@@ -38,6 +39,7 @@ function createUIStore() {
       maxLogLines: 1000,
       hsm_lib: null,
       hsm_slot: null,
+      updateInterval: 86400,
     },
     error: null,
   });
@@ -81,6 +83,7 @@ function createUIStore() {
               maxLogLines: storedSettings.maxLogLines ?? 1000,
               hsm_lib: storedSettings.hsm_lib ?? null,
               hsm_slot: storedSettings.hsm_slot ?? null,
+              updateInterval: storedSettings.updateInterval ?? 86400,
             },
           }));
 
@@ -101,6 +104,9 @@ function createUIStore() {
           await invoke("set_hsm_config", {
             lib: storedSettings.hsm_lib ?? null,
             slot: storedSettings.hsm_slot ?? null,
+          });
+          await invoke("set_update_interval", {
+            interval: storedSettings.updateInterval ?? 86400,
           });
         }
       } catch (err) {
@@ -319,6 +325,25 @@ function createUIStore() {
         update((state) => ({
           ...state,
           error: `Failed to set log limit: ${message}`,
+        }));
+      }
+    },
+
+    saveUpdateInterval: async (interval: number) => {
+      try {
+        await invoke("set_update_interval", { interval });
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          updateInterval: interval,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to set update interval: ${message}`,
         }));
       }
     },

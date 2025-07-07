@@ -325,6 +325,49 @@ impl<C: TorClientBehavior> AppState<C> {
         self.trim_logs().await
     }
 
+    /// Update the certificate update interval and restart the background task
+    pub async fn set_update_interval(&self, interval: u64) {
+        if interval > 0 {
+            std::env::set_var("TORWELL_UPDATE_INTERVAL", interval.to_string());
+        } else {
+            std::env::remove_var("TORWELL_UPDATE_INTERVAL");
+        }
+
+        let cfg: serde_json::Value = std::fs::read_to_string(secure_http::DEFAULT_CONFIG_PATH)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default();
+
+        let mut urls = vec![cfg
+            .get("cert_url")
+            .and_then(|v| v.as_str())
+            .unwrap_or(secure_http::DEFAULT_CERT_URL)
+            .to_string()];
+        if let Some(fb) = cfg
+            .get("fallback_cert_url")
+            .and_then(|v| v.as_str())
+        {
+            urls.push(fb.to_string());
+        }
+
+        if let Ok(env_url) = std::env::var("TORWELL_CERT_URL") {
+            urls[0] = env_url;
+        }
+        if let Ok(env_fb) = std::env::var("TORWELL_FALLBACK_CERT_URL") {
+            if urls.len() == 1 {
+                urls.push(env_fb);
+            } else {
+                urls[1] = env_fb;
+            }
+        }
+
+        if interval > 0 {
+            self.http_client
+                .clone()
+                .schedule_updates(urls, std::time::Duration::from_secs(interval));
+        }
+    }
+
     /// Return the path to the log file as a string
     pub fn log_file_path(&self) -> String {
         self.log_file.to_string_lossy().into()
