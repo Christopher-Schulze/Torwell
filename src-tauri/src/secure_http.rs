@@ -35,6 +35,10 @@ pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/certs/cert_config.json";
 struct CertConfig {
     #[serde(default = "default_cert_path")]
     cert_path: String,
+    #[serde(default)]
+    cert_path_windows: Option<String>,
+    #[serde(default)]
+    cert_path_macos: Option<String>,
     #[serde(default = "default_cert_url")]
     cert_url: String,
     #[serde(default)]
@@ -64,10 +68,24 @@ fn default_update_interval() -> u64 {
 impl CertConfig {
     fn load<P: AsRef<Path>>(path: P) -> Self {
         let data = std::fs::read_to_string(path).ok();
-        if let Some(data) = data {
+        let mut cfg = if let Some(data) = data {
             serde_json::from_str(&data).unwrap_or_default()
         } else {
             Self::default()
+        };
+
+        cfg.apply_platform_path();
+        cfg
+    }
+
+    fn apply_platform_path(&mut self) {
+        #[cfg(target_os = "windows")]
+        if let Some(p) = &self.cert_path_windows {
+            self.cert_path = p.clone();
+        }
+        #[cfg(target_os = "macos")]
+        if let Some(p) = &self.cert_path_macos {
+            self.cert_path = p.clone();
         }
     }
 }
@@ -76,6 +94,8 @@ impl Default for CertConfig {
     fn default() -> Self {
         Self {
             cert_path: DEFAULT_CERT_PATH.to_string(),
+            cert_path_windows: Some("%APPDATA%\\Torwell84\\server.pem".into()),
+            cert_path_macos: Some("/Library/Application Support/Torwell84/server.pem".into()),
             cert_url: DEFAULT_CERT_URL.to_string(),
             fallback_cert_url: None,
             min_tls_version: default_min_tls_version(),
