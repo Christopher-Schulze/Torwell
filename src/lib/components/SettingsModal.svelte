@@ -2,6 +2,7 @@
   import { createEventDispatcher, tick } from "svelte";
   import { X, Edit3, Plus } from "lucide-svelte";
   import { uiStore } from "$lib/stores/uiStore";
+  import TorrcEditorModal from './TorrcEditorModal.svelte';
 
   const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
 
@@ -23,7 +24,6 @@
 
   let selectedBridges: string[] = [];
   let selectedPreset: string | null = null;
-  let torrcConfig = "";
   let workerList: string[] = [];
   let newWorker = "";
   let workerToken = "";
@@ -33,12 +33,11 @@
   let hsmLib: string | null = null;
   let hsmSlot: number | null = null;
   let filePicker: HTMLInputElement | null = null;
-  // import TorrcEditorModal from './TorrcEditorModal.svelte';
 
   export let show: boolean;
 
   const dispatch = createEventDispatcher();
-  let showTorrcEditor = false; // This will be unused for now
+  let showTorrcEditor = false;
   let closeButton: HTMLButtonElement | null = null;
   let modalEl: HTMLElement | null = null;
   let previouslyFocused: HTMLElement | null = null;
@@ -47,7 +46,6 @@
     previouslyFocused = document.activeElement as HTMLElement;
     selectedBridges = [...$uiStore.settings.bridges];
     selectedPreset = $uiStore.settings.bridgePreset ?? null;
-    torrcConfig = $uiStore.settings.torrcConfig;
     workerList = [...$uiStore.settings.workerList];
     newWorker = "";
     workerToken = $uiStore.settings.workerToken;
@@ -88,9 +86,6 @@
     }
   }
 
-  function saveTorrc() {
-    uiStore.actions.saveTorrcConfig(torrcConfig);
-  }
 
   function saveWorkers() {
     const list = workerList
@@ -189,18 +184,12 @@
           <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
             Torrc Configuration
           </h3>
-          <textarea
-            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm font-mono"
-            rows="6"
-            bind:value={torrcConfig}
-            aria-label="Torrc configuration"
-          ></textarea>
           <button
-            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-            on:click={saveTorrc}
-            aria-label="Save torrc configuration"
+            class="text-sm py-2 px-4 rounded-xl border-transparent font-medium flex items-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={() => (showTorrcEditor = true)}
+            aria-label="Edit torrc"
           >
-            Save
+            <Edit3 size={16} /> Edit torrc
           </button>
         </div>
 
@@ -435,7 +424,7 @@
 {/if}
 
 <!-- TORRC Editor Modal -->
-<!-- <TorrcEditorModal
-	bind:show={showTorrcEditor}
-	on:close={() => showTorrcEditor = false}
-/> -->
+<TorrcEditorModal
+  bind:show={showTorrcEditor}
+  on:close={() => (showTorrcEditor = false)}
+/>
