@@ -16,12 +16,12 @@ Place `server.pem` on your update server. Renew the file every 90 days.
 
 ## 2. Adjust `cert_config.json`
 
-Edit `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. Optionally change `cert_path` if you want to store the file in another location.
+Edit `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. The repository no longer ships a certificate file. Place your production PEM in `/etc/torwell/server.pem` or adjust `cert_path` accordingly.
 
 ```json
 {
-  "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://certs.torwell.com/server.pem",
+  "cert_path": "/etc/torwell/server.pem",
+  "cert_url": "https://updates.torwell.com/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2"
 }
@@ -32,7 +32,7 @@ Edit `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint
 Instead of editing the configuration file you can override the values at runtime:
 
 ```bash
-export TORWELL_CERT_URL=https://certs.torwell.com/server.pem
+export TORWELL_CERT_URL=https://updates.torwell.com/certs/server.pem
 export TORWELL_CERT_PATH=/etc/torwell/server.pem
 export TORWELL_FALLBACK_CERT_URL=https://backup.example.com/server.pem
 ```

@@ -1,6 +1,6 @@
 {
-  "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://certs.torwell.com/server.pem",
+  "cert_path": "/etc/torwell/server.pem",
+  "cert_url": "https://updates.torwell.com/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "update_interval": 86400,
