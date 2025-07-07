@@ -1,5 +1,26 @@
 use serde::Serialize;
+use std::fmt;
 use thiserror::Error;
+
+#[derive(Debug, Serialize, Clone)]
+pub enum ConnectionStep {
+    BuildConfig,
+    Bootstrap,
+    Timeout,
+    RetriesExceeded,
+}
+
+impl fmt::Display for ConnectionStep {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            ConnectionStep::BuildConfig => "build_config",
+            ConnectionStep::Bootstrap => "bootstrap",
+            ConnectionStep::Timeout => "timeout",
+            ConnectionStep::RetriesExceeded => "retries_exceeded",
+        };
+        write!(f, "{}", s)
+    }
+}
 
 #[derive(Debug, Serialize, Error)]
 pub enum Error {
@@ -37,7 +58,10 @@ pub enum Error {
     Network(String),
 
     #[error("connection failed during {step}: {source}")]
-    ConnectionFailed { step: String, source: String },
+    ConnectionFailed {
+        step: ConnectionStep,
+        source: String,
+    },
 
     #[error("identity change failed during {step}: {source}")]
     Identity { step: String, source: String },

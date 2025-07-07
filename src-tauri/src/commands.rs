@@ -124,10 +124,13 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             .await;
                     });
                     let (step, source) = match err {
-                        Error::ConnectionFailed { step, source }
-                        | Error::Identity { step, source }
-                        | Error::NetworkFailure { step, source } => (step, source),
-                        _ => ("", ""),
+                        Error::ConnectionFailed { step, source } => {
+                            (step.to_string(), source.clone())
+                        }
+                        Error::Identity { step, source }
+                        | Error::NetworkFailure { step, source }
+                        | Error::ConfigError { step, source } => (step.clone(), source.clone()),
+                        _ => (String::new(), String::new()),
                     };
                     let _ = app_handle.emit_all(
                         "tor-status-update",
@@ -170,10 +173,11 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
             }
             Err(e) => {
                 let (step, source) = match &e {
-                    Error::ConnectionFailed { step, source }
-                    | Error::Identity { step, source }
-                    | Error::NetworkFailure { step, source } => (step.as_str(), source.as_str()),
-                    _ => ("", ""),
+                    Error::ConnectionFailed { step, source } => (step.to_string(), source.clone()),
+                    Error::Identity { step, source }
+                    | Error::NetworkFailure { step, source }
+                    | Error::ConfigError { step, source } => (step.clone(), source.clone()),
+                    _ => (String::new(), String::new()),
                 };
                 if let Err(e_emit) = app_handle.emit_all(
                     "tor-status-update",
