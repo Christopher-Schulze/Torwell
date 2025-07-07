@@ -39,6 +39,17 @@ fn load_geoip_db(dir: &Path) -> Option<GeoipDb> {
     let v6 = std::fs::read_to_string(dir.join("geoip6")).ok()?;
     GeoipDb::new_from_legacy_format(&v4, &v6).ok()
 }
+
+/// Helper to log an error for a given step and convert it into an
+/// [`Error::ConnectionFailed`] variant.
+fn log_and_convert_error(step: &str, err: impl ToString) -> Error {
+    let msg = err.to_string();
+    log::error!("{step}: {msg}");
+    Error::ConnectionFailed {
+        step: step.to_string(),
+        source: msg,
+    }
+}
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
 
@@ -302,10 +313,10 @@ impl<C: TorClientBehavior> TorManager<C> {
         let config = self
             .build_config()
             .await
-            .map_err(|e| report_error("build_config", format!("build_config: {e}")))?;
+            .map_err(|e| log_and_convert_error("build_config", e))?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
-            .map_err(|e| report_error("bootstrap", format!("bootstrap: {e}")))?;
+            .map_err(|e| log_and_convert_error("bootstrap", e))?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -336,7 +347,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         loop {
             if start.elapsed() >= max_total_time {
                 log::error!("connect_with_backoff: timeout after {:?}", max_total_time);
-                return Err(report_error("timeout", last_error));
+                return Err(log_and_convert_error("timeout", last_error));
             }
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
@@ -353,11 +364,11 @@ impl<C: TorClientBehavior> TorManager<C> {
                             attempt,
                             e
                         );
-                        return Err(report_error("retries_exceeded", last_error));
+                        return Err(log_and_convert_error("retries_exceeded", last_error));
                     }
                     if start.elapsed() + delay > max_total_time {
                         log::error!("connect_with_backoff: total timeout reached");
-                        return Err(report_error("timeout", last_error));
+                        return Err(log_and_convert_error("timeout", last_error));
                     }
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, MAX_BACKOFF);
