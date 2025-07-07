@@ -121,6 +121,18 @@
       .filter((l) => l.length > 0);
   }
 
+  function exportFile() {
+    const blob = new Blob([workerList.join('\n')], {
+      type: 'text/plain',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'workers.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function saveLogLimit() {
     const limit = parseInt(String(maxLogLines));
     if (!isNaN(limit) && limit > 0) {
@@ -339,6 +351,13 @@
             aria-label="Import worker list"
           >
             Import Worker List
+          </button>
+          <button
+            class="text-sm py-2 px-4 mb-2 ml-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={exportFile}
+            aria-label="Export worker list"
+          >
+            Export Worker List
           </button>
           <input
             type="text"
