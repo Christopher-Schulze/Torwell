@@ -32,3 +32,5 @@ Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Ver
 ## Hardware Security Module verwenden
 
 Unter **Settings → HSM Configuration** kannst du den Pfad zur PKCS#11‑Bibliothek und den Slot angeben. Nach dem Speichern werden die Werte im Backend übernommen und für neue TLS‑Verbindungen genutzt.
+
+Unter **Settings → Update Interval** legst du fest, in welchem Abstand (in Sekunden) das Zertifikat automatisch aktualisiert wird.

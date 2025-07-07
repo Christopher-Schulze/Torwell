@@ -165,6 +165,7 @@ pub fn run() {
             commands::clear_logs,
             commands::get_log_file_path,
             commands::set_log_limit,
+            commands::set_update_interval,
             commands::ping_host,
             commands::dns_lookup,
             commands::traceroute_host,
