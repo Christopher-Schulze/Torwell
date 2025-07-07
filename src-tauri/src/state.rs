@@ -36,6 +36,8 @@ struct AppConfig {
     max_log_lines: usize,
     #[serde(default)]
     geoip_path: Option<String>,
+    #[serde(default)]
+    metrics_file: Option<String>,
 }
 
 fn default_max_log_lines() -> usize {
@@ -60,6 +62,28 @@ pub struct LogEntry {
     pub stack: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MetricPoint {
+    #[serde(rename = "time")]
+    pub time: i64,
+    #[serde(rename = "memoryMB")]
+    pub memory_mb: u64,
+    #[serde(rename = "circuitCount")]
+    pub circuit_count: usize,
+    #[serde(rename = "latencyMs")]
+    pub latency_ms: u64,
+    #[serde(rename = "oldestAge")]
+    pub oldest_age: u64,
+    #[serde(rename = "avgCreateMs")]
+    pub avg_create_ms: u64,
+    #[serde(rename = "failedAttempts")]
+    pub failed_attempts: u64,
+    #[serde(rename = "cpuPercent")]
+    pub cpu_percent: f32,
+    #[serde(rename = "networkBytes")]
+    pub network_bytes: u64,
+}
+
 #[derive(Clone)]
 pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub tor_manager: Arc<RwLock<Arc<TorManager<C>>>>,
@@ -68,6 +92,10 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub log_file: PathBuf,
     /// Mutex used to serialize file writes
     pub log_lock: Arc<Mutex<()>>,
+    /// Optional path to store metric points
+    pub metrics_file: Option<PathBuf>,
+    /// Mutex used to serialize metric writes
+    pub metrics_lock: Arc<Mutex<()>>,
     /// Counter for connection retries
     pub retry_counter: Arc<Mutex<u32>>,
     /// Maximum number of lines to retain in the log file
@@ -129,12 +157,37 @@ impl<C: TorClientBehavior> Default for AppState<C> {
         }
 
         Self {
-            tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(geoip_path.clone())))),
+            tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(
+                geoip_path.clone(),
+            )))),
             http_client: Arc::new(
                 SecureHttpClient::new_default().expect("failed to create http client"),
             ),
             log_file,
             log_lock: Arc::new(Mutex::new(())),
+            metrics_file: cfg
+                .metrics_file
+                .clone()
+                .or_else(|| std::env::var("TORWELL_METRICS_FILE").ok())
+                .map(PathBuf::from)
+                .or_else(|| {
+                    if let Some(proj) = ProjectDirs::from("", "", "torwell84") {
+                        let path = proj.data_dir().join("metrics.json");
+                        if let Some(p) = path.parent() {
+                            let _ = std::fs::create_dir_all(p);
+                        }
+                        Some(path)
+                    } else {
+                        let path = std::env::current_dir()
+                            .unwrap_or_else(|_| PathBuf::from("."))
+                            .join("metrics.json");
+                        if let Some(p) = path.parent() {
+                            let _ = std::fs::create_dir_all(p);
+                        }
+                        Some(path)
+                    }
+                }),
+            metrics_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
@@ -195,10 +248,35 @@ impl<C: TorClientBehavior> AppState<C> {
         }
 
         AppState {
-            tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(geoip_path.clone())))),
+            tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(
+                geoip_path.clone(),
+            )))),
             http_client,
             log_file,
             log_lock: Arc::new(Mutex::new(())),
+            metrics_file: cfg
+                .metrics_file
+                .clone()
+                .or_else(|| std::env::var("TORWELL_METRICS_FILE").ok())
+                .map(PathBuf::from)
+                .or_else(|| {
+                    if let Some(proj) = ProjectDirs::from("", "", "torwell84") {
+                        let path = proj.data_dir().join("metrics.json");
+                        if let Some(p) = path.parent() {
+                            let _ = std::fs::create_dir_all(p);
+                        }
+                        Some(path)
+                    } else {
+                        let path = std::env::current_dir()
+                            .unwrap_or_else(|_| PathBuf::from("."))
+                            .join("metrics.json");
+                        if let Some(p) = path.parent() {
+                            let _ = std::fs::create_dir_all(p);
+                        }
+                        Some(path)
+                    }
+                }),
+            metrics_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
             memory_usage: Arc::new(Mutex::new(0)),
@@ -323,6 +401,39 @@ impl<C: TorClientBehavior> AppState<C> {
         let _guard = self.log_lock.lock().await;
         fs::write(&self.log_file, b"").await?;
         Ok(())
+    }
+
+    /// Append a metric point to the metrics file if configured
+    pub async fn append_metric(&self, point: &MetricPoint) -> Result<()> {
+        if let Some(path) = &self.metrics_file {
+            let _guard = self.metrics_lock.lock().await;
+            let mut file = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .await?;
+            let json = serde_json::to_string(point)?;
+            file.write_all(json.as_bytes()).await?;
+            file.write_all(b"\n").await?;
+        }
+        Ok(())
+    }
+
+    /// Load stored metric points from the metrics file
+    pub async fn load_metrics(&self) -> Result<Vec<MetricPoint>> {
+        if let Some(path) = &self.metrics_file {
+            let _guard = self.metrics_lock.lock().await;
+            let contents = fs::read_to_string(path).await.unwrap_or_default();
+            let mut entries = Vec::new();
+            for line in contents.lines() {
+                if let Ok(entry) = serde_json::from_str::<MetricPoint>(line) {
+                    entries.push(entry);
+                }
+            }
+            Ok(entries)
+        } else {
+            Ok(Vec::new())
+        }
     }
 
     /// Update the maximum number of log lines and trim existing logs
@@ -530,6 +641,19 @@ impl<C: TorClientBehavior> AppState<C> {
                 self.update_metrics(mem, circ.count, circ.oldest_age, cpu, network)
                     .await;
                 self.update_latency(latency).await;
+
+                let point = MetricPoint {
+                    time: Utc::now().timestamp_millis(),
+                    memory_mb: mem / 1_000_000,
+                    circuit_count: circ.count,
+                    latency_ms: latency,
+                    oldest_age: circ.oldest_age,
+                    avg_create_ms: circ.avg_create_ms,
+                    failed_attempts: circ.failed_attempts,
+                    cpu_percent: cpu,
+                    network_bytes: *self.network_throughput.lock().await,
+                };
+                let _ = self.append_metric(&point).await;
 
                 let failures = *self.http_client.update_failures.lock().await;
                 if failures >= 3 {
