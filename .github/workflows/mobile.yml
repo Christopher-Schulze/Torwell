@@ -23,16 +23,16 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: task mobile:android
-      - name: Find APK
+      - name: Collect APK
         id: apk
         run: |
-          APK=$(find . -name '*.apk' | head -n 1 || true)
+          APK=$(ls mobile/android/*.apk 2>/dev/null | head -n 1 || true)
           if [ -z "$APK" ]; then
             echo "Creating placeholder APK"
-            mkdir -p dist
-            echo "APK missing" > dist/placeholder.txt
-            zip -j dist/placeholder.apk.zip dist/placeholder.txt
-            echo "path=dist/placeholder.apk.zip" >> "$GITHUB_OUTPUT"
+            mkdir -p mobile/dist
+            echo "APK missing" > mobile/dist/placeholder.txt
+            zip -j mobile/dist/placeholder.apk.zip mobile/dist/placeholder.txt
+            echo "path=mobile/dist/placeholder.apk.zip" >> "$GITHUB_OUTPUT"
           else
             echo "path=$APK" >> "$GITHUB_OUTPUT"
           fi
@@ -41,6 +41,7 @@ jobs:
         with:
           name: android-apk
           path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
 
   ios:
     runs-on: macos-latest
@@ -57,16 +58,16 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: task mobile:ios
-      - name: Find IPA
+      - name: Collect IPA
         id: ipa
         run: |
-          IPA=$(find . -name '*.ipa' | head -n 1 || true)
+          IPA=$(ls mobile/ios/*.ipa 2>/dev/null | head -n 1 || true)
           if [ -z "$IPA" ]; then
             echo "Creating placeholder IPA"
-            mkdir -p dist
-            echo "IPA missing" > dist/placeholder.txt
-            zip -j dist/placeholder.ipa.zip dist/placeholder.txt
-            echo "path=dist/placeholder.ipa.zip" >> "$GITHUB_OUTPUT"
+            mkdir -p mobile/dist
+            echo "IPA missing" > mobile/dist/placeholder.txt
+            zip -j mobile/dist/placeholder.ipa.zip mobile/dist/placeholder.txt
+            echo "path=mobile/dist/placeholder.ipa.zip" >> "$GITHUB_OUTPUT"
           else
             echo "path=$IPA" >> "$GITHUB_OUTPUT"
           fi
@@ -75,3 +76,4 @@ jobs:
         with:
           name: ios-ipa
           path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
