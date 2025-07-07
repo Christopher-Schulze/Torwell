@@ -2,7 +2,6 @@
   import { createEventDispatcher, tick } from "svelte";
   import { X } from "lucide-svelte";
   import { uiStore } from "$lib/stores/uiStore";
-  import { importWorkers } from "../../../scripts/import_workers.ts";
 
   export let show = false;
 
@@ -14,6 +13,7 @@
   let closeButton: HTMLButtonElement | null = null;
   let modalEl: HTMLElement | null = null;
   let previouslyFocused: HTMLElement | null = null;
+  $: importProgress = $uiStore.importProgress;
 
   $: if (show) {
     previouslyFocused = document.activeElement as HTMLElement;
@@ -54,12 +54,7 @@
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
     const text = await input.files[0].text();
-    const list = text
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    await importWorkers(text, $uiStore.settings.workerToken);
-    await uiStore.actions.importWorkerList(list);
+    await uiStore.actions.importWorkersFromText(text);
   }
 </script>
 
@@ -109,6 +104,9 @@
       >
         Import Worker List
       </button>
+      {#if importProgress !== null}
+        <p class="text-xs mt-2 text-center">{importProgress}%</p>
+      {/if}
     </section>
   </div>
 {/if}
