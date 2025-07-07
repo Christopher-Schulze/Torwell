@@ -27,8 +27,14 @@ pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/app_config.json";
 
 /// Default number of log lines retained if no configuration is provided
 pub const DEFAULT_MAX_LOG_LINES: usize = 1000;
+/// Default number of metric lines retained
+pub const DEFAULT_MAX_METRIC_LINES: usize = 1000;
 /// Default session token lifetime in seconds
 pub const DEFAULT_SESSION_TTL: u64 = 3600;
+/// Default maximum number of metric lines
+pub const DEFAULT_MAX_METRIC_LINES: usize = 10_000;
+/// Default maximum metrics file size in megabytes
+pub const DEFAULT_MAX_METRIC_MB: usize = 5;
 
 #[derive(Deserialize, Default)]
 struct AppConfig {
@@ -38,10 +44,22 @@ struct AppConfig {
     geoip_path: Option<String>,
     #[serde(default)]
     metrics_file: Option<String>,
+    #[serde(default = "default_max_metric_lines")]
+    max_metric_lines: usize,
+    #[serde(default = "default_max_metric_mb")]
+    max_metric_mb: usize,
 }
 
 fn default_max_log_lines() -> usize {
     DEFAULT_MAX_LOG_LINES
+}
+
+fn default_max_metric_lines() -> usize {
+    DEFAULT_MAX_METRIC_LINES
+}
+
+fn default_max_metric_mb() -> usize {
+    DEFAULT_MAX_METRIC_MB
 }
 
 impl AppConfig {
@@ -106,6 +124,10 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub retry_counter: Arc<Mutex<u32>>,
     /// Maximum number of lines to retain in the log file
     pub max_log_lines: Arc<Mutex<usize>>,
+    /// Maximum number of metric lines retained
+    pub max_metric_lines: usize,
+    /// Maximum metrics file size in megabytes
+    pub max_metric_mb: usize,
     /// Current memory usage in bytes
     pub memory_usage: Arc<Mutex<u64>>,
     /// Current number of circuits
@@ -156,10 +178,22 @@ impl<C: TorClientBehavior> Default for AppState<C> {
 
         let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
         let mut max_log_lines = cfg.max_log_lines;
+        let mut max_metric_lines = cfg.max_metric_lines;
+        let mut max_metric_mb = cfg.max_metric_mb;
         let mut geoip_path = cfg.geoip_path.clone();
         if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
             if let Ok(n) = val.parse::<usize>() {
                 max_log_lines = n;
+            }
+        }
+        if let Ok(val) = std::env::var("TORWELL_MAX_METRIC_LINES") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_metric_lines = n;
+            }
+        }
+        if let Ok(val) = std::env::var("TORWELL_MAX_METRIC_MB") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_metric_mb = n;
             }
         }
         if let Ok(p) = std::env::var("TORWELL_GEOIP_PATH") {
@@ -200,6 +234,8 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             metrics_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
+            max_metric_lines,
+            max_metric_mb,
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
             oldest_circuit_age: Arc::new(Mutex::new(0)),
@@ -249,10 +285,22 @@ impl<C: TorClientBehavior> AppState<C> {
 
         let cfg = AppConfig::load(DEFAULT_CONFIG_PATH);
         let mut max_log_lines = cfg.max_log_lines;
+        let mut max_metric_lines = cfg.max_metric_lines;
+        let mut max_metric_mb = cfg.max_metric_mb;
         let mut geoip_path = cfg.geoip_path.clone();
         if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
             if let Ok(n) = val.parse::<usize>() {
                 max_log_lines = n;
+            }
+        }
+        if let Ok(val) = std::env::var("TORWELL_MAX_METRIC_LINES") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_metric_lines = n;
+            }
+        }
+        if let Ok(val) = std::env::var("TORWELL_MAX_METRIC_MB") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_metric_mb = n;
             }
         }
         if let Ok(p) = std::env::var("TORWELL_GEOIP_PATH") {
@@ -291,6 +339,8 @@ impl<C: TorClientBehavior> AppState<C> {
             metrics_lock: Arc::new(Mutex::new(())),
             retry_counter: Arc::new(Mutex::new(0)),
             max_log_lines: Arc::new(Mutex::new(max_log_lines)),
+            max_metric_lines,
+            max_metric_mb,
             memory_usage: Arc::new(Mutex::new(0)),
             circuit_count: Arc::new(Mutex::new(0)),
             oldest_circuit_age: Arc::new(Mutex::new(0)),
@@ -416,6 +466,27 @@ impl<C: TorClientBehavior> AppState<C> {
         Ok(())
     }
 
+    async fn trim_metrics(&self) -> Result<()> {
+        if let Some(path) = &self.metrics_file {
+            let contents = fs::read_to_string(path).await.unwrap_or_default();
+            let mut lines: Vec<&str> = contents.lines().collect();
+            let limit = DEFAULT_MAX_METRIC_LINES;
+            if lines.len() > limit {
+                let archive_dir = path
+                    .parent()
+                    .map(|p| p.join("archive"))
+                    .unwrap_or_else(|| PathBuf::from("archive"));
+                fs::create_dir_all(&archive_dir).await?;
+                let ts = Utc::now().format("%Y%m%d%H%M%S");
+                let archive_path = archive_dir.join(format!("metrics-{}.json", ts));
+                fs::rename(path, &archive_path).await?;
+                lines = lines[lines.len() - limit..].to_vec();
+                fs::write(path, lines.join("\n")).await?;
+            }
+        }
+        Ok(())
+    }
+
     /// Append a metric point to the metrics file if configured
     pub async fn append_metric(&self, point: &MetricPoint) -> Result<()> {
         if let Some(path) = &self.metrics_file {
@@ -428,6 +499,36 @@ impl<C: TorClientBehavior> AppState<C> {
             let json = serde_json::to_string(point)?;
             file.write_all(json.as_bytes()).await?;
             file.write_all(b"\n").await?;
+            drop(file);
+            self.trim_metrics().await?;
+        }
+        Ok(())
+    }
+
+    async fn trim_metrics(&self) -> Result<()> {
+        if let Some(path) = &self.metrics_file {
+            let contents = fs::read_to_string(path).await.unwrap_or_default();
+            let mut lines: Vec<&str> = contents.lines().collect();
+            let line_limit = self.max_metric_lines;
+            let size_limit = self.max_metric_mb * 1024 * 1024;
+            let mut total_size: usize = lines.iter().map(|l| l.len() + 1).sum();
+
+            if total_size > size_limit || lines.len() > line_limit {
+                if lines.len() > line_limit {
+                    lines = lines[lines.len() - line_limit..].to_vec();
+                    total_size = lines.iter().map(|l| l.len() + 1).sum();
+                }
+                while total_size > size_limit && !lines.is_empty() {
+                    total_size -= lines[0].len() + 1;
+                    lines.remove(0);
+                }
+                let mut data = lines.join("\n");
+                if !data.is_empty() {
+                    data.push('\n');
+                }
+                fs::write(path, data).await?;
+            }
+
         }
         Ok(())
     }
@@ -491,7 +592,8 @@ impl<C: TorClientBehavior> AppState<C> {
         if interval > 0 {
             self.http_client
                 .clone()
-                .schedule_updates(urls, std::time::Duration::from_secs(interval));
+                .schedule_updates(urls, std::time::Duration::from_secs(interval))
+                .await;
         }
     }
 

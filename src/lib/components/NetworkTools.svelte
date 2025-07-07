@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "$lib/api";
+  import { invoke, lookupCountry } from "$lib/api";
   import { addToast, addErrorToast } from "$lib/stores/toastStore";
   let host = "";
   let dns: string[] = [];
@@ -15,6 +15,7 @@
       return "??";
     }
   }
+
 
   function copyDns() {
     navigator.clipboard.writeText(dns.join('\n'));
