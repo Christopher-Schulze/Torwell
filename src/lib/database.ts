@@ -127,6 +127,8 @@ export interface Settings {
   bridges?: string[];
   bridgePreset?: string | null;
   maxLogLines?: number;
+  maxMemoryMB?: number;
+  maxCircuits?: number;
   hsm_lib?: string | null;
   hsm_slot?: number | null;
 }
@@ -156,6 +158,11 @@ export class AppDatabase extends Dexie {
     this.version(5).stores({
       settings:
         "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot",
+      meta: "&id",
+    });
+    this.version(6).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, maxMemoryMB, maxCircuits",
       meta: "&id",
     });
 

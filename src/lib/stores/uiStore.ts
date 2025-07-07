@@ -11,6 +11,8 @@ type AppSettings = {
   bridges: string[];
   bridgePreset: string | null;
   maxLogLines: number;
+  maxMemoryMB: number;
+  maxCircuits: number;
   hsm_lib: string | null;
   hsm_slot: number | null;
 };
@@ -36,6 +38,8 @@ function createUIStore() {
       bridges: [],
       bridgePreset: null,
       maxLogLines: 1000,
+      maxMemoryMB: 1024,
+      maxCircuits: 20,
       hsm_lib: null,
       hsm_slot: null,
     },
@@ -79,6 +83,8 @@ function createUIStore() {
               bridges: storedSettings.bridges ?? [],
               bridgePreset: storedSettings.bridgePreset ?? null,
               maxLogLines: storedSettings.maxLogLines ?? 1000,
+              maxMemoryMB: storedSettings.maxMemoryMB ?? 1024,
+              maxCircuits: storedSettings.maxCircuits ?? 20,
               hsm_lib: storedSettings.hsm_lib ?? null,
               hsm_slot: storedSettings.hsm_slot ?? null,
             },
@@ -93,6 +99,12 @@ function createUIStore() {
           });
           await invoke("set_log_limit", {
             limit: storedSettings.maxLogLines ?? 1000,
+          });
+          await invoke("set_max_memory_mb", {
+            limit: storedSettings.maxMemoryMB ?? 1024,
+          });
+          await invoke("set_max_circuits", {
+            limit: storedSettings.maxCircuits ?? 20,
           });
           await invoke("set_worker_config", {
             workers: storedSettings.workerList,
@@ -319,6 +331,44 @@ function createUIStore() {
         update((state) => ({
           ...state,
           error: `Failed to set log limit: ${message}`,
+        }));
+      }
+    },
+
+    setMaxMemory: async (limit: number) => {
+      try {
+        await invoke("set_max_memory_mb", { limit });
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          maxMemoryMB: limit,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to set memory limit: ${message}`,
+        }));
+      }
+    },
+
+    setMaxCircuits: async (limit: number) => {
+      try {
+        await invoke("set_max_circuits", { limit });
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          maxCircuits: limit,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to set circuit limit: ${message}`,
         }));
       }
     },

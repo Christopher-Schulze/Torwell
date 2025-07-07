@@ -28,6 +28,8 @@
   let newWorker = "";
   let workerToken = "";
   let maxLogLines = 1000;
+  let maxMemoryMB = 1024;
+  let maxCircuits = 20;
   let exitCountry: string | null = null;
   let hsmLib: string | null = null;
   let hsmSlot: number | null = null;
@@ -50,6 +52,8 @@
     newWorker = "";
     workerToken = $uiStore.settings.workerToken;
     maxLogLines = $uiStore.settings.maxLogLines;
+    maxMemoryMB = $uiStore.settings.maxMemoryMB;
+    maxCircuits = $uiStore.settings.maxCircuits;
     exitCountry = $uiStore.settings.exitCountry ?? null;
     hsmLib = $uiStore.settings.hsm_lib;
     hsmSlot = $uiStore.settings.hsm_slot;
@@ -112,6 +116,20 @@
     const limit = parseInt(String(maxLogLines));
     if (!isNaN(limit) && limit > 0) {
       uiStore.actions.setLogLimit(limit);
+    }
+  }
+
+  function saveMaxMemory() {
+    const val = parseInt(String(maxMemoryMB));
+    if (!isNaN(val) && val > 0) {
+      uiStore.actions.setMaxMemory(val);
+    }
+  }
+
+  function saveMaxCircuitsFn() {
+    const val = parseInt(String(maxCircuits));
+    if (!isNaN(val) && val > 0) {
+      uiStore.actions.setMaxCircuits(val);
     }
   }
 
@@ -341,6 +359,46 @@
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
             on:click={saveLogLimit}
             aria-label="Save log limit"
+          >
+            Save
+          </button>
+        </div>
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            Memory Limit (MB)
+          </h3>
+          <input
+            type="number"
+            min="1"
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+            bind:value={maxMemoryMB}
+            aria-label="Memory limit in MB"
+          />
+          <button
+            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={saveMaxMemory}
+            aria-label="Save memory limit"
+          >
+            Save
+          </button>
+        </div>
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            Circuit Limit
+          </h3>
+          <input
+            type="number"
+            min="1"
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+            bind:value={maxCircuits}
+            aria-label="Circuit limit"
+          />
+          <button
+            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={saveMaxCircuitsFn}
+            aria-label="Save circuit limit"
           >
             Save
           </button>

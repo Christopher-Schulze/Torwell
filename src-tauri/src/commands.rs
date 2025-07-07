@@ -321,27 +321,30 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
         .update_metrics(mem, circ.count, circ.oldest_age, cpu, 0)
         .await;
 
-    if mem / 1024 / 1024 > state.max_memory_mb {
+    let max_mem = *state.max_memory_mb.lock().await;
+    let max_circ = *state.max_circuits.lock().await;
+
+    if mem / 1024 / 1024 > max_mem {
         let _ = state
             .add_log(
                 Level::Warn,
                 format!(
                     "memory usage {} MB exceeds limit {}",
                     mem / 1024 / 1024,
-                    state.max_memory_mb
+                    max_mem
                 ),
                 None,
             )
             .await;
     }
 
-    if circ.count > state.max_circuits {
+    if circ.count > max_circ {
         let _ = state
             .add_log(
                 Level::Warn,
                 format!(
                     "circuit count {} exceeds limit {}",
-                    circ.count, state.max_circuits
+                    circ.count, max_circ
                 ),
                 None,
             )
@@ -424,6 +427,20 @@ pub async fn get_log_file_path(state: State<'_, AppState>, token: String) -> Res
 pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<()> {
     check_api_rate()?;
     state.set_max_log_lines(limit).await
+}
+
+#[tauri::command]
+pub async fn set_max_memory_mb(state: State<'_, AppState>, limit: u64) -> Result<()> {
+    check_api_rate()?;
+    state.set_max_memory_mb(limit).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_max_circuits(state: State<'_, AppState>, limit: usize) -> Result<()> {
+    check_api_rate()?;
+    state.set_max_circuits(limit).await;
+    Ok(())
 }
 
 #[tauri::command]
