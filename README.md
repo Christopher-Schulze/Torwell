@@ -286,6 +286,14 @@ Logs lassen sich anschließend mit `journalctl -u torwell84.service` abrufen.
 Weitere Hinweise zur Einrichtung finden sich in
 [docs/ProductionDeployment.md](docs/ProductionDeployment.md).
 
+Zur schnellen Installation kopiert das Skript `scripts/install_service.sh` die
+Unit-Datei nach `/etc/systemd/system/`, lädt systemd neu und startet den
+Dienst:
+
+```bash
+sudo ./scripts/install_service.sh
+```
+
 ## Installation
 
 ### Windows Installation
