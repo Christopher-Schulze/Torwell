@@ -83,9 +83,9 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     /// Network throughput in bytes per second
     pub network_throughput: Arc<Mutex<u64>>,
     /// Maximum memory usage before warning (in MB)
-    pub max_memory_mb: u64,
+    pub max_memory_mb: Arc<Mutex<u64>>,
     /// Maximum number of circuits before warning
-    pub max_circuits: usize,
+    pub max_circuits: Arc<Mutex<usize>>,
     /// Session manager for authentication tokens
     pub session: Arc<SessionManager>,
     /// Handle used to emit frontend events
@@ -139,14 +139,18 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             latency_ms: Arc::new(Mutex::new(0)),
             cpu_usage: Arc::new(Mutex::new(0.0)),
             network_throughput: Arc::new(Mutex::new(0)),
-            max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
-                .ok()
-                .and_then(|v| v.parse::<u64>().ok())
-                .unwrap_or(1024),
-            max_circuits: std::env::var("TORWELL_MAX_CIRCUITS")
-                .ok()
-                .and_then(|v| v.parse::<usize>().ok())
-                .unwrap_or(20),
+            max_memory_mb: Arc::new(Mutex::new(
+                std::env::var("TORWELL_MAX_MEMORY_MB")
+                    .ok()
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(1024),
+            )),
+            max_circuits: Arc::new(Mutex::new(
+                std::env::var("TORWELL_MAX_CIRCUITS")
+                    .ok()
+                    .and_then(|v| v.parse::<usize>().ok())
+                    .unwrap_or(20),
+            )),
             session: SessionManager::new(Duration::from_secs(
                 std::env::var("TORWELL_SESSION_TTL")
                     .ok()
@@ -202,14 +206,18 @@ impl<C: TorClientBehavior> AppState<C> {
             latency_ms: Arc::new(Mutex::new(0)),
             cpu_usage: Arc::new(Mutex::new(0.0)),
             network_throughput: Arc::new(Mutex::new(0)),
-            max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
-                .ok()
-                .and_then(|v| v.parse::<u64>().ok())
-                .unwrap_or(1024),
-            max_circuits: std::env::var("TORWELL_MAX_CIRCUITS")
-                .ok()
-                .and_then(|v| v.parse::<usize>().ok())
-                .unwrap_or(20),
+            max_memory_mb: Arc::new(Mutex::new(
+                std::env::var("TORWELL_MAX_MEMORY_MB")
+                    .ok()
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(1024),
+            )),
+            max_circuits: Arc::new(Mutex::new(
+                std::env::var("TORWELL_MAX_CIRCUITS")
+                    .ok()
+                    .and_then(|v| v.parse::<usize>().ok())
+                    .unwrap_or(20),
+            )),
             session: SessionManager::new(Duration::from_secs(
                 std::env::var("TORWELL_SESSION_TTL")
                     .ok()
@@ -325,6 +333,16 @@ impl<C: TorClientBehavior> AppState<C> {
         self.trim_logs().await
     }
 
+    /// Update the maximum memory limit in MB
+    pub async fn set_max_memory_mb(&self, limit: u64) {
+        *self.max_memory_mb.lock().await = limit;
+    }
+
+    /// Update the maximum circuit limit
+    pub async fn set_max_circuits(&self, limit: usize) {
+        *self.max_circuits.lock().await = limit;
+    }
+
     /// Return the path to the log file as a string
     pub fn log_file_path(&self) -> String {
         self.log_file.to_string_lossy().into()
@@ -346,10 +364,11 @@ impl<C: TorClientBehavior> AppState<C> {
         *self.network_throughput.lock().await = network;
 
         let memory_mb = memory / 1024 / 1024;
-        if memory_mb > self.max_memory_mb {
+        if memory_mb > *self.max_memory_mb.lock().await {
             let msg = format!(
                 "memory usage {} MB exceeds limit {}",
-                memory_mb, self.max_memory_mb
+                memory_mb,
+                *self.max_memory_mb.lock().await
             );
             let _ = self.add_log(Level::Warn, msg.clone(), None).await;
             let _ = self.tor_manager.close_all_circuits().await;
@@ -358,10 +377,11 @@ impl<C: TorClientBehavior> AppState<C> {
             self.emit_security_warning(msg).await;
         }
 
-        if circuits > self.max_circuits {
+        if circuits > *self.max_circuits.lock().await {
             let msg = format!(
                 "circuit count {} exceeds limit {}",
-                circuits, self.max_circuits
+                circuits,
+                *self.max_circuits.lock().await
             );
             let _ = self.add_log(Level::Warn, msg.clone(), None).await;
             let _ = self.tor_manager.close_all_circuits().await;
@@ -370,7 +390,9 @@ impl<C: TorClientBehavior> AppState<C> {
             self.emit_security_warning(msg).await;
         }
 
-        if memory_mb <= self.max_memory_mb && circuits <= self.max_circuits {
+        if memory_mb <= *self.max_memory_mb.lock().await
+            && circuits <= *self.max_circuits.lock().await
+        {
             let mut warn = self.tray_warning.lock().await;
             if warn.is_some() {
                 *warn = None;
