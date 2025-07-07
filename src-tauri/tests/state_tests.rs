@@ -1,12 +1,12 @@
 use async_trait::async_trait;
+use log::Level;
 use once_cell::sync::Lazy;
+use regex::Regex;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 use tokio::sync::Mutex;
-use log::Level;
-use regex::Regex;
 
 use torwell84::secure_http::SecureHttpClient;
 use torwell84::session::SessionManager;
@@ -78,6 +78,9 @@ async fn update_metrics_closes_circuits_on_limit() {
         circuit_count: Arc::new(Mutex::new(0)),
         oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
         max_memory_mb: 1,
         max_circuits: 1,
         session: SessionManager::new(Duration::from_secs(60)),
@@ -110,6 +113,9 @@ async fn tray_warning_on_memory_limit() {
         circuit_count: Arc::new(Mutex::new(0)),
         oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
         max_memory_mb: 1,
         max_circuits: 10,
         session: SessionManager::new(Duration::from_secs(60)),
@@ -118,7 +124,13 @@ async fn tray_warning_on_memory_limit() {
     };
     let _ = tokio::fs::remove_file("mem.log").await;
     state.update_metrics(2 * 1024 * 1024, 0, 0).await;
-    assert!(state.tray_warning.lock().await.as_ref().unwrap().contains("memory"));
+    assert!(state
+        .tray_warning
+        .lock()
+        .await
+        .as_ref()
+        .unwrap()
+        .contains("memory"));
 }
 
 #[tokio::test]
@@ -139,6 +151,9 @@ async fn tray_warning_on_circuit_limit() {
         circuit_count: Arc::new(Mutex::new(0)),
         oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
         max_memory_mb: 1024,
         max_circuits: 1,
         session: SessionManager::new(Duration::from_secs(60)),
@@ -147,7 +162,13 @@ async fn tray_warning_on_circuit_limit() {
     };
     let _ = tokio::fs::remove_file("circ.log").await;
     state.update_metrics(0, 2, 0).await;
-    assert!(state.tray_warning.lock().await.as_ref().unwrap().contains("circuit"));
+    assert!(state
+        .tray_warning
+        .lock()
+        .await
+        .as_ref()
+        .unwrap()
+        .contains("circuit"));
 }
 
 #[tokio::test]
@@ -165,6 +186,9 @@ async fn log_rotation_creates_archive() {
         circuit_count: Arc::new(Mutex::new(0)),
         oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
         max_memory_mb: 1,
         max_circuits: 1,
         session: SessionManager::new(Duration::from_secs(60)),

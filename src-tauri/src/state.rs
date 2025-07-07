@@ -82,6 +82,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub cpu_usage: Arc<Mutex<f32>>,
     /// Network throughput in bytes per second
     pub network_throughput: Arc<Mutex<u64>>,
+    /// Total traffic bytes at the last metrics update
+    pub prev_traffic: Arc<Mutex<u64>>,
     /// Maximum memory usage before warning (in MB)
     pub max_memory_mb: u64,
     /// Maximum number of circuits before warning
@@ -139,6 +141,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             latency_ms: Arc::new(Mutex::new(0)),
             cpu_usage: Arc::new(Mutex::new(0.0)),
             network_throughput: Arc::new(Mutex::new(0)),
+            prev_traffic: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -202,6 +205,7 @@ impl<C: TorClientBehavior> AppState<C> {
             latency_ms: Arc::new(Mutex::new(0)),
             cpu_usage: Arc::new(Mutex::new(0.0)),
             network_throughput: Arc::new(Mutex::new(0)),
+            prev_traffic: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -343,10 +347,7 @@ impl<C: TorClientBehavior> AppState<C> {
             .and_then(|v| v.as_str())
             .unwrap_or(secure_http::DEFAULT_CERT_URL)
             .to_string()];
-        if let Some(fb) = cfg
-            .get("fallback_cert_url")
-            .and_then(|v| v.as_str())
-        {
+        if let Some(fb) = cfg.get("fallback_cert_url").and_then(|v| v.as_str()) {
             urls.push(fb.to_string());
         }
 
@@ -386,7 +387,17 @@ impl<C: TorClientBehavior> AppState<C> {
         *self.circuit_count.lock().await = circuits;
         *self.oldest_circuit_age.lock().await = oldest_age;
         *self.cpu_usage.lock().await = cpu;
-        *self.network_throughput.lock().await = network;
+        let mut net = network;
+        if let Ok(stats) = self.tor_manager.traffic_stats().await {
+            let total = stats.bytes_sent + stats.bytes_received;
+            let mut prev = self.prev_traffic.lock().await;
+            let diff = if total > *prev { total - *prev } else { 0 };
+            *prev = total;
+            if net == 0 {
+                net = diff / 30;
+            }
+        }
+        *self.network_throughput.lock().await = net;
 
         let memory_mb = memory / 1024 / 1024;
         if memory_mb > self.max_memory_mb {
@@ -527,7 +538,7 @@ impl<C: TorClientBehavior> AppState<C> {
                         "avg_create_ms": circ.avg_create_ms,
                         "failed_attempts": circ.failed_attempts,
                         "cpu_percent": cpu,
-                        "network_bytes": network
+                        "network_bytes": *self.network_throughput.lock().await
                     }),
                 );
             }
