@@ -149,9 +149,10 @@ be removed once you no longer need the backup.
 
 ### Updating Certificates
 The pinned certificate location is configured in `src-tauri/certs/cert_config.json`.
-By default this file points `cert_url` to `https://updates.torwell.com/certs/server.pem` as a
-placeholder. **Provide your own update endpoint for production.** Adjust the value
-or set the environment variables `TORWELL_CERT_URL` or `TORWELL_CERT_PATH` to override the URL and local path at runtime.
+By default this file uses the Torwell production endpoint `https://certs.torwell.com/server.pem`.
+If you run your own update server, set the environment variables `TORWELL_CERT_URL`
+or `TORWELL_CERT_PATH` to override the URL and local path at runtime. You can also
+provide a backup with `TORWELL_FALLBACK_CERT_URL`.
 The minimum TLS version can also be configured via the `min_tls_version` field
 ("1.2" or "1.3").
 

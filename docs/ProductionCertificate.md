@@ -9,7 +9,7 @@ Create a PEM encoded certificate with your internal or public CA. For quick test
 ```bash
 openssl req -new -newkey rsa:4096 -days 90 -nodes -x509 \
     -keyout server.key -out server.pem \
-    -subj "/CN=updates.torwell.com"
+    -subj "/CN=certs.torwell.com"
 ```
 
 Place `server.pem` on your update server. Renew the file every 90 days.
@@ -21,7 +21,7 @@ Edit `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint
 ```json
 {
   "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://updates.example.org/certs/server.pem",
+  "cert_url": "https://certs.torwell.com/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2"
 }
@@ -32,8 +32,9 @@ Edit `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint
 Instead of editing the configuration file you can override the values at runtime:
 
 ```bash
-export TORWELL_CERT_URL=https://updates.example.org/certs/server.pem
+export TORWELL_CERT_URL=https://certs.torwell.com/server.pem
 export TORWELL_CERT_PATH=/etc/torwell/server.pem
+export TORWELL_FALLBACK_CERT_URL=https://backup.example.com/server.pem
 ```
 
 `SecureHttpClient` prefers environment variables over `cert_config.json` when no parameters are passed to `init`.
@@ -46,7 +47,7 @@ Automate certificate updates with a small script that copies the new PEM to the 
 #!/bin/bash
 set -e
 scp /pki/torwell/server.pem \
-    user@updates.example.org:/var/www/certs/server.pem
+    user@certs.torwell.com:/var/www/certs/server.pem
 ```
 
 Running this script after each renewal ensures that clients download the new certificate during the next update check.
