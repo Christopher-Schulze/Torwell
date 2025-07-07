@@ -45,7 +45,11 @@ fn load_geoip_db(dir: &Path) -> Option<GeoipDb> {
 fn log_and_convert_error(step: ConnectionStep, err: impl ToString) -> Error {
     let msg = err.to_string();
     log::error!("{}: {}", step, msg);
-    Error::ConnectionFailed { step, source: msg }
+    Error::ConnectionFailed {
+        step,
+        source: msg,
+        backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
+    }
 }
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
@@ -102,6 +106,13 @@ pub fn load_default_bridge_presets() -> Result<Vec<BridgePreset>> {
 
 pub fn load_bridge_presets_from_str(data: &str) -> Result<Vec<BridgePreset>> {
     PresetFile::from_str(data)
+}
+
+#[derive(Debug, Clone)]
+pub struct RetryInfo {
+    pub attempt: u32,
+    pub delay: std::time::Duration,
+    pub error: Error,
 }
 
 #[async_trait]
@@ -294,6 +305,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             builder.build().map_err(|e| Error::ConfigError {
                 step: "config_build".into(),
                 source: e.to_string(),
+                backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
             })
         }
     }
@@ -330,7 +342,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         mut on_progress: P,
     ) -> Result<()>
     where
-        F: FnMut(u32, std::time::Duration, &Error) + Send,
+        F: FnMut(RetryInfo) + Send,
         P: FnMut(u8, String) + Send,
     {
         if self.connect_limiter.check().is_err() {
@@ -354,7 +366,11 @@ impl<C: TorClientBehavior> TorManager<C> {
                     }
                     last_error = e.to_string();
                     attempt += 1;
-                    on_retry(attempt, delay, &e);
+                    on_retry(RetryInfo {
+                        attempt,
+                        delay,
+                        error: e.clone(),
+                    });
                     if attempt > max_retries {
                         log::error!(
                             "connect_with_backoff: retries exceeded ({} attempts) - {}",
@@ -425,6 +441,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                 Error::ConfigError {
                     step: "set_exit_country".into(),
                     source: e.to_string(),
+                    backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
                 }
             })?;
             *guard = Some(code);

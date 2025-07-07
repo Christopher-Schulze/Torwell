@@ -22,7 +22,7 @@ impl fmt::Display for ConnectionStep {
     }
 }
 
-#[derive(Debug, Serialize, Error)]
+#[derive(Debug, Serialize, Error, Clone)]
 pub enum Error {
     #[error("Tor Error: {0}")]
     Tor(String),
@@ -61,22 +61,44 @@ pub enum Error {
     ConnectionFailed {
         step: ConnectionStep,
         source: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        backtrace: Option<String>,
     },
 
     #[error("identity change failed during {step}: {source}")]
-    Identity { step: String, source: String },
+    Identity {
+        step: String,
+        source: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        backtrace: Option<String>,
+    },
 
     #[error("Rate limit exceeded for {0}")]
     RateLimitExceeded(String),
 
     #[error("configuration error during {step}: {source}")]
-    ConfigError { step: String, source: String },
+    ConfigError {
+        step: String,
+        source: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        backtrace: Option<String>,
+    },
 
     #[error("network failure during {step}: {source}")]
-    NetworkFailure { step: String, source: String },
+    NetworkFailure {
+        step: String,
+        source: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        backtrace: Option<String>,
+    },
 
     #[error("connection failed after {attempts} retries: {error}")]
-    RetriesExceeded { attempts: u32, error: String },
+    RetriesExceeded {
+        attempts: u32,
+        error: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        backtrace: Option<String>,
+    },
 
     #[error("bridge parsing failed: {0}")]
     BridgeParse(String),
@@ -133,5 +155,6 @@ pub fn report_error(step: &str, source: impl ToString) -> Error {
     Error::NetworkFailure {
         step: step.to_string(),
         source: msg,
+        backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
     }
 }

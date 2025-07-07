@@ -3,7 +3,7 @@
 ## High Priority
 
 ## Medium Priority
-1. Refactor TorManager error handling for better diagnostics
+
 
 ## Future Ideas
 - Real-time dashboard for resource usage
@@ -16,6 +16,7 @@
 - Connection retries use exponential backoff with a maximum total time.
 - Each failed attempt increments `AppState.retry_counter` and is logged.
 - Unit tests cover TorManager metrics functions
+- Refactor TorManager error handling for better diagnostics
 
 ## Limitations
 - Circuit metrics (active circuit count and age) will be added when arti-client provides a circuit listing API.

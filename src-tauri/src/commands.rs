@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
 use crate::icmp;
 use crate::state::{AppState, LogEntry};
-use crate::tor_manager::BridgePreset;
+use crate::tor_manager::{BridgePreset, RetryInfo};
 use governor::{
     clock::DefaultClock,
     state::{InMemoryState, NotKeyed},
@@ -110,7 +110,10 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
             .connect_with_backoff(
                 5,
                 Duration::from_secs(60), // place to capture circuit build duration metrics
-                |attempt, delay, err| {
+                |info: RetryInfo| {
+                    let attempt = info.attempt;
+                    let delay = info.delay;
+                    let err = &info.error;
                     let err_str = err.to_string();
                     let sc = state_clone.clone();
                     tokio::spawn(async move {
@@ -124,12 +127,12 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             .await;
                     });
                     let (step, source) = match err {
-                        Error::ConnectionFailed { step, source } => {
+                        Error::ConnectionFailed { step, source, .. } => {
                             (step.to_string(), source.clone())
                         }
-                        Error::Identity { step, source }
-                        | Error::NetworkFailure { step, source }
-                        | Error::ConfigError { step, source } => (step.clone(), source.clone()),
+                        Error::Identity { step, source, .. }
+                        | Error::NetworkFailure { step, source, .. }
+                        | Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
                         _ => (String::new(), String::new()),
                     };
                     let _ = app_handle.emit_all(
@@ -173,10 +176,12 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
             }
             Err(e) => {
                 let (step, source) = match &e {
-                    Error::ConnectionFailed { step, source } => (step.to_string(), source.clone()),
-                    Error::Identity { step, source }
-                    | Error::NetworkFailure { step, source }
-                    | Error::ConfigError { step, source } => (step.clone(), source.clone()),
+                    Error::ConnectionFailed { step, source, .. } => {
+                        (step.to_string(), source.clone())
+                    }
+                    Error::Identity { step, source, .. }
+                    | Error::NetworkFailure { step, source, .. }
+                    | Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
                     _ => (String::new(), String::new()),
                 };
                 if let Err(e_emit) = app_handle.emit_all(
