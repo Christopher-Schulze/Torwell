@@ -2,20 +2,45 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SERVICE_FILE="$ROOT_DIR/src-tauri/torwell84.service"
+TARGET_DIR="${TARGET_DIR:-/etc/systemd/system}"
+SYSTEMCTL="${SYSTEMCTL:-systemctl}"
+SUDO="${SUDO:-sudo}"
+
+# Basic path validation
+if [ ! -f "$SERVICE_FILE" ]; then
+  echo "Service file not found: $SERVICE_FILE" >&2
+  exit 1
+fi
+
+if [ ! -d "$TARGET_DIR" ]; then
+  echo "Target directory $TARGET_DIR does not exist" >&2
+  exit 1
+fi
+
+if ! command -v "$SYSTEMCTL" >/dev/null 2>&1; then
+  echo "systemctl command not found: $SYSTEMCTL" >&2
+  exit 1
+fi
 
 # Create service user and group if they do not exist
 if ! id torwell >/dev/null 2>&1; then
-  sudo useradd --system --user-group --home /opt/torwell84 torwell
+  $SUDO useradd --system --user-group --home /opt/torwell84 torwell
 fi
 
 # Ensure application directory exists
-sudo mkdir -p /opt/torwell84
+$SUDO mkdir -p /opt/torwell84
 
 # Copy service file to systemd directory
-sudo cp "$ROOT_DIR/src-tauri/torwell84.service" /etc/systemd/system/
+echo "Installing service file to $TARGET_DIR"
+$SUDO cp "$SERVICE_FILE" "$TARGET_DIR/"
 
 # Reload systemd manager configuration
-sudo systemctl daemon-reload
+$SUDO $SYSTEMCTL daemon-reload
 
 # Enable and start the service immediately
-sudo systemctl enable --now torwell84.service
+echo "Enabling and starting torwell84.service"
+$SUDO $SYSTEMCTL enable --now torwell84.service
+
+echo "Service status:" 
+$SUDO $SYSTEMCTL --no-pager status torwell84.service | head -n 10
