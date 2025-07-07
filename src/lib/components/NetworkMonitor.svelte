@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import { invoke } from '@tauri-apps/api/tauri';
-  import MetricsChart from './MetricsChart.svelte';
   import type { MetricPoint } from '$lib/stores/torStore';
 
   let metrics: MetricPoint[] = [];
@@ -25,13 +24,8 @@
     return d;
   }
 
-  const MAX_MEMORY_MB = 1024;
-  const MAX_CIRCUITS = 20;
-
   $: cpuPath = buildPath(metrics, 'cpuPercent');
-  $: networkPath = buildPath(metrics, 'networkBytes');
-  $: avgPath = buildPath(metrics, 'avgCreateMs');
-  $: failPath = buildPath(metrics, 'failedAttempts');
+  $: totalPath = buildPath(metrics, 'networkTotal');
 
   $: latest =
     metrics[metrics.length - 1] ?? {
@@ -80,27 +74,7 @@
   });
 </script>
 
-<div class="glass-md rounded-xl p-4 space-y-4" role="region" aria-label="Resource dashboard">
-  <div class="flex gap-4">
-    <div class="flex-1">
-      <p class="text-sm text-white">Memory: {latest.memoryMB} MB</p>
-      {#if latest.memoryMB > MAX_MEMORY_MB}
-        <p class="text-sm text-red-400" role="alert">Memory usage high</p>
-      {/if}
-    </div>
-    <div class="flex-1">
-      <p class="text-sm text-white">Circuits: {latest.circuitCount}</p>
-      {#if latest.circuitCount > MAX_CIRCUITS}
-        <p class="text-sm text-red-400" role="alert">Circuit count high</p>
-      {/if}
-    </div>
-    <div class="flex-1">
-      <p class="text-sm text-white">Avg build: {latest.avgCreateMs} ms</p>
-    </div>
-    <div class="flex-1">
-      <p class="text-sm text-white">Failures: {latest.failedAttempts}</p>
-    </div>
-  </div>
+<div class="glass-md rounded-xl p-4 space-y-4" role="region" aria-label="Network monitor">
   <div class="flex gap-4">
     <div class="flex-1">
       <p class="text-sm text-white">CPU: {latest.cpuPercent.toFixed(1)} %</p>
@@ -111,31 +85,14 @@
       </svg>
     </div>
     <div class="flex-1">
-      <p class="text-sm text-white">Network: {latest.networkBytes} B/s</p>
-      <svg {width} {height} class="text-purple-400" aria-label="Network usage chart" role="img">
-        {#if networkPath}
-          <path d={networkPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
-        {/if}
-      </svg>
-    </div>
-    <div class="flex-1">
-      <p class="text-sm text-white">Avg build: {latest.avgCreateMs} ms</p>
-      <svg {width} {height} class="text-purple-300" aria-label="Average build time chart" role="img">
-        {#if avgPath}
-          <path d={avgPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
-        {/if}
-      </svg>
-    </div>
-    <div class="flex-1">
-      <p class="text-sm text-white">Failures: {latest.failedAttempts}</p>
-      <svg {width} {height} class="text-red-400" aria-label="Failed attempts chart" role="img">
-        {#if failPath}
-          <path d={failPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
+      <p class="text-sm text-white">Total traffic: {(latest.networkTotal / 1_000_000).toFixed(2)} MB</p>
+      <svg {width} {height} class="text-purple-400" aria-label="Total traffic chart" role="img">
+        {#if totalPath}
+          <path d={totalPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
         {/if}
       </svg>
     </div>
   </div>
-  <MetricsChart {metrics} />
 </div>
 
 <style>
