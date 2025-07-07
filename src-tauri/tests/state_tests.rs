@@ -260,3 +260,79 @@ async fn security_warning_emits_event() {
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], "alert");
 }
+
+#[tokio::test]
+async fn tray_menu_contains_metrics_items() {
+    let mut app = tauri::test::mock_app();
+    let state = AppState {
+        tor_manager: Arc::new(TorManager::new()),
+        http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        log_file: PathBuf::from("tray.log"),
+        log_lock: Arc::new(Mutex::new(())),
+        retry_counter: Arc::new(Mutex::new(0)),
+        max_log_lines: Arc::new(Mutex::new(1000)),
+        memory_usage: Arc::new(Mutex::new(0)),
+        circuit_count: Arc::new(Mutex::new(0)),
+        oldest_circuit_age: Arc::new(Mutex::new(0)),
+        latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
+        max_memory_mb: 1024,
+        max_circuits: 20,
+        session: SessionManager::new(Duration::from_secs(60)),
+        app_handle: Arc::new(Mutex::new(None)),
+        tray_warning: Arc::new(Mutex::new(None)),
+    };
+    app.manage(state);
+    let state = app.state::<AppState<DummyClient>>();
+    state.register_handle(app.handle()).await;
+    state.update_metrics(10 * 1024 * 1024, 3, 0, 0.0, 0).await;
+    state.update_tray_menu().await;
+
+    let tray = app.tray_handle();
+    assert!(tray.try_get_item("memory").is_some());
+    assert!(tray.try_get_item("circuits").is_some());
+}
+
+#[tokio::test]
+async fn update_metrics_emits_security_warning() {
+    let mut app = tauri::test::mock_app();
+    let state = AppState {
+        tor_manager: Arc::new(TorManager::new()),
+        http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        log_file: PathBuf::from("warn.log"),
+        log_lock: Arc::new(Mutex::new(())),
+        retry_counter: Arc::new(Mutex::new(0)),
+        max_log_lines: Arc::new(Mutex::new(1000)),
+        memory_usage: Arc::new(Mutex::new(0)),
+        circuit_count: Arc::new(Mutex::new(0)),
+        oldest_circuit_age: Arc::new(Mutex::new(0)),
+        latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
+        max_memory_mb: 1,
+        max_circuits: 20,
+        session: SessionManager::new(Duration::from_secs(60)),
+        app_handle: Arc::new(Mutex::new(None)),
+        tray_warning: Arc::new(Mutex::new(None)),
+    };
+    app.manage(state);
+    let state = app.state::<AppState<DummyClient>>();
+    state.register_handle(app.handle()).await;
+
+    let received = Arc::new(StdMutex::new(Vec::new()));
+    let recv_clone = received.clone();
+    let _handler = app.listen_global("security-warning", move |event| {
+        if let Some(p) = event.payload() {
+            recv_clone.lock().unwrap().push(p.to_string());
+        }
+    });
+
+    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0).await;
+
+    let events = received.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    assert!(events[0].contains("memory"));
+}
