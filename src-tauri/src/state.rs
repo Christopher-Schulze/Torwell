@@ -19,7 +19,7 @@ use tauri::NativeImage;
 use tauri::{AppHandle, CustomMenuItem, SystemTrayMenu};
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use tor_rtcompat::PreferredRuntime;
 
 /// Default location of the application configuration file
@@ -62,7 +62,7 @@ pub struct LogEntry {
 
 #[derive(Clone)]
 pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
-    pub tor_manager: Arc<TorManager<C>>,
+    pub tor_manager: Arc<RwLock<Arc<TorManager<C>>>>,
     pub http_client: Arc<SecureHttpClient>,
     /// Path to the persistent log file
     pub log_file: PathBuf,
@@ -129,7 +129,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
         }
 
         Self {
-            tor_manager: Arc::new(TorManager::new_with_geoip(geoip_path.clone())),
+            tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(geoip_path.clone())))),
             http_client: Arc::new(
                 SecureHttpClient::new_default().expect("failed to create http client"),
             ),
@@ -195,7 +195,7 @@ impl<C: TorClientBehavior> AppState<C> {
         }
 
         AppState {
-            tor_manager: Arc::new(TorManager::new_with_geoip(geoip_path.clone())),
+            tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(geoip_path.clone())))),
             http_client,
             log_file,
             log_lock: Arc::new(Mutex::new(())),
@@ -371,6 +371,17 @@ impl<C: TorClientBehavior> AppState<C> {
         }
     }
 
+    /// Update the GeoIP directory and replace the Tor manager
+    pub async fn set_geoip_path(&self, path: Option<String>) {
+        if let Some(ref p) = path {
+            std::env::set_var("TORWELL_GEOIP_PATH", p);
+        } else {
+            std::env::remove_var("TORWELL_GEOIP_PATH");
+        }
+        let new_mgr = Arc::new(TorManager::new_with_geoip(path));
+        *self.tor_manager.write().await = new_mgr;
+    }
+
     /// Return the path to the log file as a string
     pub fn log_file_path(&self) -> String {
         self.log_file.to_string_lossy().into()
@@ -390,7 +401,10 @@ impl<C: TorClientBehavior> AppState<C> {
         *self.oldest_circuit_age.lock().await = oldest_age;
         *self.cpu_usage.lock().await = cpu;
         let mut net = network;
-        if let Ok(stats) = self.tor_manager.traffic_stats().await {
+        if let Ok(stats) = {
+            let mgr = self.tor_manager.read().await.clone();
+            mgr.traffic_stats().await
+        } {
             let total = stats.bytes_sent + stats.bytes_received;
             let mut prev = self.prev_traffic.lock().await;
             let diff = if total > *prev { total - *prev } else { 0 };
@@ -408,7 +422,8 @@ impl<C: TorClientBehavior> AppState<C> {
                 memory_mb, self.max_memory_mb
             );
             let _ = self.add_log(Level::Warn, msg.clone(), None).await;
-            let _ = self.tor_manager.close_all_circuits().await;
+            let mgr = self.tor_manager.read().await.clone();
+            let _ = mgr.close_all_circuits().await;
             *self.tray_warning.lock().await = Some(msg.clone());
             self.update_tray_menu().await;
             self.emit_security_warning(msg).await;
@@ -420,7 +435,8 @@ impl<C: TorClientBehavior> AppState<C> {
                 circuits, self.max_circuits
             );
             let _ = self.add_log(Level::Warn, msg.clone(), None).await;
-            let _ = self.tor_manager.close_all_circuits().await;
+            let mgr = self.tor_manager.read().await.clone();
+            let _ = mgr.close_all_circuits().await;
             *self.tray_warning.lock().await = Some(msg.clone());
             self.update_tray_menu().await;
             self.emit_security_warning(msg).await;
@@ -477,7 +493,10 @@ impl<C: TorClientBehavior> AppState<C> {
             loop {
                 interval.tick().await;
 
-                let circ = match self.tor_manager.circuit_metrics().await {
+                let circ = match {
+                    let mgr = self.tor_manager.read().await.clone();
+                    mgr.circuit_metrics().await
+                } {
                     Ok(c) => c,
                     Err(_) => crate::tor_manager::CircuitMetrics {
                         count: 0,
@@ -555,7 +574,10 @@ impl<C: TorClientBehavior> AppState<C> {
     /// Update the system tray menu with current status and warning if set
     async fn update_tray_menu(&self) {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
-            let connected = self.tor_manager.is_connected().await;
+            let connected = {
+                let mgr = self.tor_manager.read().await.clone();
+                mgr.is_connected().await
+            };
             let status = if connected {
                 "Connected"
             } else {

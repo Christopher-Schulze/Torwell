@@ -30,7 +30,10 @@ pub fn run() {
     let dashboard = CustomMenuItem::new("show_dashboard", "Show Dashboard");
     let reconnect = CustomMenuItem::new("reconnect", "Reconnect");
     let settings = CustomMenuItem::new("settings", "Settings");
-    let initial_connected = tauri::async_runtime::block_on(app_state.tor_manager.is_connected());
+    let initial_connected = tauri::async_runtime::block_on(async {
+        let mgr = app_state.tor_manager.read().await.clone();
+        mgr.is_connected().await
+    });
     let status = if initial_connected {
         "Connected"
     } else {
@@ -172,6 +175,7 @@ pub fn run() {
             commands::get_log_file_path,
             commands::set_log_limit,
             commands::set_update_interval,
+            commands::set_geoip_path,
             commands::ping_host,
             commands::dns_lookup,
             commands::traceroute_host,

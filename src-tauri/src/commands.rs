@@ -106,7 +106,8 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
 
         // Perform the actual connection
         let _ = state_clone.reset_retry_counter().await;
-        match tor_manager
+        let mgr = tor_manager.read().await.clone();
+        match mgr
             .connect_with_backoff(
                 5,
                 Duration::from_secs(60), // place to capture circuit build duration metrics
@@ -216,7 +217,10 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
         log::error!("Failed to emit status update: {}", e);
     }
 
-    state.tor_manager.disconnect().await?;
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.disconnect().await?;
+    }
 
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
@@ -234,7 +238,10 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
 pub async fn get_status(state: State<'_, AppState>) -> Result<String> {
     track_call("get_status").await;
     check_api_rate()?;
-    if state.tor_manager.is_connected().await {
+    if {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.is_connected().await
+    } {
         Ok("CONNECTED".to_string())
     } else {
         Ok("DISCONNECTED".to_string())
@@ -245,7 +252,10 @@ pub async fn get_status(state: State<'_, AppState>) -> Result<String> {
 pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayInfo>> {
     track_call("get_active_circuit").await;
     check_api_rate()?;
-    state.tor_manager.get_active_circuit().await
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.get_active_circuit().await
+    }
 }
 
 #[tauri::command]
@@ -255,21 +265,30 @@ pub async fn get_isolated_circuit(
 ) -> Result<Vec<RelayInfo>> {
     track_call("get_isolated_circuit").await;
     check_api_rate()?;
-    state.tor_manager.get_isolated_circuit(domain).await
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.get_isolated_circuit(domain).await
+    }
 }
 
 #[tauri::command]
 pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String>) -> Result<()> {
     track_call("set_exit_country").await;
     check_api_rate()?;
-    state.tor_manager.set_exit_country(country).await
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.set_exit_country(country).await
+    }
 }
 
 #[tauri::command]
 pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Result<()> {
     track_call("set_bridges").await;
     check_api_rate()?;
-    state.tor_manager.set_bridges(bridges).await
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.set_bridges(bridges).await
+    }
 }
 
 #[tauri::command]
@@ -319,6 +338,13 @@ pub async fn set_update_interval(state: State<'_, AppState>, interval: u64) -> R
 }
 
 #[tauri::command]
+pub async fn set_geoip_path(state: State<'_, AppState>, path: Option<String>) -> Result<()> {
+    check_api_rate()?;
+    state.set_geoip_path(path).await;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn list_bridge_presets() -> Result<Vec<BridgePreset>> {
     crate::tor_manager::load_default_bridge_presets()
 }
@@ -327,7 +353,10 @@ pub async fn list_bridge_presets() -> Result<Vec<BridgePreset>> {
 pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStats> {
     track_call("get_traffic_stats").await;
     check_api_rate()?;
-    let stats = state.tor_manager.traffic_stats().await?;
+    let stats = {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.traffic_stats().await?
+    };
     Ok(TrafficStats {
         bytes_sent: stats.bytes_sent,
         bytes_received: stats.bytes_received,
@@ -338,7 +367,10 @@ pub async fn get_traffic_stats(state: State<'_, AppState>) -> Result<TrafficStat
 pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
     track_call("get_metrics").await;
     check_api_rate()?;
-    let circ = state.tor_manager.circuit_metrics().await?; // capture more metrics like build time when available
+    let circ = {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.circuit_metrics().await?
+    }; // capture more metrics like build time when available
     let mut sys = sysinfo::System::new();
     let pid = sysinfo::get_current_pid().map_err(|e| Error::Io(e.to_string()))?;
     sys.refresh_process(pid);
@@ -390,7 +422,10 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     track_call("new_identity").await;
     check_api_rate()?;
-    state.tor_manager.new_identity().await?; // potential metric: measure time to build new circuit
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.new_identity().await?;
+    } // potential metric: measure time to build new circuit
                                              // Emit event to update frontend
     app_handle.emit_all(
         "tor-status-update",
@@ -403,14 +438,20 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
 pub async fn list_circuits(state: State<'_, AppState>) -> Result<Vec<u64>> {
     track_call("list_circuits").await;
     check_api_rate()?;
-    state.tor_manager.list_circuit_ids().await
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.list_circuit_ids().await
+    }
 }
 
 #[tauri::command]
 pub async fn close_circuit(state: State<'_, AppState>, id: u64) -> Result<()> {
     track_call("close_circuit").await;
     check_api_rate()?;
-    state.tor_manager.close_circuit(id).await
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.close_circuit(id).await
+    }
 }
 #[tauri::command]
 pub async fn get_logs(state: State<'_, AppState>, token: String) -> Result<Vec<LogEntry>> {
@@ -578,7 +619,10 @@ pub async fn reconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>)
     check_api_rate()?;
 
     // Attempt graceful disconnect; ignore errors if already disconnected
-    let _ = state.tor_manager.disconnect().await;
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        let _ = mgr.disconnect().await;
+    }
 
     // Reuse existing connect logic
     connect(app_handle, state).await
