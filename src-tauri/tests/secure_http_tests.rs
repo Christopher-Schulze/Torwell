@@ -308,6 +308,50 @@ async fn env_var_overrides_config() {
 }
 
 #[tokio::test]
+#[serial]
+async fn env_var_fallback_url() {
+    let primary = MockServer::start_async().await;
+    primary
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(500);
+        })
+        .await;
+
+    let fallback = MockServer::start_async().await;
+    fallback
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cfg_cert_path = dir.path().join("cfg.pem");
+    fs::write(&cfg_cert_path, CA_PEM).unwrap();
+
+    let config_path = dir.path().join("config.json");
+    let config = serde_json::json!({
+        "cert_path": cfg_cert_path.to_string_lossy(),
+        "cert_url": "https://invalid.example/cert.pem"
+    });
+    fs::write(&config_path, config.to_string()).unwrap();
+
+    std::env::set_var("TORWELL_CERT_URL", primary.url("/cert.pem"));
+    std::env::set_var("TORWELL_FALLBACK_CERT_URL", fallback.url("/cert.pem"));
+
+    let _client = SecureHttpClient::init(&config_path, None, None, None, None)
+        .await
+        .unwrap();
+
+    std::env::remove_var("TORWELL_CERT_URL");
+    std::env::remove_var("TORWELL_FALLBACK_CERT_URL");
+
+    let updated = fs::read_to_string(&cfg_cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
 async fn ocsp_stapling_requested() {
     let dir = tempdir().unwrap();
     let cert_path = dir.path().join("pinned.pem");
@@ -484,9 +528,7 @@ async fn worker_forwards_token() {
     let encoded = encode(target);
     worker
         .mock_async(|when, then| {
-            when
-                .method(GET)
-                .path(format!("/proxy?url={}", encoded));
+            when.method(GET).path(format!("/proxy?url={}", encoded));
             then.status(200).body("ok");
         })
         .await;
@@ -511,8 +553,7 @@ async fn update_fails_with_wrong_worker_token() {
     let encoded = encode(target);
     worker
         .mock_async(|when, then| {
-            when
-                .method(GET)
+            when.method(GET)
                 .header("X-Proxy-Token", "secret")
                 .path(format!("/proxy?url={}", encoded));
             then.status(200).body(NEW_CERT);
