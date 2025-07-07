@@ -9,7 +9,7 @@ use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -257,7 +257,7 @@ pub struct SecureHttpClient {
     pending_warnings: Arc<Mutex<Vec<String>>>,
     update_failures: Arc<Mutex<u32>>,
     update_backoff: Arc<Mutex<Option<Duration>>>,
-    worker_urls: Arc<Mutex<Vec<String>>>,
+    worker_urls: Arc<Mutex<VecDeque<String>>>,
     worker_token: Arc<Mutex<Option<String>>>,
     update_task: Mutex<Option<JoinHandle<()>>>,
 }
@@ -383,7 +383,7 @@ impl SecureHttpClient {
             pending_warnings: Arc::new(Mutex::new(Vec::new())),
             update_failures: Arc::new(Mutex::new(0)),
             update_backoff: Arc::new(Mutex::new(None)),
-            worker_urls: Arc::new(Mutex::new(Vec::new())),
+            worker_urls: Arc::new(Mutex::new(VecDeque::new())),
             worker_token: Arc::new(Mutex::new(None)),
             update_task: Mutex::new(None),
         })
@@ -410,7 +410,7 @@ impl SecureHttpClient {
 
     /// Configure proxy workers and authentication token
     pub async fn set_worker_config(&self, workers: Vec<String>, token: Option<String>) {
-        *self.worker_urls.lock().await = workers;
+        *self.worker_urls.lock().await = VecDeque::from(workers);
         *self.worker_token.lock().await = token;
     }
 
@@ -555,7 +555,7 @@ impl SecureHttpClient {
         let token = { self.worker_token.lock().await.clone() };
         let worker_count = { self.worker_urls.lock().await.len() };
         for _ in 0..worker_count {
-            let worker = { self.worker_urls.lock().await.get(0).cloned() };
+            let worker = { self.worker_urls.lock().await.front().cloned() };
             if let Some(w) = worker {
                 let mut target = w.clone();
                 let encoded = encode(parsed.as_str());
@@ -578,8 +578,8 @@ impl SecureHttpClient {
                     Err(e) => {
                         log::warn!("worker {} unreachable: {}", w, e);
                         let mut guard = self.worker_urls.lock().await;
-                        if !guard.is_empty() {
-                            guard.rotate_left(1);
+                        if let Some(first) = guard.pop_front() {
+                            guard.push_back(first);
                         }
                     }
                 }
@@ -601,7 +601,7 @@ impl SecureHttpClient {
         let token = { self.worker_token.lock().await.clone() };
         let worker_count = { self.worker_urls.lock().await.len() };
         for _ in 0..worker_count {
-            let worker = { self.worker_urls.lock().await.get(0).cloned() };
+            let worker = { self.worker_urls.lock().await.front().cloned() };
             if let Some(w) = worker {
                 let mut target = w.clone();
                 let encoded = encode(url);
@@ -624,8 +624,8 @@ impl SecureHttpClient {
                     Err(e) => {
                         log::warn!("worker {} unreachable: {}", w, e);
                         let mut guard = self.worker_urls.lock().await;
-                        if !guard.is_empty() {
-                            guard.rotate_left(1);
+                        if let Some(first) = guard.pop_front() {
+                            guard.push_back(first);
                         }
                     }
                 }

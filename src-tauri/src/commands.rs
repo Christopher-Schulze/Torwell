@@ -406,7 +406,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
     let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
     let cpu = sys.process(pid).map(|p| p.cpu_usage()).unwrap_or(0.0);
     state
-        .update_metrics(mem, circ.count, circ.oldest_age, cpu, 0)
+        .update_metrics(mem, circ.count, circ.oldest_age, cpu, 0, 30)
         .await;
     let net = *state.network_throughput.lock().await;
 

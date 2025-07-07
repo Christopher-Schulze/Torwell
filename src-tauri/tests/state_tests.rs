@@ -88,7 +88,7 @@ async fn update_metrics_closes_circuits_on_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("state.log").await;
-    state.update_metrics(2 * 1024 * 1024, 2, 0).await;
+    state.update_metrics(2 * 1024 * 1024, 2, 0, 0.0, 0, 30).await;
 
     assert!(*flag.lock().unwrap());
     let logs = state.read_logs().await.unwrap();
@@ -123,7 +123,7 @@ async fn tray_warning_on_memory_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("mem.log").await;
-    state.update_metrics(2 * 1024 * 1024, 0, 0).await;
+    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
     assert!(state
         .tray_warning
         .lock()
@@ -161,7 +161,7 @@ async fn tray_warning_on_circuit_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("circ.log").await;
-    state.update_metrics(0, 2, 0).await;
+    state.update_metrics(0, 2, 0, 0.0, 0, 30).await;
     assert!(state
         .tray_warning
         .lock()
@@ -325,7 +325,7 @@ async fn tray_menu_contains_metrics_items() {
     app.manage(state);
     let state = app.state::<AppState<DummyClient>>();
     state.register_handle(app.handle()).await;
-    state.update_metrics(10 * 1024 * 1024, 3, 0, 0.0, 0).await;
+    state.update_metrics(10 * 1024 * 1024, 3, 0, 0.0, 0, 30).await;
     state.update_tray_menu().await;
 
     let tray = app.tray_handle();
@@ -368,7 +368,7 @@ async fn update_metrics_emits_security_warning() {
         }
     });
 
-    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0).await;
+    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
 
     let events = received.lock().unwrap();
     assert_eq!(events.len(), 1);
@@ -403,7 +403,7 @@ async fn tray_warning_cycle() {
     state.register_handle(app.handle()).await;
 
     // trigger warning by exceeding memory limit
-    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0).await;
+    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
     let tray = app.tray_handle();
     assert!(tray.try_get_item("warning").is_some());
 
