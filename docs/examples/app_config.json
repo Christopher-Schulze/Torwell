@@ -1,0 +1,7 @@
+{
+  "max_log_lines": 1000
+  ,"geoip_path": null
+  ,"hsm_lib": null
+  ,"hsm_slot": 0
+  ,"metrics_file": "metrics.json"
+}

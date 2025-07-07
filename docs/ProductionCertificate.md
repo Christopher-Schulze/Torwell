@@ -1,6 +1,6 @@
 # Production Certificate
 
-This guide explains how to provide your own server certificate for Torwell84 deployments. The application pins a certificate and checks for updates at runtime. Follow these steps to prepare a production setup.
+This guide explains how to provide your own server certificate for Torwell84 deployments. The application pins a certificate and checks for updates at runtime. Example configuration files are located under `docs/examples`. Follow these steps to prepare a production setup.
 
 ## 1. Generate a Certificate
 
@@ -16,7 +16,7 @@ Place `server.pem` on your update server. Renew the file every 90 days.
 
 ## 2. Adjust `cert_config.json`
 
-Edit `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. The repository no longer ships a certificate file. Place your production PEM in `/etc/torwell/server.pem` or adjust `cert_path` accordingly.
+Use the example configuration in `docs/examples/cert_config.json` as a template. Copy it to `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. The repository no longer ships a certificate file. Place your production PEM in `/etc/torwell/server.pem` or adjust `cert_path` accordingly.
 
 ```json
 {
