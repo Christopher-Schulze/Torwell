@@ -85,6 +85,9 @@ pub struct MetricPoint {
     #[serde(rename = "networkTotal")]
     #[serde(default)]
     pub network_total: u64,
+    #[serde(rename = "complete")]
+    #[serde(default)]
+    pub complete: bool,
 }
 
 #[derive(Clone)]
@@ -631,6 +634,7 @@ impl<C: TorClientBehavior> AppState<C> {
                         oldest_age: 0,
                         avg_create_ms: 0,
                         failed_attempts: 0,
+                        complete: false,
                     },
                 };
 
@@ -680,6 +684,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     cpu_percent: cpu,
                     network_bytes: *self.network_throughput.lock().await,
                     network_total: *self.network_total.lock().await,
+                    complete: circ.complete,
                 };
                 let _ = self.append_metric(&point).await;
 
@@ -701,7 +706,8 @@ impl<C: TorClientBehavior> AppState<C> {
                         "failed_attempts": circ.failed_attempts,
                         "cpu_percent": cpu,
                         "network_bytes": *self.network_throughput.lock().await,
-                        "total_network_bytes": *self.network_total.lock().await
+                        "total_network_bytes": *self.network_total.lock().await,
+                        "complete": circ.complete
                     }),
                 );
             }

@@ -79,6 +79,8 @@ pub struct CircuitMetrics {
     pub avg_create_ms: u64,
     /// Number of failed circuit creation attempts.
     pub failed_attempts: u64,
+    /// Whether all fields contain real values (`true`) or estimates (`false`).
+    pub complete: bool,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
@@ -772,16 +774,21 @@ impl TorManager {
                 oldest_age,
                 avg_create_ms,
                 failed_attempts,
+                complete: true,
             });
         }
 
         #[cfg(not(feature = "experimental-api"))]
         {
+            let tokens = self.isolation_tokens.lock().await;
+            let count: usize = tokens.values().map(|v| v.len()).sum();
+
             Ok(CircuitMetrics {
-                count: 0,
+                count,
                 oldest_age: 0,
                 avg_create_ms: 0,
                 failed_attempts: 0,
+                complete: false,
             })
         }
     }
