@@ -4,7 +4,20 @@
   let host = "";
   let dns: string[] = [];
   let route: string[] = [];
+  let countries: string[] = [];
   let loading = false;
+
+  async function lookupCountry(ip: string): Promise<string> {
+    try {
+      const res = await fetch(`https://ipapi.co/${ip}/country/`);
+      if (res.ok) {
+        return (await res.text()).trim();
+      }
+    } catch (_) {
+      // ignore
+    }
+    return "??";
+  }
 
   function copyDns() {
     navigator.clipboard.writeText(dns.join('\n'));
@@ -35,8 +48,10 @@
     loading = true;
     try {
       route = (await invoke("traceroute_host", { host, maxHops: 8 })) as string[];
+      countries = await Promise.all(route.map((ip) => lookupCountry(ip)));
     } catch (e: any) {
       route = [];
+      countries = [];
       addErrorToast('traceroute', e?.message ?? String(e));
     } finally {
       loading = false;
@@ -88,5 +103,12 @@
         {/each}
       </tbody>
     </table>
+    {#if countries.length}
+      <div class="flex flex-wrap gap-1 mt-1" aria-label="Traceroute countries">
+        {#each countries as cc}
+          <span class="text-xs bg-black/40 text-white px-1 rounded">{cc}</span>
+        {/each}
+      </div>
+    {/if}
   {/if}
 </div>

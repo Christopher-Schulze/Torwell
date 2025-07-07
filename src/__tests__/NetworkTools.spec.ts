@@ -2,6 +2,7 @@ import { render, fireEvent } from '@testing-library/svelte';
 import { vi } from 'vitest';
 
 vi.mock('@tauri-apps/api/tauri', () => ({ invoke: vi.fn(async () => 42) }));
+global.fetch = vi.fn(async () => ({ ok: true, text: async () => 'US' })) as any;
 
 import NetworkTools from '../lib/components/NetworkTools.svelte';
 import { invoke } from '@tauri-apps/api/tauri';

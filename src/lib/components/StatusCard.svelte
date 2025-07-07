@@ -12,6 +12,25 @@
   let memoryMB: number;
   let circuitCount: number;
   let metrics = [];
+  let pingHistory: number[] = [];
+  const width = 120;
+  const height = 40;
+
+  function buildPath(data: number[]): string {
+    if (data.length === 0) return "";
+    const maxVal = Math.max(...data, 1);
+    const step = width / Math.max(data.length - 1, 1);
+    let d = `M0 ${height}`;
+    data.forEach((pt, idx) => {
+      const x = idx * step;
+      const y = height - (pt / maxVal) * height;
+      d += ` L${x} ${y}`;
+    });
+    d += ` L${width} ${height} Z`;
+    return d;
+  }
+
+  $: pingPath = buildPath(pingHistory);
   $: memoryMB = $torStore.memoryUsageMB;
   $: circuitCount = $torStore.circuitCount;
   $: metrics = $torStore.metrics;
@@ -31,11 +50,14 @@
     if (isPinging) return;
     isPinging = true;
     try {
-      const result = (await invoke("ping_host", {
+      const result = (await invoke("ping_host_series", {
         host: "google.com",
         count: 5,
-      })) as number;
-      pingMs = result;
+      })) as number[];
+      if (result.length) {
+        pingMs = Math.round(result.reduce((a, b) => a + b, 0) / result.length);
+        pingHistory = [...pingHistory, ...result].slice(-30);
+      }
     } catch (error) {
       console.error("Ping failed:", error);
       pingMs = -1;
@@ -108,6 +130,11 @@
           <span class="text-xs text-gray-100">- ms</span>
         {/if}
       </div>
+      <svg {width} {height} class="text-blue-400" aria-label="Ping history chart" role="img">
+        {#if pingPath}
+          <path d={pingPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
+        {/if}
+      </svg>
 
       <!-- Water Drop Ripple Button -->
       <button
