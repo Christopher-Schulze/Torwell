@@ -481,6 +481,8 @@ impl<C: TorClientBehavior> AppState<C> {
                         "circuit_count": circ.count,
                         "latency_ms": latency,
                         "oldest_age": circ.oldest_age,
+                        "avg_create_ms": circ.avg_create_ms,
+                        "failed_attempts": circ.failed_attempts,
                         "cpu_percent": cpu,
                         "network_bytes": network
                     }),
