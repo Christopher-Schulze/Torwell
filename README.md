@@ -66,6 +66,8 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 - **Resource Monitoring**: Tray warnings for memory usage, circuit count and latency
 - **HSM Support**: Optional PKCS#11 integration when built with the `hsm` feature
 - **Mobile Workflow**: Capacitor-based build with HTTP bridge
+- **Circuit Metrics**: Uses arti's experimental APIs when built with the
+  `experimental-api` feature
 
 ### 📊 Status
 - **Stable**: Core Tor functionality is working
@@ -223,8 +225,10 @@ Artefakt `windows-msi` im Workflow bereitgestellt.
 ## Deployment
 
 Für automatisierte Builds steht die `Taskfile.yml` zur Verfügung. Der Befehl
-`task build` ruft intern den Tauri Bundler über `bun tauri build` auf und erzeugt
-plattformabhängige Pakete. Folgende Umgebungsvariablen sind für den Release-Bau
+`task build` ruft intern den Tauri Bundler über `bun tauri build` auf und setzt
+standardmäßig das Cargo-Feature `experimental-api`. Dadurch werden
+plattformabhängige Pakete mit erweiterten Circuit-Metriken erzeugt. Folgende
+Umgebungsvariablen sind für den Release-Bau
 relevant:
 
 - `TORWELL_CERT_URL` – Serverpfad für das pinned Zertifikat
