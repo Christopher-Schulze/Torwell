@@ -14,6 +14,7 @@ tasks:
     desc: "Install all frontend and backend dependencies."
     cmds:
       - bun install
+      - bun add -d @sveltejs/kit
 
   dev:
     desc: "Starts the application in development mode with hot-reloading."
