@@ -80,6 +80,13 @@ Run the release task on the target platform to create the installer packages.
 task release   # invokes scripts/build_release.sh
 ```
 
+Before building on a fresh Linux machine execute the helper script to install
+all required system libraries:
+
+```bash
+./scripts/setup_env.sh
+```
+
 Depending on the operating system this produces:
 
 - Windows: an `.msi` installer in `src-tauri/target/release/bundle/msi`
