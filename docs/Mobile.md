@@ -11,6 +11,7 @@ The Svelte frontend is reused by pointing `webDir` to the compiled web assets.
    ```bash
    task mobile:android  # Build Android APK
    task mobile:ios      # Build iOS project
+   task mobile:release  # Build both and gather artifacts
    ```
 
    Each task performs the following:
@@ -18,7 +19,9 @@ The Svelte frontend is reused by pointing `webDir` to the compiled web assets.
    - `cargo build --release --manifest-path src-tauri/Cargo.toml --features mobile` compiles the Rust backend so the HTTP bridge is included.
    - The Capacitor CLI then copies the assets and builds the native project.
 
-3. To create the final application packages manually run:
+3. To create the final application packages run `task mobile:release`. The command
+   copies the resulting archives to `mobile/dist/`. You can still execute the
+   scripts directly if desired:
 
    ```bash
    ./mobile/scripts/build_android.sh   # generates the APK
@@ -70,8 +73,21 @@ git clone https://github.com/Christopher-Schulze/Torwell.git
 cd Torwell
 task setup        # installiert alle Abhängigkeiten
 task mobile:android  # oder `task mobile:ios`
+task mobile:release  # erstellt beide Pakete
 ```
 
-Nach erfolgreichem Lauf findest du das Android‑APK im Ordner
-`mobile/android/app/build/outputs/apk/`. Für iOS wird ein Xcode-Projekt unter
-`mobile/ios` erzeugt, das sich anschließend in Xcode bauen lässt.
+Die fertigen Dateien landen im Verzeichnis `mobile/dist`. Nach erfolgreichem
+Lauf findest du das Android‑APK im Ordner `mobile/android/app/build/outputs/apk/`.
+Für iOS wird ein Xcode-Projekt unter `mobile/ios` erzeugt.
+
+## Testing the final builds
+
+- **Android:** Starte einen Emulator in Android Studio und installiere das APK:
+
+  ```bash
+  adb install mobile/dist/*.apk
+  ```
+
+- **iOS:** Öffne `mobile/ios/App.xcworkspace` in Xcode und wähle einen
+  Simulator aus. Du kannst das erzeugte `.ipa` aus `mobile/dist` auch über das
+  Geräte-Fenster von Xcode auf ein verbundenes Gerät ziehen.

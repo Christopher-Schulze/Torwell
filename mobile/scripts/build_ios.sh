@@ -31,3 +31,14 @@ cd "$SCRIPT_DIR/.."
 bun install
 npx cap copy ios
 npx cap build ios
+
+# Copy the generated IPA to a predictable location
+IPA_PATH=$(find ios -name "*.ipa" | head -n 1 || true)
+if [ -n "$IPA_PATH" ]; then
+  DEST_DIR="$SCRIPT_DIR/../ios"
+  mkdir -p "$DEST_DIR"
+  cp "$IPA_PATH" "$DEST_DIR/"
+  echo "IPA copied to $DEST_DIR/$(basename "$IPA_PATH")"
+else
+  echo "No IPA produced" >&2
+fi
