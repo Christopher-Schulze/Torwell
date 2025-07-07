@@ -491,7 +491,8 @@ impl<C: TorClientBehavior> AppState<C> {
         if interval > 0 {
             self.http_client
                 .clone()
-                .schedule_updates(urls, std::time::Duration::from_secs(interval));
+                .schedule_updates(urls, std::time::Duration::from_secs(interval))
+                .await;
         }
     }
 
