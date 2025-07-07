@@ -15,3 +15,26 @@ export function addToast(message: string, type: 'error' | 'info' = 'info', durat
     toasts.update((ts) => ts.filter((t) => t.id !== id));
   }, duration);
 }
+
+export type ErrorToastType = 'dns' | 'traceroute' | 'connection';
+
+export function addErrorToast(kind: ErrorToastType, detail?: string, duration = 5000) {
+  let message = '';
+  switch (kind) {
+    case 'dns':
+      message = 'DNS lookup failed';
+      break;
+    case 'traceroute':
+      message = 'Traceroute failed';
+      break;
+    case 'connection':
+      message = 'Connection error';
+      break;
+    default:
+      message = 'Error';
+  }
+  if (detail) {
+    message += `: ${detail}`;
+  }
+  addToast(message, 'error', duration);
+}

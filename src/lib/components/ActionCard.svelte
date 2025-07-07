@@ -49,9 +49,10 @@
 
         $: isConnected = $torStore.status === 'CONNECTED';
         $: isStopped = $torStore.status === 'DISCONNECTED';
-        $: isConnecting = $torStore.status === 'CONNECTING' || $torStore.status === 'RETRYING';
-        $: isRetrying = $torStore.status === 'RETRYING';
-        $: isDisconnecting = $torStore.status === 'DISCONNECTING';
+       $: isConnecting = $torStore.status === 'CONNECTING' || $torStore.status === 'RETRYING';
+       $: isRetrying = $torStore.status === 'RETRYING';
+       $: isDisconnecting = $torStore.status === 'DISCONNECTING';
+       $: hasError = $torStore.status === 'ERROR';
 
 </script>
 
@@ -71,15 +72,15 @@
 
 	<!-- Four Buttons Layout -->
 	<div class="grid grid-cols-4 gap-3">
-		<!-- Connect/Disconnect Button -->
-		{#if isStopped}
-                        <button
-                                class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-green-600/20 text-green-200 hover:bg-green-600/30 border border-green-500/30 transform hover:scale-105"
-                                on:click={handleConnect}
-                                aria-label="Connect to Tor"
-                        >
-				<Play size={16} /> Connect
-			</button>
+               <!-- Connect/Disconnect Button -->
+               {#if isStopped || hasError}
+                       <button
+                               class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-green-600/20 text-green-200 hover:bg-green-600/30 border border-green-500/30 transform hover:scale-105"
+                               on:click={handleConnect}
+                               aria-label={hasError ? 'Retry connection' : 'Connect to Tor'}
+                       >
+                               <Play size={16} /> {hasError ? 'Retry' : 'Connect'}
+                       </button>
 		{:else if isConnecting}
 			<button
                                 class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
