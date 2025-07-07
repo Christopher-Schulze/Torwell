@@ -4,10 +4,13 @@ After=network-online.target
 
 [Service]
 Type=simple
+# Ensure the binary exists before attempting to start
+ExecStartPre=/usr/bin/test -x /opt/torwell84/torwell84
 ExecStart=/opt/torwell84/torwell84
-Restart=always
+Restart=on-failure
 User=torwell
 Group=torwell
+WorkingDirectory=/opt/torwell84
 
 [Install]
 WantedBy=multi-user.target

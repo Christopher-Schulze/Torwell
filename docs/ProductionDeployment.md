@@ -7,12 +7,13 @@ The repository provides a ready-to-use unit file at
 
 ## Installation
 
-Copy the file to your systemd directory and enable the service:
+Copy the unit file to your systemd directory and enable the service:
 
 ```bash
 sudo cp src-tauri/torwell84.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now torwell84.service
+sudo systemctl status torwell84.service
 ```
 
 The service starts `/opt/torwell84/torwell84` as the `torwell` user and group
@@ -21,14 +22,20 @@ and restarts automatically on failure. Logs are available with
 
 ## Service Installation
 
-Instead of running the commands manually you can use the helper script:
+Instead of running the commands manually you can use the helper script. It
+validates the target directory and prints the service status after enabling it:
 
 ```bash
 sudo ./scripts/install_service.sh
 ```
 
 The script copies `src-tauri/torwell84.service` into `/etc/systemd/system/`,
-reloads systemd and enables the service immediately.
+reloads systemd and enables the service immediately. A lightweight test harness
+is available to simulate the installation without touching real system files:
+
+```bash
+./scripts/test_service_install.sh
+```
 
 ## Certificate Configuration
 
