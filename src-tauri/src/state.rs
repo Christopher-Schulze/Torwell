@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use sysinfo::{PidExt, System, SystemExt};
+#[cfg(target_os = "macos")]
+use tauri::NativeImage;
 use tauri::{AppHandle, CustomMenuItem, SystemTrayMenu};
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
@@ -577,7 +579,13 @@ impl<C: TorClientBehavior> AppState<C> {
                 .add_item(CustomMenuItem::new("quit", "Quit"));
 
             if let Some(w) = self.tray_warning.lock().await.clone() {
-                menu = menu.add_item(CustomMenuItem::new("warning", w).disabled());
+                let mut item =
+                    CustomMenuItem::new("warning", format!("\u{26A0}\u{FE0F} {}", w)).disabled();
+                #[cfg(target_os = "macos")]
+                {
+                    item = item.native_image(NativeImage::Caution);
+                }
+                menu = menu.add_item(item);
             }
 
             let tray = handle.tray_handle();
