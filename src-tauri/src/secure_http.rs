@@ -552,6 +552,18 @@ impl SecureHttpClient {
         resp.text().await
     }
 
+    /// Perform a direct GET request to a worker URL using the configured token.
+    pub async fn get_worker(&self, url: &str) -> reqwest::Result<reqwest::Response> {
+        let client = { self.client.lock().await.clone() };
+        let mut req = client.get(url);
+        if let Some(tok) = self.worker_token.lock().await.clone() {
+            req = req.header("X-Proxy-Token", tok);
+        }
+        let resp = req.send().await?;
+        self.handle_hsts_header(&resp).await;
+        Ok(resp)
+    }
+
     /// Send JSON data to an HTTP endpoint using the pinned TLS configuration.
     pub async fn post_json(&self, url: &str, body: &Value) -> reqwest::Result<()> {
         let client = { self.client.lock().await.clone() };

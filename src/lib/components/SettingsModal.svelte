@@ -375,6 +375,9 @@
           >
             Save
           </button>
+          {#if $uiStore.error}
+            <p class="text-sm text-red-400 mt-2">{$uiStore.error}</p>
+          {/if}
           <p class="text-xs text-gray-200 mt-2">Multiple workers improve reliability.</p>
           <button
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"

@@ -1,9 +1,12 @@
+use httpmock::prelude::*;
 use once_cell::sync::Lazy;
 use std::collections::VecDeque;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex as StdMutex;
 use tauri::Manager;
+use tempfile::tempdir;
 use tokio::sync::Mutex;
 
 use log::Level;
@@ -14,6 +17,8 @@ use torwell84::secure_http::SecureHttpClient;
 use torwell84::session::SessionManager;
 use torwell84::state::{AppState, LogEntry};
 use torwell84::tor_manager::{TorClientBehavior, TorClientConfig, TorManager};
+
+const CA_PEM: &str = include_str!("../tests_data/ca.pem");
 
 #[derive(Clone, Default)]
 struct MockTorClient {
@@ -73,6 +78,29 @@ fn mock_state() -> AppState<MockTorClient> {
     AppState {
         tor_manager: Arc::new(TorManager::new()),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        log_file: PathBuf::from("test.log"),
+        log_lock: Arc::new(Mutex::new(())),
+        retry_counter: Arc::new(Mutex::new(0)),
+        max_log_lines: Arc::new(Mutex::new(1000)),
+        memory_usage: Arc::new(Mutex::new(0)),
+        circuit_count: Arc::new(Mutex::new(0)),
+        oldest_circuit_age: Arc::new(Mutex::new(0)),
+        latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
+        max_memory_mb: 1024,
+        max_circuits: 20,
+        session: SessionManager::new(std::time::Duration::from_secs(60)),
+        app_handle: Arc::new(Mutex::new(None)),
+        tray_warning: Arc::new(Mutex::new(None)),
+    }
+}
+
+fn mock_state_with_client(client: Arc<SecureHttpClient>) -> AppState<MockTorClient> {
+    AppState {
+        tor_manager: Arc::new(TorManager::new()),
+        http_client: client,
         log_file: PathBuf::from("test.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -351,4 +379,58 @@ async fn tray_warning_set_and_cleared() {
     // clear warning
     state.clear_tray_warning().await;
     assert!(state.tray_warning.lock().await.is_none());
+}
+
+#[tokio::test]
+async fn validate_worker_token_ok() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET)
+                .header("X-Proxy-Token", "secret")
+                .path("/check");
+            then.status(200);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
+    client
+        .set_worker_config(vec![server.url("/check")], Some("secret".into()))
+        .await;
+
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state_with_client(client.clone()));
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::validate_worker_token(state).await.unwrap();
+    assert!(res);
+}
+
+#[tokio::test]
+async fn validate_worker_token_invalid() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET)
+                .header("X-Proxy-Token", "secret")
+                .path("/check");
+            then.status(401);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
+    client
+        .set_worker_config(vec![server.url("/check")], Some("secret".into()))
+        .await;
+
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state_with_client(client.clone()));
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::validate_worker_token(state).await.unwrap();
+    assert!(!res);
 }

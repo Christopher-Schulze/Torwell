@@ -11,6 +11,7 @@ use keyring;
 use log::Level;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use reqwest::StatusCode;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::num::NonZeroU32;
@@ -305,13 +306,14 @@ pub async fn set_worker_config(
 #[tauri::command]
 pub async fn validate_worker_token(state: State<'_, AppState>) -> Result<bool> {
     check_api_rate()?;
-    match state
-        .http_client
-        .get_text("https://example.com")
-        .await
-    {
-        Ok(_) => Ok(true),
-        Err(_) => Ok(false),
+    let worker = { state.http_client.worker_urls.lock().await.get(0).cloned() };
+    if let Some(url) = worker {
+        match state.http_client.get_worker(&url).await {
+            Ok(resp) => Ok(resp.status() == reqwest::StatusCode::OK),
+            Err(_) => Ok(false),
+        }
+    } else {
+        Ok(false)
     }
 }
 
@@ -426,7 +428,7 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
         let mgr = state.tor_manager.read().await.clone();
         mgr.new_identity().await?;
     } // potential metric: measure time to build new circuit
-                                             // Emit event to update frontend
+      // Emit event to update frontend
     app_handle.emit_all(
         "tor-status-update",
         serde_json::json!({ "status": "NEW_IDENTITY" }),
