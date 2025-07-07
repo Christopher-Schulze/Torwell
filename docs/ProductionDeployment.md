@@ -14,7 +14,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now torwell84.service
 ```
 
-The service starts `/opt/torwell84/Torwell84` as the `torwell` user and group
+The service starts `/opt/torwell84/torwell84` as the `torwell` user and group
 and restarts automatically on failure. Logs are available with
 `journalctl -u torwell84.service`.
 
@@ -51,3 +51,20 @@ If the value is greater than zero a background task periodically calls
 `update_certificates_from` to refresh the pinned certificate. You can override
 the interval at runtime using the `TORWELL_UPDATE_INTERVAL` environment
 variable.
+
+## Building Release Packages
+
+Run the release task on the target platform to create the installer packages.
+
+```bash
+task release   # invokes scripts/build_release.sh
+```
+
+Depending on the operating system this produces:
+
+- Windows: an `.msi` installer in `src-tauri/target/release/bundle/msi`
+- Linux: `.deb` and `.AppImage` files under `src-tauri/target/release/bundle`
+- macOS: a `.dmg` image in `src-tauri/target/release/bundle/dmg`
+
+Copy the resulting package to the production machine and install it before
+enabling the systemd service.

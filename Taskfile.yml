@@ -34,3 +34,8 @@ tasks:
     desc: "Build the iOS app using Capacitor"
     cmds:
       - ./mobile/scripts/build_ios.sh
+
+  release:
+    desc: "Build MSI/DEB/DMG packages for the current platform"
+    cmds:
+      - ./scripts/build_release.sh
