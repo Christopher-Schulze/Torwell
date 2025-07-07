@@ -89,3 +89,7 @@ Depending on the operating system this produces:
 
 Copy the resulting package to the production machine and install it before
 enabling the systemd service.
+
+For official releases the GitHub workflow `release.yml` runs the same script on
+Windows, macOS and Linux runners. The generated bundles are signed (when
+secrets are available) and uploaded automatically to the GitHub Releases page.
