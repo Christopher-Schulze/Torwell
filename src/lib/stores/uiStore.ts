@@ -310,6 +310,16 @@ function createUIStore() {
       await actions.saveWorkerConfig(current.settings.workerList, token);
     },
 
+    importWorkerList: async (workers: string[]) => {
+      const current = get({ subscribe });
+      await actions.saveWorkerConfig(workers, current.settings.workerToken);
+    },
+
+    exportWorkerList: () => {
+      const current = get({ subscribe });
+      return [...current.settings.workerList];
+    },
+
     setLogLimit: async (limit: number) => {
       try {
         await invoke("set_log_limit", { limit });
