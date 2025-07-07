@@ -9,14 +9,11 @@
 
   async function lookupCountry(ip: string): Promise<string> {
     try {
-      const res = await fetch(`https://ipapi.co/${ip}/country/`);
-      if (res.ok) {
-        return (await res.text()).trim();
-      }
+      const res = (await invoke("lookup_country", { ip })) as string;
+      return res.trim() || "??";
     } catch (_) {
-      // ignore
+      return "??";
     }
-    return "??";
   }
 
   function copyDns() {

@@ -634,6 +634,16 @@ pub async fn traceroute_host(
 }
 
 #[tauri::command]
+pub async fn lookup_country(state: State<'_, AppState>, ip: String) -> Result<String> {
+    track_call("lookup_country").await;
+    check_api_rate()?;
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.lookup_country_code(&ip).await
+    }
+}
+
+#[tauri::command]
 pub async fn get_secure_key(state: State<'_, AppState>, token: String) -> Result<Option<String>> {
     track_call("get_secure_key").await;
     check_api_rate()?;
