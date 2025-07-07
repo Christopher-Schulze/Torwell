@@ -15,6 +15,8 @@ export interface TorState {
   bootstrapProgress: number;
   bootstrapMessage: string;
   errorMessage: string | null;
+  errorStep: string | null;
+  errorSource: string | null;
   securityWarning: string | null;
   retryCount: number;
   retryDelay: number;
@@ -44,6 +46,8 @@ function createTorStore() {
     bootstrapProgress: 0,
     bootstrapMessage: "",
     errorMessage: null,
+    errorStep: null,
+    errorSource: null,
     securityWarning: null,
     retryCount: 0,
     retryDelay: 0,
@@ -89,31 +93,37 @@ function createTorStore() {
 
   // Listen for status updates from the Rust backend
   listen<TorState>("tor-status-update", (event) => {
-    update((state) => ({
-      ...state,
-      ...event.payload,
-      retryCount:
-        event.payload.retryCount ??
-        (["CONNECTED", "DISCONNECTED", "ERROR"].includes(
-          event.payload.status as string,
-        )
-          ? 0
-          : state.retryCount),
-      retryDelay:
-        event.payload.retryDelay ??
-        (["CONNECTED", "DISCONNECTED", "ERROR"].includes(
-          event.payload.status as string,
-        )
-          ? 0
-          : state.retryDelay),
-      bootstrapMessage:
-        event.payload.bootstrapMessage ??
-        (["CONNECTED", "DISCONNECTED", "ERROR"].includes(
-          event.payload.status as string,
-        )
-          ? ""
-          : state.bootstrapMessage),
-    }));
+    update((state) => {
+      const statusStr = event.payload.status as string;
+      const clearError = !["RETRYING", "ERROR"].includes(statusStr);
+      return {
+        ...state,
+        ...event.payload,
+        retryCount:
+          event.payload.retryCount ??
+          (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
+            ? 0
+            : state.retryCount),
+        retryDelay:
+          event.payload.retryDelay ??
+          (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
+            ? 0
+            : state.retryDelay),
+        bootstrapMessage:
+          event.payload.bootstrapMessage ??
+          (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
+            ? ""
+            : state.bootstrapMessage),
+        errorMessage:
+          event.payload.errorMessage ??
+          (["CONNECTED", "DISCONNECTED"].includes(statusStr)
+            ? null
+            : state.errorMessage),
+        errorStep: event.payload.errorStep ?? (clearError ? null : state.errorStep),
+        errorSource:
+          event.payload.errorSource ?? (clearError ? null : state.errorSource),
+      };
+    });
 
     const newStatus =
       (event.payload.status as TorStatus) ?? initialState.status;

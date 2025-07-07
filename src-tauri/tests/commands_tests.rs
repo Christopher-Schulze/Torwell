@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::sync::Mutex as StdMutex;
 use tauri::Manager;
 use tokio::sync::Mutex;
+use tokio::time::{advance, Duration};
 
 use log::Level;
 use regex::Regex;
@@ -362,4 +363,32 @@ async fn command_lookup_country() {
         .await
         .unwrap();
     assert!(!code.is_empty());
+}
+
+#[tokio::test(start_paused = true)]
+async fn command_connect_error_propagates_details() {
+    for _ in 0..6 {
+        MockTorClient::push_result(Err("boot".into()));
+    }
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let received = Arc::new(StdMutex::new(Vec::new()));
+    let recv_clone = received.clone();
+    let _handler = app.listen_global("tor-status-update", move |event| {
+        if let Some(p) = event.payload() {
+            recv_clone.lock().unwrap().push(p.to_string());
+        }
+    });
+    let state = app.state::<AppState<MockTorClient>>();
+    commands::connect(app.handle(), state).await.unwrap();
+
+    advance(Duration::from_secs(60)).await;
+    tokio::task::yield_now().await;
+
+    let events = received.lock().unwrap();
+    assert!(!events.is_empty());
+    let last: serde_json::Value = serde_json::from_str(&events[events.len() - 1]).unwrap();
+    assert_eq!(last["status"], "ERROR");
+    assert_eq!(last["errorStep"], "retries_exceeded");
+    assert!(last["errorSource"].as_str().unwrap().contains("bootstrap"));
 }
