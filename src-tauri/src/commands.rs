@@ -418,16 +418,41 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
 pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
     track_call("new_identity").await;
     check_api_rate()?;
-    {
+    let result = {
         let mgr = state.tor_manager.read().await.clone();
-        mgr.new_identity().await?;
-    } // potential metric: measure time to build new circuit
-      // Emit event to update frontend
-    app_handle.emit_all(
-        "tor-status-update",
-        serde_json::json!({ "status": "NEW_IDENTITY" }),
-    )?;
-    Ok(())
+        mgr.new_identity().await
+    };
+
+    match result {
+        Ok(_) => {
+            app_handle.emit_all(
+                "tor-status-update",
+                serde_json::json!({ "status": "NEW_IDENTITY" }),
+            )?;
+            Ok(())
+        }
+        Err(e) => {
+            let (step, source) = match &e {
+                Error::Identity { step, source, .. }
+                | Error::ConnectionFailed { step, source, .. }
+                | Error::NetworkFailure { step, source, .. }
+                | Error::ConfigError { step, source, .. } => (step.to_string(), source.clone()),
+                _ => (String::new(), String::new()),
+            };
+            if let Err(em) = app_handle.emit_all(
+                "tor-status-update",
+                serde_json::json!({
+                    "status": "ERROR",
+                    "errorMessage": e.to_string(),
+                    "errorStep": step,
+                    "errorSource": source
+                }),
+            ) {
+                log::error!("Failed to emit error status update: {}", em);
+            }
+            Err(e)
+        }
+    }
 }
 
 #[tauri::command]

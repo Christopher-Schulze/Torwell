@@ -1,5 +1,5 @@
 use crate::commands::RelayInfo;
-use crate::error::{report_error, ConnectionStep, Error, Result};
+use crate::error::{report_error, report_identity_error, ConnectionStep, Error, Result};
 use arti_client::config::{
     BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
 };
@@ -491,17 +491,17 @@ impl<C: TorClientBehavior> TorManager<C> {
         let config = self
             .build_config()
             .await
-            .map_err(|e| report_error("build_config", format!("build_config: {}", e)))?;
+            .map_err(|e| report_identity_error("build_config", e))?;
         client
             .reconfigure(&config)
-            .map_err(|e| report_error("reconfigure", format!("reconfigure: {e}")))?;
+            .map_err(|e| report_identity_error("reconfigure", e))?;
         client.retire_all_circs();
 
         // Build fresh circuit
         client
             .build_new_circuit()
             .await
-            .map_err(|e| report_error("build_circuit", format!("build_circuit: {e}")))?;
+            .map_err(|e| report_identity_error("build_circuit", e))?;
 
         Ok(())
     }
