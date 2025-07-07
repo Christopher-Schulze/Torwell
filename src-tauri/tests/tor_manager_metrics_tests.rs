@@ -112,3 +112,42 @@ async fn circuit_metrics_connected() {
     assert_eq!(metrics.failed_attempts, 0);
     assert!(!metrics.complete);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn parallel_metrics_benchmark() {
+    MockMetricsClient::push_client(MockMetricsClient::new(0, 0));
+    let manager: TorManager<MockMetricsClient> = TorManager::new();
+    manager.connect().await.unwrap();
+
+    use sysinfo::{PidExt, System, SystemExt};
+
+    let mut sys = System::new();
+    let pid = sysinfo::get_current_pid().unwrap();
+    sys.refresh_process(pid);
+    let start_mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
+
+    let start = std::time::Instant::now();
+    let mut handles = Vec::new();
+    for _ in 0..8 {
+        let m = manager.clone();
+        handles.push(tokio::spawn(async move {
+            for _ in 0..50 {
+                let _ = m.traffic_stats().await;
+                let _ = m.circuit_metrics().await;
+            }
+        }));
+    }
+    for h in handles {
+        h.await.unwrap();
+    }
+    let elapsed = start.elapsed();
+
+    sys.refresh_process(pid);
+    let end_mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
+
+    println!(
+        "parallel metrics: {:?}, mem diff: {} KB",
+        elapsed,
+        end_mem.saturating_sub(start_mem)
+    );
+}

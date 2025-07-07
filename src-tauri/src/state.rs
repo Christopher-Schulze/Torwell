@@ -621,6 +621,7 @@ impl<C: TorClientBehavior> AppState<C> {
         oldest_age: u64,
         cpu: f32,
         network: u64,
+        interval: u64,
     ) {
         *self.memory_usage.lock().await = memory;
         *self.circuit_count.lock().await = circuits;
@@ -636,8 +637,8 @@ impl<C: TorClientBehavior> AppState<C> {
             let diff = if total > *prev { total - *prev } else { 0 };
             *prev = total;
             *self.network_total.lock().await += diff;
-            if net == 0 {
-                net = diff / 30;
+            if net == 0 && interval > 0 {
+                net = diff / interval;
             }
         }
         *self.network_throughput.lock().await = net;
@@ -697,7 +698,11 @@ impl<C: TorClientBehavior> AppState<C> {
     /// Start periodic collection of performance metrics and emit events
     pub fn start_metrics_task(self: Arc<Self>, handle: AppHandle) {
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(30));
+            let interval_secs = std::env::var("TORWELL_METRIC_INTERVAL")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(30);
+            let mut interval = tokio::time::interval(Duration::from_secs(interval_secs));
             let mut sys = System::new();
             let pid = match sysinfo::get_current_pid() {
                 Ok(p) => p,
@@ -750,7 +755,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     .map(|(_, data)| data.total_received() + data.total_transmitted())
                     .sum();
                 let network = if net_total > prev_net {
-                    (net_total - prev_net) / 30
+                    (net_total - prev_net) / interval_secs
                 } else {
                     0
                 };
@@ -770,7 +775,8 @@ impl<C: TorClientBehavior> AppState<C> {
                     self.update_tray_menu().await;
                 }
 
-                self.update_metrics(mem, circ.count, circ.oldest_age, cpu, network)
+                self
+                    .update_metrics(mem, circ.count, circ.oldest_age, cpu, network, interval_secs)
                     .await;
                 self.update_latency(latency).await;
                 self.update_tray_menu().await;
