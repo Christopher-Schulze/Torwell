@@ -11,6 +11,16 @@ check_dep() {
 for cmd in bun cargo npx; do
   check_dep "$cmd"
 done
+
+if ! npx cap --version >/dev/null 2>&1; then
+  echo "Error: Capacitor CLI not found. Run 'bun install' first." >&2
+  exit 1
+fi
+
+if [ -z "$ANDROID_HOME" ] && [ -z "$ANDROID_SDK_ROOT" ] && ! command -v sdkmanager >/dev/null 2>&1; then
+  echo "Error: Android SDK not found. Please set ANDROID_HOME or ANDROID_SDK_ROOT." >&2
+  exit 1
+fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")/.."
 
