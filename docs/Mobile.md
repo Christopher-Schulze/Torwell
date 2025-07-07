@@ -79,6 +79,8 @@ task mobile:release  # erstellt beide Pakete
 Die fertigen Dateien landen im Verzeichnis `mobile/dist`. Nach erfolgreichem
 Lauf findest du das Android‑APK im Ordner `mobile/android/app/build/outputs/apk/`.
 Für iOS wird ein Xcode-Projekt unter `mobile/ios` erzeugt.
+Nach einem Build kannst du mit `./mobile/scripts/test_artifacts.sh` 
+prüfen, ob die APK- bzw. IPA-Datei korrekt erstellt wurde.
 
 ## Testing the final builds
 
