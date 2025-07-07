@@ -32,6 +32,7 @@
   let exitCountry: string | null = null;
   let hsmLib: string | null = null;
   let hsmSlot: number | null = null;
+  let filePicker: HTMLInputElement | null = null;
   // import TorrcEditorModal from './TorrcEditorModal.svelte';
 
   export let show: boolean;
@@ -108,6 +109,16 @@
 
   function removeWorker(index: number) {
     workerList = workerList.filter((_, i) => i !== index);
+  }
+
+  async function importFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const text = await input.files[0].text();
+    workerList = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
   }
 
   function saveLogLimit() {
@@ -315,6 +326,20 @@
               <Plus size={16} />
             </button>
           </div>
+          <input
+            type="file"
+            accept="text/*"
+            class="hidden"
+            on:change={importFile}
+            bind:this={filePicker}
+          />
+          <button
+            class="text-sm py-2 px-4 mb-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={() => filePicker && filePicker.click()}
+            aria-label="Import worker list"
+          >
+            Import Worker List
+          </button>
           <input
             type="text"
             class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm mt-2"

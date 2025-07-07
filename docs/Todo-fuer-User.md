@@ -27,6 +27,8 @@ Dieses Dokument beschreibt, wie du den Beispiel‑Worker aus dem Ordner `cf work
 
 Trage die URL deines Workers in der Anwendung unter **Settings → Worker List** ein und hinterlege das geheime Token im Feld **Worker token**. Du kannst mehrere Adressen hinzufügen. Torwell84 probiert sie nacheinander aus und rotiert automatisch weiter, wenn ein Endpunkt nicht erreichbar ist. Alternativ kannst du Adressen in `src/lib/bridge_presets.json` hinterlegen, damit sie beim ersten Start bereits vorgeschlagen werden.
 
+Um viele Worker-Adressen komfortabel einzubinden, liest das Skript `scripts/import_workers.ts` eine Datei mit jeweils einer URL pro Zeile und übergibt sie per `set_worker_config` an den laufenden Dienst. Im Einstellungsdialog steht zudem der Button **Import Worker List** bereit, der die Liste aus einer Datei übernimmt.
+
 Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Verbindungen mit dem gesetzten Token authentifiziert. Mehrere Worker erhöhen Zuverlässigkeit und ermöglichen eine einfache horizontale Skalierung.
 
 ## Hardware Security Module verwenden
