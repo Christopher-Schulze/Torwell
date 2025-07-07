@@ -4,7 +4,13 @@ This guide lists common problems encountered during development and how to analy
 
 ## Common Issues
 
-- **Missing system libraries**: `cargo check` may fail if `glib-2.0` or other packages are not installed. Install the required development libraries or set `PKG_CONFIG_PATH` accordingly.
+- **Missing system libraries**: `cargo check` may fail if `glib-2.0` or other packages are not installed.
+  To install the necessary headers on Ubuntu:
+
+  1. `sudo apt-get update`
+  2. `sudo apt-get install libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config`
+
+  Afterwards `cargo test` should run without missing-library errors.
 - **Dependencies not installed**: If the frontend will not build, run `bun install` to fetch Node packages.
 - **Build errors**: Ensure `bun run check` and `cargo check` succeed before opening a pull request.
 
