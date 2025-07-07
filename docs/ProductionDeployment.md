@@ -2,7 +2,8 @@
 
 Torwell84 can run as a systemd service on Linux systems.
 The repository provides a ready-to-use unit file at
-`src-tauri/torwell84.service`.
+`src-tauri/torwell84.service`. Example configuration files are available under
+`docs/examples`.
 
 ## Installation
 
@@ -31,7 +32,7 @@ reloads systemd and enables the service immediately.
 
 ## Certificate Configuration
 
-Edit `src-tauri/certs/cert_config.json` to point to your production update server:
+Copy `docs/examples/cert_config.json` to `src-tauri/certs/cert_config.json` and point it to your production update server:
 
 ```json
 {
