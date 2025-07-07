@@ -15,8 +15,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")/.."
 
 
-# Build the Svelte frontend
-bun run build
+# Build the Svelte frontend only if the build directory doesn't exist
+if [ -d "$ROOT_DIR/build" ]; then
+  echo "Reusing existing frontend build at $ROOT_DIR/build"
+else
+  (cd "$ROOT_DIR" && bun run build)
+fi
 
 # Compile the Rust backend with the `mobile` feature so the HTTP bridge is
 # available when the app runs.
