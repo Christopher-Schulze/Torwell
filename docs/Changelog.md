@@ -1,3 +1,15 @@
+## [2.4.0] - 2025-07-08
+- Worker queue uses VecDeque with configurable metrics interval
+- Improved service installation and docs
+- Improved worker import with tests
+- Updated mobile build scripts and workflow
+- Better HSM error messages and docs
+- Updated certificate configuration example
+- Auto refresh tray menu on status changes
+- Detailed error handling with new tests
+- lookup_country command integration
+- Metrics rotation and trimming with scheduled cert updates
+
 ## [2.3.1] - 2025-07-07
 - docs: update task list
 - Add metrics persistence

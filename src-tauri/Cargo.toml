@@ -1,6 +1,6 @@
 [package]
 name = "torwell84"
-version = "2.3.1"
+version = "2.4.0"
 description = "Torwell84 V2 - A modern, secure Tor network management application"
 authors = ["Kilo Code"]
 license = "MIT"
