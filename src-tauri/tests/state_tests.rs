@@ -223,6 +223,44 @@ async fn log_rotation_creates_archive() {
 }
 
 #[tokio::test]
+async fn metrics_rotation_creates_archive() {
+    let mut state = AppState::<DummyClient>::default();
+    state.log_file = PathBuf::from("metrics.log");
+    state.metrics_file = Some(PathBuf::from("metrics.json"));
+
+    let _ = tokio::fs::remove_file("metrics.json").await;
+    let _ = tokio::fs::remove_dir_all("archive").await;
+
+    for _ in 0..=torwell84::state::DEFAULT_MAX_METRIC_LINES {
+        let point = torwell84::state::MetricPoint {
+            time: 0,
+            memory_mb: 0,
+            circuit_count: 0,
+            latency_ms: 0,
+            oldest_age: 0,
+            avg_create_ms: 0,
+            failed_attempts: 0,
+            cpu_percent: 0.0,
+            network_bytes: 0,
+            network_total: 0,
+            complete: false,
+        };
+        state.append_metric(&point).await.unwrap();
+    }
+
+    let mut dir = tokio::fs::read_dir("archive").await.unwrap();
+    let mut has_file = false;
+    while let Some(_) = dir.next_entry().await.unwrap() {
+        has_file = true;
+        break;
+    }
+    assert!(has_file);
+
+    let metrics = state.load_metrics().await.unwrap();
+    assert_eq!(metrics.len(), torwell84::state::DEFAULT_MAX_METRIC_LINES);
+}
+
+#[tokio::test]
 async fn security_warning_emits_event() {
     let mut app = tauri::test::mock_app();
     let state = AppState {
