@@ -1,5 +1,5 @@
 use crate::commands::RelayInfo;
-use crate::error::{report_error, Error, Result};
+use crate::error::{report_error, ConnectionStep, Error, Result};
 use arti_client::config::{
     BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
 };
@@ -42,13 +42,10 @@ fn load_geoip_db(dir: &Path) -> Option<GeoipDb> {
 
 /// Helper to log an error for a given step and convert it into an
 /// [`Error::ConnectionFailed`] variant.
-fn log_and_convert_error(step: &str, err: impl ToString) -> Error {
+fn log_and_convert_error(step: ConnectionStep, err: impl ToString) -> Error {
     let msg = err.to_string();
-    log::error!("{step}: {msg}");
-    Error::ConnectionFailed {
-        step: step.to_string(),
-        source: msg,
-    }
+    log::error!("{}: {}", step, msg);
+    Error::ConnectionFailed { step, source: msg }
 }
 use tor_linkspec::{HasAddrs, HasRelayIds};
 use tor_rtcompat::PreferredRuntime;
@@ -313,10 +310,10 @@ impl<C: TorClientBehavior> TorManager<C> {
         let config = self
             .build_config()
             .await
-            .map_err(|e| log_and_convert_error("build_config", e))?;
+            .map_err(|e| log_and_convert_error(ConnectionStep::BuildConfig, e))?;
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
-            .map_err(|e| log_and_convert_error("bootstrap", e))?;
+            .map_err(|e| log_and_convert_error(ConnectionStep::Bootstrap, e))?;
         *self.client.lock().await = Some(tor_client);
         Ok(())
     }
@@ -347,7 +344,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         loop {
             if start.elapsed() >= max_total_time {
                 log::error!("connect_with_backoff: timeout after {:?}", max_total_time);
-                return Err(log_and_convert_error("timeout", last_error));
+                return Err(log_and_convert_error(ConnectionStep::Timeout, last_error));
             }
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
@@ -364,11 +361,14 @@ impl<C: TorClientBehavior> TorManager<C> {
                             attempt,
                             e
                         );
-                        return Err(log_and_convert_error("retries_exceeded", last_error));
+                        return Err(log_and_convert_error(
+                            ConnectionStep::RetriesExceeded,
+                            last_error,
+                        ));
                     }
                     if start.elapsed() + delay > max_total_time {
                         log::error!("connect_with_backoff: total timeout reached");
-                        return Err(log_and_convert_error("timeout", last_error));
+                        return Err(log_and_convert_error(ConnectionStep::Timeout, last_error));
                     }
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, MAX_BACKOFF);
