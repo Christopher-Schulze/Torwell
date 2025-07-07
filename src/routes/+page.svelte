@@ -146,6 +146,8 @@
     />
     <div class="text-right mt-2">
       <a href="/dashboard" class="text-sm text-blue-400 underline">Resource Dashboard</a>
+      <span class="mx-2">|</span>
+      <a href="/network" class="text-sm text-blue-400 underline">Network Monitor</a>
     </div>
   </div>
 </div>

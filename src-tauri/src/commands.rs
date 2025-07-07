@@ -45,6 +45,7 @@ pub struct Metrics {
     pub oldest_circuit_age: u64,
     pub cpu_percent: f32,
     pub network_bytes: u64,
+    pub total_network_bytes: u64,
 }
 
 const INVOCATION_WINDOW: Duration = Duration::from_secs(60);
@@ -411,6 +412,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
         oldest_circuit_age: circ.oldest_age,
         cpu_percent: cpu,
         network_bytes: net,
+        total_network_bytes: *state.network_total.lock().await,
     })
 }
 

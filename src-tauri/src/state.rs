@@ -82,6 +82,9 @@ pub struct MetricPoint {
     pub cpu_percent: f32,
     #[serde(rename = "networkBytes")]
     pub network_bytes: u64,
+    #[serde(rename = "networkTotal")]
+    #[serde(default)]
+    pub network_total: u64,
 }
 
 #[derive(Clone)]
@@ -112,6 +115,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub cpu_usage: Arc<Mutex<f32>>,
     /// Network throughput in bytes per second
     pub network_throughput: Arc<Mutex<u64>>,
+    /// Total network traffic in bytes since start
+    pub network_total: Arc<Mutex<u64>>,
     /// Total traffic bytes at the last metrics update
     pub prev_traffic: Arc<Mutex<u64>>,
     /// Maximum memory usage before warning (in MB)
@@ -198,6 +203,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             latency_ms: Arc::new(Mutex::new(0)),
             cpu_usage: Arc::new(Mutex::new(0.0)),
             network_throughput: Arc::new(Mutex::new(0)),
+            network_total: Arc::new(Mutex::new(0)),
             prev_traffic: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
@@ -288,6 +294,7 @@ impl<C: TorClientBehavior> AppState<C> {
             latency_ms: Arc::new(Mutex::new(0)),
             cpu_usage: Arc::new(Mutex::new(0.0)),
             network_throughput: Arc::new(Mutex::new(0)),
+            network_total: Arc::new(Mutex::new(0)),
             prev_traffic: Arc::new(Mutex::new(0)),
             max_memory_mb: std::env::var("TORWELL_MAX_MEMORY_MB")
                 .ok()
@@ -523,6 +530,7 @@ impl<C: TorClientBehavior> AppState<C> {
             let mut prev = self.prev_traffic.lock().await;
             let diff = if total > *prev { total - *prev } else { 0 };
             *prev = total;
+            *self.network_total.lock().await += diff;
             if net == 0 {
                 net = diff / 30;
             }
@@ -566,13 +574,14 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Retrieve current metrics
-    pub async fn metrics(&self) -> (u64, usize, u64, f32, u64) {
+    pub async fn metrics(&self) -> (u64, usize, u64, f32, u64, u64) {
         let mem = *self.memory_usage.lock().await;
         let circ = *self.circuit_count.lock().await;
         let age = *self.oldest_circuit_age.lock().await;
         let cpu = *self.cpu_usage.lock().await;
         let net = *self.network_throughput.lock().await;
-        (mem, circ, age, cpu, net)
+        let total = *self.network_total.lock().await;
+        (mem, circ, age, cpu, net, total)
     }
 
     /// Retrieve current latency
@@ -670,6 +679,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     failed_attempts: circ.failed_attempts,
                     cpu_percent: cpu,
                     network_bytes: *self.network_throughput.lock().await,
+                    network_total: *self.network_total.lock().await,
                 };
                 let _ = self.append_metric(&point).await;
 
@@ -690,7 +700,8 @@ impl<C: TorClientBehavior> AppState<C> {
                         "avg_create_ms": circ.avg_create_ms,
                         "failed_attempts": circ.failed_attempts,
                         "cpu_percent": cpu,
-                        "network_bytes": *self.network_throughput.lock().await
+                        "network_bytes": *self.network_throughput.lock().await,
+                        "total_network_bytes": *self.network_total.lock().await
                     }),
                 );
             }
