@@ -11,6 +11,7 @@ type AppSettings = {
   bridges: string[];
   bridgePreset: string | null;
   maxLogLines: number;
+  updateInterval: number;
   hsm_lib: string | null;
   hsm_slot: number | null;
 };
@@ -36,6 +37,7 @@ function createUIStore() {
       bridges: [],
       bridgePreset: null,
       maxLogLines: 1000,
+      updateInterval: 86400,
       hsm_lib: null,
       hsm_slot: null,
     },
@@ -79,6 +81,7 @@ function createUIStore() {
               bridges: storedSettings.bridges ?? [],
               bridgePreset: storedSettings.bridgePreset ?? null,
               maxLogLines: storedSettings.maxLogLines ?? 1000,
+              updateInterval: storedSettings.updateInterval ?? 86400,
               hsm_lib: storedSettings.hsm_lib ?? null,
               hsm_slot: storedSettings.hsm_slot ?? null,
             },
@@ -93,6 +96,9 @@ function createUIStore() {
           });
           await invoke("set_log_limit", {
             limit: storedSettings.maxLogLines ?? 1000,
+          });
+          await invoke("set_update_interval", {
+            seconds: storedSettings.updateInterval ?? 86400,
           });
           await invoke("set_worker_config", {
             workers: storedSettings.workerList,
@@ -319,6 +325,25 @@ function createUIStore() {
         update((state) => ({
           ...state,
           error: `Failed to set log limit: ${message}`,
+        }));
+      }
+    },
+
+    saveUpdateInterval: async (seconds: number) => {
+      try {
+        await invoke("set_update_interval", { seconds });
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          updateInterval: seconds,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to save update interval: ${message}`,
         }));
       }
     },

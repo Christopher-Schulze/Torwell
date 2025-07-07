@@ -32,3 +32,7 @@ Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Ver
 ## Hardware Security Module verwenden
 
 Unter **Settings → HSM Configuration** kannst du den Pfad zur PKCS#11‑Bibliothek und den Slot angeben. Nach dem Speichern werden die Werte im Backend übernommen und für neue TLS‑Verbindungen genutzt.
+
+## Zertifikats-Updates
+
+Das Intervall, in dem Torwell84 nach neuen Zertifikaten sucht, stellst du im Bereich **Settings → Update Interval** ein. Der Wert wird in Sekunden angegeben.

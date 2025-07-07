@@ -427,6 +427,13 @@ pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<(
 }
 
 #[tauri::command]
+pub async fn set_update_interval(state: State<'_, AppState>, seconds: u64) -> Result<()> {
+    check_api_rate()?;
+    state.set_update_interval(seconds).await;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn ping_host(
     state: State<'_, AppState>,
     token: String,

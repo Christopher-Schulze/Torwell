@@ -325,6 +325,38 @@ impl<C: TorClientBehavior> AppState<C> {
         self.trim_logs().await
     }
 
+    /// Update certificate update interval in seconds and restart schedule
+    pub async fn set_update_interval(&self, secs: u64) {
+        #[derive(serde::Deserialize, Default)]
+        struct CertCfg {
+            #[serde(default = "crate::secure_http::DEFAULT_CERT_URL")]
+            cert_url: String,
+            #[serde(default)]
+            fallback_cert_url: Option<String>,
+        }
+
+        let cfg: CertCfg = std::fs::read_to_string(crate::secure_http::DEFAULT_CONFIG_PATH)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default();
+
+        let mut urls = vec![
+            std::env::var("TORWELL_CERT_URL").unwrap_or(cfg.cert_url),
+        ];
+        let fb = std::env::var("TORWELL_FALLBACK_CERT_URL")
+            .ok()
+            .or(cfg.fallback_cert_url);
+        if let Some(u) = fb {
+            urls.push(u);
+        }
+
+        if secs > 0 {
+            self.http_client
+                .clone()
+                .schedule_updates(urls, Duration::from_secs(secs));
+        }
+    }
+
     /// Return the path to the log file as a string
     pub fn log_file_path(&self) -> String {
         self.log_file.to_string_lossy().into()
