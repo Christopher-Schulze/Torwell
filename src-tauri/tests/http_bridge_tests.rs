@@ -50,6 +50,9 @@ fn mock_state() -> AppState<DummyClient> {
         circuit_count: Arc::new(Mutex::new(0)),
         oldest_circuit_age: Arc::new(Mutex::new(0)),
         latency_ms: Arc::new(Mutex::new(0)),
+        cpu_usage: Arc::new(Mutex::new(0.0)),
+        network_throughput: Arc::new(Mutex::new(0)),
+        prev_traffic: Arc::new(Mutex::new(0)),
         max_memory_mb: 1024,
         max_circuits: 20,
         session: SessionManager::new(Duration::from_secs(60)),
@@ -90,4 +93,3 @@ async fn http_bridge_reports_connect() {
         .unwrap();
     assert_eq!(body, "CONNECTED");
 }
-

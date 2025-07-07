@@ -58,6 +58,6 @@ describe("ResourceDashboard", () => {
     });
     await tick();
     const svg = container.querySelector('svg[aria-label="Tor metrics chart"]');
-    expect(svg?.querySelectorAll("path").length).toBe(5);
+    expect(svg?.querySelectorAll("path").length).toBe(6);
   });
 });

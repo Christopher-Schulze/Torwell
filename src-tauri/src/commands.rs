@@ -285,8 +285,7 @@ pub async fn set_hsm_config(
         .http_client
         .set_hsm_config(lib, slot)
         .await
-        .map_err(|e| Error::Io(e.to_string()))?
-        ;
+        .map_err(|e| Error::Io(e.to_string()))?;
     Ok(())
 }
 
@@ -327,6 +326,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
     state
         .update_metrics(mem, circ.count, circ.oldest_age, cpu, 0)
         .await;
+    let net = *state.network_throughput.lock().await;
 
     if mem / 1024 / 1024 > state.max_memory_mb {
         let _ = state
@@ -360,7 +360,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
         circuit_count: circ.count,
         oldest_circuit_age: circ.oldest_age,
         cpu_percent: cpu,
-        network_bytes: 0,
+        network_bytes: net,
     })
 }
 

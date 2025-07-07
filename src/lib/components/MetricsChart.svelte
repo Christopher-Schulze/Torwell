@@ -23,6 +23,7 @@
   $: agePath = buildPath(metrics, "oldestAge");
   $: avgPath = buildPath(metrics, "avgCreateMs");
   $: failPath = buildPath(metrics, "failedAttempts");
+  $: networkPath = buildPath(metrics, "networkBytes");
 </script>
 
 <svg {width} {height} class="text-green-400" role="img" aria-label="Tor metrics chart">
@@ -67,6 +68,14 @@
       stroke="red"
       stroke-width="1"
       stroke-dasharray="4,2"
+    />
+  {/if}
+  {#if networkPath}
+    <path
+      d={networkPath}
+      fill="none"
+      stroke="cyan"
+      stroke-width="1"
     />
   {/if}
 </svg>
