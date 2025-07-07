@@ -21,6 +21,8 @@
   $: memoryPath = buildPath(metrics, "memoryMB");
   $: circuitPath = buildPath(metrics, "circuitCount");
   $: agePath = buildPath(metrics, "oldestAge");
+  $: avgPath = buildPath(metrics, "avgCreateMs");
+  $: failPath = buildPath(metrics, "failedAttempts");
 </script>
 
 <svg {width} {height} class="text-green-400" role="img" aria-label="Tor metrics chart">
@@ -48,6 +50,23 @@
       stroke="orange"
       stroke-width="1"
       stroke-dasharray="2,2"
+    />
+  {/if}
+  {#if avgPath}
+    <path
+      d={avgPath}
+      fill="none"
+      stroke="purple"
+      stroke-width="1"
+    />
+  {/if}
+  {#if failPath}
+    <path
+      d={failPath}
+      fill="none"
+      stroke="red"
+      stroke-width="1"
+      stroke-dasharray="4,2"
     />
   {/if}
 </svg>

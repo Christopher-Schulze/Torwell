@@ -40,4 +40,24 @@ describe("ResourceDashboard", () => {
     expect(getAllByRole("alert").length).toBe(2);
     expect(container).toMatchSnapshot();
   });
+
+  it("renders chart paths for build metrics", async () => {
+    const { container } = render(ResourceDashboard);
+    await tick();
+    metricsCallback({
+      payload: {
+        memory_bytes: 1000,
+        circuit_count: 1,
+        latency_ms: 0,
+        oldest_age: 0,
+        avg_create_ms: 10,
+        failed_attempts: 2,
+        cpu_percent: 0,
+        network_bytes: 0,
+      },
+    });
+    await tick();
+    const svg = container.querySelector('svg[aria-label="Tor metrics chart"]');
+    expect(svg?.querySelectorAll("path").length).toBe(5);
+  });
 });
