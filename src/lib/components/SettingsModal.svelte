@@ -34,6 +34,7 @@
   let exitCountry: string | null = null;
   let hsmLib: string | null = null;
   let hsmSlot: number | null = null;
+  let geoipPath: string | null = null;
   let filePicker: HTMLInputElement | null = null;
 
   export let show: boolean;
@@ -57,6 +58,7 @@
     exitCountry = $uiStore.settings.exitCountry ?? null;
     hsmLib = $uiStore.settings.hsm_lib;
     hsmSlot = $uiStore.settings.hsm_slot;
+    geoipPath = $uiStore.settings.geoipPath;
     uiStore.actions.setExitCountry(exitCountry);
     if (availableBridges.length === 0) loadPresets();
     tick().then(() => closeButton && closeButton.focus());
@@ -147,6 +149,10 @@
     if (!isNaN(val) && val >= 0) {
       uiStore.actions.saveUpdateInterval(val);
     }
+  }
+
+  function saveGeoipPath() {
+    uiStore.actions.saveGeoipPath(geoipPath);
   }
 
   function saveExitCountry() {
@@ -414,6 +420,26 @@
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
             on:click={saveUpdateInterval}
             aria-label="Save update interval"
+          >
+            Save
+          </button>
+        </div>
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            GeoIP Directory
+          </h3>
+          <input
+            type="text"
+            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+            bind:value={geoipPath}
+            placeholder="/path/to/geoip_dir"
+            aria-label="GeoIP directory"
+          />
+          <button
+            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={saveGeoipPath}
+            aria-label="Save GeoIP directory"
           >
             Save
           </button>

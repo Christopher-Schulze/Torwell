@@ -3,7 +3,10 @@ use std::{net::SocketAddr, sync::Arc};
 use crate::state::AppState;
 
 async fn status(Extension(state): Extension<Arc<AppState>>) -> Json<&'static str> {
-    let s = if state.tor_manager.is_connected().await {
+    let s = if {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.is_connected().await
+    } {
         "CONNECTED"
     } else {
         "DISCONNECTED"

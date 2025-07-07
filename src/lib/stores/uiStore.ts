@@ -14,6 +14,7 @@ type AppSettings = {
   hsm_lib: string | null;
   hsm_slot: number | null;
   updateInterval: number;
+  geoipPath: string | null;
 };
 
 type UIState = {
@@ -40,6 +41,7 @@ function createUIStore() {
       hsm_lib: null,
       hsm_slot: null,
       updateInterval: 86400,
+      geoipPath: null,
     },
     error: null,
   });
@@ -84,6 +86,7 @@ function createUIStore() {
               hsm_lib: storedSettings.hsm_lib ?? null,
               hsm_slot: storedSettings.hsm_slot ?? null,
               updateInterval: storedSettings.updateInterval ?? 86400,
+              geoipPath: storedSettings.geoipPath ?? null,
             },
           }));
 
@@ -108,6 +111,7 @@ function createUIStore() {
           await invoke("set_update_interval", {
             interval: storedSettings.updateInterval ?? 86400,
           });
+          await invoke("set_geoip_path", { path: storedSettings.geoipPath ?? null });
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -354,6 +358,25 @@ function createUIStore() {
         update((state) => ({
           ...state,
           error: `Failed to set update interval: ${message}`,
+        }));
+      }
+    },
+
+    saveGeoipPath: async (path: string | null) => {
+      try {
+        await invoke("set_geoip_path", { path });
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          geoipPath: path,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to set geoip path: ${message}`,
         }));
       }
     },

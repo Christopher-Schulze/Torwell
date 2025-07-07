@@ -130,6 +130,7 @@ export interface Settings {
   hsm_lib?: string | null;
   hsm_slot?: number | null;
   updateInterval?: number;
+  geoipPath?: string | null;
 }
 
 export class AppDatabase extends Dexie {
@@ -162,6 +163,11 @@ export class AppDatabase extends Dexie {
     this.version(6).stores({
       settings:
         "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval",
+      meta: "&id",
+    });
+    this.version(7).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath",
       meta: "&id",
     });
 
