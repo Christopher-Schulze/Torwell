@@ -658,6 +658,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 self.update_metrics(mem, circ.count, circ.oldest_age, cpu, network)
                     .await;
                 self.update_latency(latency).await;
+                self.update_tray_menu().await;
 
                 let point = MetricPoint {
                     time: Utc::now().timestamp_millis(),
@@ -713,8 +714,23 @@ impl<C: TorClientBehavior> AppState<C> {
             } else {
                 "Disconnected"
             };
+            let memory_mb = *self.memory_usage.lock().await / 1024 / 1024;
+            let circuits = *self.circuit_count.lock().await;
+            let mem_label = if memory_mb > self.max_memory_mb {
+                format!("Memory: {} MB \u{26A0}\u{fe0f}", memory_mb)
+            } else {
+                format!("Memory: {} MB", memory_mb)
+            };
+            let circ_label = if circuits > self.max_circuits {
+                format!("Circuits: {} \u{26A0}\u{fe0f}", circuits)
+            } else {
+                format!("Circuits: {}", circuits)
+            };
+
             let mut menu = SystemTrayMenu::new()
                 .add_item(CustomMenuItem::new("status", format!("Status: {}", status)).disabled())
+                .add_item(CustomMenuItem::new("memory", mem_label).disabled())
+                .add_item(CustomMenuItem::new("circuits", circ_label).disabled())
                 .add_item(CustomMenuItem::new("show", "Show"));
 
             if connected {

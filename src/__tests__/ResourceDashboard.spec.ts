@@ -41,6 +41,25 @@ describe("ResourceDashboard", () => {
     expect(container).toMatchSnapshot();
   });
 
+  it("hides warnings when usage below limit", async () => {
+    const { queryByRole } = render(ResourceDashboard);
+    await tick();
+    metricsCallback({
+      payload: {
+        memory_bytes: 100_000_000,
+        circuit_count: 2,
+        latency_ms: 0,
+        oldest_age: 0,
+        avg_create_ms: 5,
+        failed_attempts: 0,
+        cpu_percent: 1,
+        network_bytes: 0,
+      },
+    });
+    await tick();
+    expect(queryByRole("alert")).toBeNull();
+  });
+
   it("renders chart paths for build metrics", async () => {
     const { container } = render(ResourceDashboard);
     await tick();
