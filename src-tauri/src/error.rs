@@ -158,3 +158,14 @@ pub fn report_error(step: &str, source: impl ToString) -> Error {
         backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
     }
 }
+
+/// Helper for errors originating from `new_identity` operations.
+pub fn report_identity_error(step: &str, source: impl ToString) -> Error {
+    let msg = source.to_string();
+    log::error!("{step}: {msg}");
+    Error::Identity {
+        step: step.to_string(),
+        source: msg,
+        backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
+    }
+}

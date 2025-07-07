@@ -124,6 +124,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub app_handle: Arc<Mutex<Option<AppHandle>>>,
     /// Current warning shown in the tray menu
     pub tray_warning: Arc<Mutex<Option<String>>>,
+    /// Flag to avoid concurrent auto reconnect attempts
+    pub reconnect_in_progress: Arc<Mutex<bool>>,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -213,6 +215,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             )),
             app_handle: Arc::new(Mutex::new(None)),
             tray_warning: Arc::new(Mutex::new(None)),
+            reconnect_in_progress: Arc::new(Mutex::new(false)),
         }
     }
 }
@@ -601,6 +604,14 @@ impl<C: TorClientBehavior> AppState<C> {
             loop {
                 interval.tick().await;
 
+                // Automatically try to reconnect if disconnected
+                if {
+                    let mgr = self.tor_manager.read().await.clone();
+                    !mgr.is_connected().await
+                } {
+                    self.clone().start_auto_reconnect(handle.clone());
+                }
+
                 let circ = match {
                     let mgr = self.tor_manager.read().await.clone();
                     mgr.circuit_metrics().await
@@ -789,6 +800,133 @@ impl<C: TorClientBehavior> AppState<C> {
                 .show();
             }
         }
+    }
+
+    /// Attempt to reconnect if the Tor client is not connected
+    pub fn start_auto_reconnect(self: Arc<Self>, handle: AppHandle) {
+        tokio::spawn(async move {
+            {
+                let mut flag = self.reconnect_in_progress.lock().await;
+                if *flag {
+                    return;
+                }
+                *flag = true;
+            }
+
+            if let Err(e) = handle.emit_all(
+                "tor-status-update",
+                serde_json::json!({
+                    "status": "CONNECTING",
+                    "bootstrapProgress": 0,
+                    "bootstrapMessage": "",
+                    "retryCount": 0,
+                    "retryDelay": 0
+                }),
+            ) {
+                log::error!("Failed to emit status update: {}", e);
+            }
+
+            let mgr = self.tor_manager.read().await.clone();
+            let state_clone = self.clone();
+            let res = mgr
+                .connect_with_backoff(
+                    5,
+                    Duration::from_secs(60),
+                    |info| {
+                        let attempt = info.attempt;
+                        let delay = info.delay;
+                        let err_str = info.error.to_string();
+                        let st = state_clone.clone();
+                        tokio::spawn(async move {
+                            st.increment_retry_counter().await;
+                            let _ = st
+                                .add_log(
+                                    Level::Warn,
+                                    format!("connection attempt {} failed: {}", attempt, err_str),
+                                    None,
+                                )
+                                .await;
+                        });
+                        let (step, source) = match info.error {
+                            Error::ConnectionFailed { step, source, .. } => {
+                                (step.to_string(), source)
+                            }
+                            Error::Identity { step, source, .. }
+                            | Error::NetworkFailure { step, source, .. }
+                            | Error::ConfigError { step, source, .. } => (step, source),
+                            _ => (String::new(), String::new()),
+                        };
+                        let _ = handle.emit_all(
+                            "tor-status-update",
+                            serde_json::json!({
+                                "status": "RETRYING",
+                                "retryCount": attempt,
+                                "retryDelay": delay.as_secs(),
+                                "errorMessage": err_str,
+                                "errorStep": step,
+                                "errorSource": source
+                            }),
+                        );
+                    },
+                    |progress, msg| {
+                        let _ = handle.emit_all(
+                            "tor-status-update",
+                            serde_json::json!({
+                                "status": "CONNECTING",
+                                "bootstrapProgress": progress,
+                                "bootstrapMessage": msg
+                            }),
+                        );
+                    },
+                )
+                .await;
+
+            match res {
+                Ok(_) => {
+                    if let Err(e) = handle.emit_all(
+                        "tor-status-update",
+                        serde_json::json!({
+                            "status": "CONNECTED",
+                            "bootstrapProgress": 100,
+                            "bootstrapMessage": "done",
+                            "retryCount": 0,
+                            "retryDelay": 0
+                        }),
+                    ) {
+                        log::error!("Failed to emit status update: {}", e);
+                    }
+                    state_clone.update_tray_menu().await;
+                }
+                Err(e) => {
+                    let (step, source) = match &e {
+                        Error::ConnectionFailed { step, source, .. } => {
+                            (step.to_string(), source.clone())
+                        }
+                        Error::Identity { step, source, .. }
+                        | Error::NetworkFailure { step, source, .. }
+                        | Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
+                        _ => (String::new(), String::new()),
+                    };
+                    if let Err(em) = handle.emit_all(
+                        "tor-status-update",
+                        serde_json::json!({
+                            "status": "ERROR",
+                            "errorMessage": e.to_string(),
+                            "errorStep": step,
+                            "errorSource": source,
+                            "bootstrapMessage": "",
+                            "retryCount": 0,
+                            "retryDelay": 0
+                        }),
+                    ) {
+                        log::error!("Failed to emit error status update: {}", em);
+                    }
+                }
+            }
+
+            state_clone.reset_retry_counter().await;
+            *state_clone.reconnect_in_progress.lock().await = false;
+        });
     }
 
     /// Measure latency to a well-known host using an ICMP ping
