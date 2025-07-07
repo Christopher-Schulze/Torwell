@@ -7,6 +7,7 @@ mod session;
 mod state;
 mod tor_manager;
 
+use open;
 use secure_http::SecureHttpClient;
 use state::AppState;
 use std::time::Duration;
@@ -30,6 +31,8 @@ pub fn run() {
     let dashboard = CustomMenuItem::new("show_dashboard", "Show Dashboard");
     let reconnect = CustomMenuItem::new("reconnect", "Reconnect");
     let settings = CustomMenuItem::new("settings", "Settings");
+    let open_logs_file = CustomMenuItem::new("open_logs_file", "Open Log File");
+    let open_settings_file = CustomMenuItem::new("open_settings_file", "Open Settings File");
     let initial_connected = tauri::async_runtime::block_on(async {
         let mgr = app_state.tor_manager.read().await.clone();
         mgr.is_connected().await
@@ -50,8 +53,10 @@ pub fn run() {
     tray_menu = tray_menu
         .add_item(reconnect.clone())
         .add_item(logs.clone())
+        .add_item(open_logs_file.clone())
         .add_item(dashboard.clone())
         .add_item(settings.clone())
+        .add_item(open_settings_file.clone())
         .add_item(quit.clone());
     let tray = SystemTray::new().with_menu(tray_menu);
 
@@ -109,11 +114,23 @@ pub fn run() {
                         let _ = commands::show_dashboard(handle).await;
                     });
                 }
+                "open_logs_file" => {
+                    let state = app.state::<AppState>();
+                    let path = state.log_file_path();
+                    if let Err(e) = open::that(path) {
+                        log::error!("failed to open log file: {e}");
+                    }
+                }
                 "settings" => {
                     if let Some(window) = app.get_window("main") {
                         let _ = window.emit("open-settings", ());
                         let _ = window.show();
                         let _ = window.set_focus();
+                    }
+                }
+                "open_settings_file" => {
+                    if let Err(e) = open::that(crate::state::DEFAULT_CONFIG_PATH) {
+                        log::error!("failed to open settings file: {e}");
                     }
                 }
                 "warning" => {

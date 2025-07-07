@@ -553,14 +553,7 @@ impl<C: TorClientBehavior> AppState<C> {
             self.emit_security_warning(msg).await;
         }
 
-        if memory_mb <= self.max_memory_mb && circuits <= self.max_circuits {
-            let mut warn = self.tray_warning.lock().await;
-            if warn.is_some() {
-                *warn = None;
-                drop(warn);
-                self.update_tray_menu().await;
-            }
-        }
+        // Warning should persist until the user acknowledges it via the tray
         // Additional metrics like circuit build times could be stored here
     }
 
@@ -600,6 +593,10 @@ impl<C: TorClientBehavior> AppState<C> {
                 .iter()
                 .map(|(_, data)| data.total_received() + data.total_transmitted())
                 .sum();
+            let mut last_connected = {
+                let mgr = self.tor_manager.read().await.clone();
+                mgr.is_connected().await
+            };
 
             loop {
                 interval.tick().await;
@@ -638,6 +635,15 @@ impl<C: TorClientBehavior> AppState<C> {
                     Err(_) => 0,
                 };
 
+                let current_connected = {
+                    let mgr = self.tor_manager.read().await.clone();
+                    mgr.is_connected().await
+                };
+                if current_connected != last_connected {
+                    last_connected = current_connected;
+                    self.update_tray_menu().await;
+                }
+
                 self.update_metrics(mem, circ.count, circ.oldest_age, cpu, network)
                     .await;
                 self.update_latency(latency).await;
@@ -660,17 +666,6 @@ impl<C: TorClientBehavior> AppState<C> {
                     let msg = format!("{failures} consecutive certificate update failures");
                     *self.tray_warning.lock().await = Some(msg.clone());
                     self.update_tray_menu().await;
-                } else if failures == 0 {
-                    let mut warn = self.tray_warning.lock().await;
-                    if warn
-                        .as_ref()
-                        .map(|w| w.contains("certificate update"))
-                        .unwrap_or(false)
-                    {
-                        *warn = None;
-                        drop(warn);
-                        self.update_tray_menu().await;
-                    }
                 }
 
                 let _ = handle.emit_all(
@@ -721,7 +716,12 @@ impl<C: TorClientBehavior> AppState<C> {
                 .add_item(CustomMenuItem::new("reconnect", "Reconnect"))
                 .add_item(CustomMenuItem::new("show_dashboard", "Show Dashboard"))
                 .add_item(CustomMenuItem::new("show_logs", "Show Logs"))
+                .add_item(CustomMenuItem::new("open_logs_file", "Open Log File"))
                 .add_item(CustomMenuItem::new("settings", "Settings"))
+                .add_item(CustomMenuItem::new(
+                    "open_settings_file",
+                    "Open Settings File",
+                ))
                 .add_item(CustomMenuItem::new("quit", "Quit"));
 
             if let Some(w) = self.tray_warning.lock().await.clone() {
