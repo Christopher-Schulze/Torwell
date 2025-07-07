@@ -60,3 +60,18 @@ Die Artefakte kannst du direkt aus dem Mobile-Workflow herunterladen:
 1. Rufe in GitHub den gewünschten Workflow-Lauf auf.
 2. Scrolle zum Abschnitt **Artifacts**.
 3. Lade das ZIP `android-apk` oder `ios-ipa` herunter.
+
+## Quickstart für lokale Tests
+
+Du möchtest die App selbst bauen? Mit dem `Taskfile` geht das recht schnell:
+
+```bash
+git clone https://github.com/Christopher-Schulze/Torwell.git
+cd Torwell
+task setup        # installiert alle Abhängigkeiten
+task mobile:android  # oder `task mobile:ios`
+```
+
+Nach erfolgreichem Lauf findest du das Android‑APK im Ordner
+`mobile/android/app/build/outputs/apk/`. Für iOS wird ein Xcode-Projekt unter
+`mobile/ios` erzeugt, das sich anschließend in Xcode bauen lässt.
