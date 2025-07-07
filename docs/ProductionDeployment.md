@@ -35,13 +35,21 @@ Edit `src-tauri/certs/cert_config.json` to point to your production update serve
 
 ```json
 {
-  "cert_path": "src-tauri/certs/server.pem",
-  "cert_url": "https://updates.example.com/certs/server.pem",
+  "cert_path": "/etc/torwell/server.pem",
+  "cert_url": "https://updates.torwell.com/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "update_interval": 86400,
   "note": "Production certificate update endpoint"
 }
+```
+
+Set the environment variables so `SecureHttpClient` can locate the
+certificate and HSM library:
+
+```bash
+export TORWELL_CERT_PATH=/etc/torwell/server.pem
+export TORWELL_HSM_LIB=/usr/local/lib/libyubihsm_pkcs11.so
 ```
 
 ## Automatischer Update-Dienst
