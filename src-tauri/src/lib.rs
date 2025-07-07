@@ -14,14 +14,8 @@ use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu};
 
 pub fn run() {
     let http_client = tauri::async_runtime::block_on(async {
-        SecureHttpClient::init(
-            secure_http::DEFAULT_CONFIG_PATH,
-            None,
-            None,
-            None,
-            None,
-        )
-        .expect("failed to initialize http client")
+        SecureHttpClient::init(secure_http::DEFAULT_CONFIG_PATH, None, None, None, None)
+            .expect("failed to initialize http client")
     });
     let app_state = AppState::new(http_client.clone());
 
@@ -36,10 +30,21 @@ pub fn run() {
     let dashboard = CustomMenuItem::new("show_dashboard", "Show Dashboard");
     let reconnect = CustomMenuItem::new("reconnect", "Reconnect");
     let settings = CustomMenuItem::new("settings", "Settings");
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(show.clone())
-        .add_item(connect.clone())
-        .add_item(disconnect.clone())
+    let initial_connected = tauri::async_runtime::block_on(app_state.tor_manager.is_connected());
+    let status = if initial_connected {
+        "Connected"
+    } else {
+        "Disconnected"
+    };
+    let mut tray_menu = SystemTrayMenu::new()
+        .add_item(CustomMenuItem::new("status", format!("Status: {}", status)).disabled())
+        .add_item(show.clone());
+    if initial_connected {
+        tray_menu = tray_menu.add_item(disconnect.clone());
+    } else {
+        tray_menu = tray_menu.add_item(connect.clone());
+    }
+    tray_menu = tray_menu
         .add_item(reconnect.clone())
         .add_item(logs.clone())
         .add_item(dashboard.clone())
