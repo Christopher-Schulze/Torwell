@@ -284,6 +284,19 @@ pub async fn set_worker_config(
 }
 
 #[tauri::command]
+pub async fn validate_worker_token(state: State<'_, AppState>) -> Result<bool> {
+    check_api_rate()?;
+    match state
+        .http_client
+        .get_text("https://example.com")
+        .await
+    {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
+}
+
+#[tauri::command]
 pub async fn set_hsm_config(
     state: State<'_, AppState>,
     lib: Option<String>,

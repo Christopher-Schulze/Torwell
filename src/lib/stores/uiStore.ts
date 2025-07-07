@@ -260,6 +260,18 @@ function createUIStore() {
           workerToken: token,
         };
         await invoke("set_worker_config", { workers, token });
+        const valid = await invoke<boolean>("validate_worker_token");
+        if (!valid) {
+          await invoke("set_worker_config", {
+            workers: current.settings.workerList,
+            token: current.settings.workerToken,
+          });
+          update((state) => ({
+            ...state,
+            error: "Invalid worker token",
+          }));
+          return;
+        }
         await db.settings.put({ id: 1, ...newSettings });
         update((state) => ({ ...state, settings: newSettings, error: null }));
       } catch (err) {
