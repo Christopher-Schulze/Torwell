@@ -16,6 +16,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
+use tokio::task::JoinHandle;
 use urlencoding::encode;
 
 #[cfg(feature = "hsm")]
@@ -219,6 +220,7 @@ pub struct SecureHttpClient {
     update_backoff: Arc<Mutex<Option<Duration>>>,
     worker_urls: Arc<Mutex<Vec<String>>>,
     worker_token: Arc<Mutex<Option<String>>>,
+    update_task: Mutex<Option<JoinHandle<()>>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -234,6 +236,7 @@ impl Clone for SecureHttpClient {
             update_backoff: self.update_backoff.clone(),
             worker_urls: self.worker_urls.clone(),
             worker_token: self.worker_token.clone(),
+            update_task: Mutex::new(None),
         }
     }
 }
@@ -343,6 +346,7 @@ impl SecureHttpClient {
             update_backoff: Arc::new(Mutex::new(None)),
             worker_urls: Arc::new(Mutex::new(Vec::new())),
             worker_token: Arc::new(Mutex::new(None)),
+            update_task: Mutex::new(None),
         })
     }
 
@@ -481,7 +485,7 @@ impl SecureHttpClient {
         }
 
         if update_interval.as_secs() > 0 {
-            client.clone().schedule_updates(urls, update_interval);
+            client.clone().schedule_updates(urls, update_interval).await;
         }
         Ok(client)
     }
@@ -637,18 +641,24 @@ impl SecureHttpClient {
         Err(anyhow::anyhow!("all certificate update attempts failed"))
     }
 
-    pub fn schedule_updates(self: Arc<Self>, urls: Vec<String>, interval: Duration) {
-        tokio::spawn(async move {
+    pub async fn schedule_updates(self: Arc<Self>, urls: Vec<String>, interval: Duration) {
+        let mut guard = self.update_task.lock().await;
+        if let Some(handle) = guard.take() {
+            handle.abort();
+        }
+        let client = self.clone();
+        let handle = tokio::spawn(async move {
             loop {
-                if let Err(e) = self.update_certificates_from(&urls).await {
+                if let Err(e) = client.update_certificates_from(&urls).await {
                     log::error!("certificate update failed: {}", e);
                 }
                 let extra = {
-                    let mut guard = self.update_backoff.lock().await;
+                    let mut guard = client.update_backoff.lock().await;
                     guard.take().unwrap_or_else(|| Duration::from_secs(0))
                 };
                 tokio::time::sleep(interval + extra).await;
             }
         });
+        *guard = Some(handle);
     }
 }
