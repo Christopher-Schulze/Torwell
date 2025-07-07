@@ -38,7 +38,9 @@ locations during development.
 
 ```json
 {
-  "cert_path": "src-tauri/certs/server.pem",
+  "cert_path": "/etc/torwell/server.pem",
+  "cert_path_windows": "%APPDATA%\\Torwell84\\server.pem",
+  "cert_path_macos": "/Library/Application Support/Torwell84/server.pem",
   "cert_url": "https://certs.torwell.com/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
@@ -47,6 +49,8 @@ locations during development.
 ```
 
 **Hinweis:** Vor Produktionseinführung müssen `cert_url` und ggf. `cert_path` auf den eigenen Update-Server zeigen.
+
+Der Eintrag `cert_path` wird abhängig vom Betriebssystem aus `cert_path_windows` bzw. `cert_path_macos` übernommen. Bei Bedarf kann der Pfad außerdem über die Umgebungsvariable `TORWELL_CERT_PATH` angepasst werden.
 
 `cert_path` is where the PEM file is written. `cert_url` specifies the HTTPS
 endpoint used to retrieve updates. If the primary endpoint fails, an optional

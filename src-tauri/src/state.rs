@@ -27,6 +27,8 @@ pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/app_config.json";
 
 /// Default number of log lines retained if no configuration is provided
 pub const DEFAULT_MAX_LOG_LINES: usize = 1000;
+/// Default number of metric lines retained
+pub const DEFAULT_MAX_METRIC_LINES: usize = 1000;
 /// Default session token lifetime in seconds
 pub const DEFAULT_SESSION_TTL: u64 = 3600;
 /// Default maximum number of metric lines
@@ -464,6 +466,27 @@ impl<C: TorClientBehavior> AppState<C> {
         Ok(())
     }
 
+    async fn trim_metrics(&self) -> Result<()> {
+        if let Some(path) = &self.metrics_file {
+            let contents = fs::read_to_string(path).await.unwrap_or_default();
+            let mut lines: Vec<&str> = contents.lines().collect();
+            let limit = DEFAULT_MAX_METRIC_LINES;
+            if lines.len() > limit {
+                let archive_dir = path
+                    .parent()
+                    .map(|p| p.join("archive"))
+                    .unwrap_or_else(|| PathBuf::from("archive"));
+                fs::create_dir_all(&archive_dir).await?;
+                let ts = Utc::now().format("%Y%m%d%H%M%S");
+                let archive_path = archive_dir.join(format!("metrics-{}.json", ts));
+                fs::rename(path, &archive_path).await?;
+                lines = lines[lines.len() - limit..].to_vec();
+                fs::write(path, lines.join("\n")).await?;
+            }
+        }
+        Ok(())
+    }
+
     /// Append a metric point to the metrics file if configured
     pub async fn append_metric(&self, point: &MetricPoint) -> Result<()> {
         if let Some(path) = &self.metrics_file {
@@ -505,6 +528,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 }
                 fs::write(path, data).await?;
             }
+
         }
         Ok(())
     }
@@ -568,7 +592,8 @@ impl<C: TorClientBehavior> AppState<C> {
         if interval > 0 {
             self.http_client
                 .clone()
-                .schedule_updates(urls, std::time::Duration::from_secs(interval));
+                .schedule_updates(urls, std::time::Duration::from_secs(interval))
+                .await;
         }
     }
 

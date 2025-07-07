@@ -39,7 +39,8 @@ async fn schedule_updates_rotates_certificate() {
 
     client
         .clone()
-        .schedule_updates(vec![server.url("/cert.pem")], Duration::from_millis(50));
+        .schedule_updates(vec![server.url("/cert.pem")], Duration::from_millis(50))
+        .await;
 
     tokio::time::sleep(Duration::from_millis(100)).await;
 

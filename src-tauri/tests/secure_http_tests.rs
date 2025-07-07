@@ -108,12 +108,43 @@ async fn schedule_updates_fetches_certificate() {
     let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
     client
         .clone()
-        .schedule_updates(vec![server.url("/cert.pem")], Duration::from_millis(50));
+        .schedule_updates(vec![server.url("/cert.pem")], Duration::from_millis(50))
+        .await;
 
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
+async fn repeated_schedule_runs_single_task() {
+    let server = MockServer::start_async().await;
+    let mock = server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
+    client
+        .clone()
+        .schedule_updates(vec![server.url("/cert.pem")], Duration::from_millis(50))
+        .await;
+    // restart updates immediately
+    client
+        .clone()
+        .schedule_updates(vec![server.url("/cert.pem")], Duration::from_millis(50))
+        .await;
+
+    tokio::time::sleep(Duration::from_millis(110)).await;
+
+    assert!(mock.hits() <= 2);
 }
 
 #[tokio::test]

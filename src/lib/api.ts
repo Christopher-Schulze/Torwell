@@ -29,3 +29,7 @@ export async function invoke(
     throw err;
   }
 }
+
+export function lookupCountry(ip: string) {
+  return invoke('lookup_country', { ip }) as Promise<string>;
+}
