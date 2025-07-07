@@ -1,5 +1,11 @@
 use crate::state::AppState;
-use axum::{extract::Extension, routing::get, Json, Router};
+use axum::http::StatusCode;
+use axum::{
+    extract::Extension,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Deserialize;
 use std::{net::SocketAddr, sync::Arc};
 
 async fn status(Extension(state): Extension<Arc<AppState>>) -> Json<&'static str> {
@@ -14,9 +20,28 @@ async fn status(Extension(state): Extension<Arc<AppState>>) -> Json<&'static str
     Json(s)
 }
 
+#[derive(Deserialize)]
+struct WorkerPayload {
+    workers: Vec<String>,
+    #[serde(default)]
+    token: Option<String>,
+}
+
+async fn set_workers(
+    Extension(state): Extension<Arc<AppState>>,
+    Json(payload): Json<WorkerPayload>,
+) -> StatusCode {
+    state
+        .http_client
+        .set_worker_config(payload.workers, payload.token)
+        .await;
+    StatusCode::NO_CONTENT
+}
+
 pub fn start(state: AppState) {
     let router = Router::new()
         .route("/status", get(status))
+        .route("/workers", post(set_workers))
         .layer(Extension(Arc::new(state)));
 
     tauri::async_runtime::spawn(async move {
