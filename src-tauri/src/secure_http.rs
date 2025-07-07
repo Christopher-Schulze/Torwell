@@ -159,8 +159,27 @@ pub(crate) fn init_hsm() -> anyhow::Result<(Ctx, Option<HsmKeyPair>)> {
     let mut ctx = Ctx::new(module.clone())?;
     ctx.initialize(None)?;
 
-    let session = ctx.open_session(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION, None, None)?;
-    ctx.login(session, CKU_USER, Some(&pin))?;
+    use pkcs11::errors::Error as Pkcs11Error;
+    let session = match ctx.open_session(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION, None, None) {
+        Ok(s) => s,
+        Err(Pkcs11Error::Pkcs11(rv)) if rv == CKR_SLOT_ID_INVALID || rv == CKR_TOKEN_NOT_PRESENT => {
+            return Err(anyhow!("invalid HSM slot: {}", slot));
+        }
+        Err(e) => return Err(anyhow!(e)),
+    };
+    if let Err(e) = ctx.login(session, CKU_USER, Some(&pin)) {
+        let _ = ctx.close_session(session);
+        return match e {
+            Pkcs11Error::Pkcs11(rv)
+                if rv == CKR_PIN_INCORRECT
+                    || rv == CKR_PIN_INVALID
+                    || rv == CKR_PIN_LEN_RANGE =>
+            {
+                Err(anyhow!("invalid HSM PIN"))
+            }
+            other => Err(anyhow!(other)),
+        };
+    }
 
     let mut tmpl = vec![
         CK_ATTRIBUTE::new(CKA_CLASS).with_ck_ulong(&CKO_PRIVATE_KEY),

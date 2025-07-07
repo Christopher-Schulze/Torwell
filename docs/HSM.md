@@ -25,14 +25,31 @@ Example using a YubiHSM:
 ## Einrichtung mit SoftHSM
 
 1. Installiere das Paket `softhsm2` auf dem System.
-2. Initialisiere ein neues Token im ersten Slot:
+2. Lege einen Ordner für die Token-Daten an und erstelle eine Konfigurationsdatei:
+   ```bash
+   mkdir -p ~/hsm/tokens
+   cat >~/hsm/softhsm2.conf <<EOF
+   directories.tokendir = ~/hsm/tokens
+   EOF
+   export SOFTHSM2_CONF=~/hsm/softhsm2.conf
+   ```
+3. Initialisiere ein neues Token im ersten Slot und importiere einen privaten Schlüssel sowie ein Zertifikat:
    ```bash
    softhsm2-util --init-token --slot 0 \
        --label "torwell" --so-pin 0102030405060708 --pin 1234
+   openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem \
+       -subj "/CN=torwell" -days 365
+   softhsm2-util --import key.pem --token torwell --label tls-key --id 01 --pin 1234
+   pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --slot 0 --pin 1234 \
+       -w cert.pem -y cert -d 01 -a tls-cert
    ```
-3. Stelle sicher, dass die Umgebungsvariable `TORWELL_HSM_LIB`
-   auf `/usr/lib/softhsm/libsofthsm2.so` zeigt (Standard).
-4. Baue Torwell anschließend wie oben beschrieben mit dem Feature `hsm`.
+4. Setze die Variablen `TORWELL_HSM_LIB`, `TORWELL_HSM_SLOT` und `TORWELL_HSM_PIN` entsprechend:
+   ```bash
+   export TORWELL_HSM_LIB=/usr/lib/softhsm/libsofthsm2.so
+   export TORWELL_HSM_SLOT=$(softhsm2-util --show-slots | awk '/Label:\s*torwell/{getline;print $2}')
+   export TORWELL_HSM_PIN=1234
+   ```
+5. Baue Torwell anschließend wie oben beschrieben mit dem Feature `hsm` und starte die Anwendung.
 
 ## Usage in SecureHttpClient
 
