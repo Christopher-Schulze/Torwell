@@ -70,12 +70,7 @@ async fn connect_with_backoff_success() {
     MockTorClient::push_result(Ok(MockTorClient::default()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager
-        .connect_with_backoff(
-            5,
-            std::time::Duration::from_secs(10),
-            |_a, _d, _e| {},
-            |_| {},
-        )
+        .connect_with_backoff(5, std::time::Duration::from_secs(10), |_info| {}, |_| {})
         .await;
     assert!(res.is_ok());
 }
@@ -86,15 +81,10 @@ async fn connect_with_backoff_error() {
     MockTorClient::push_result(Err("e2".into()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager
-        .connect_with_backoff(
-            1,
-            std::time::Duration::from_secs(5),
-            |_a, _d, _e| {},
-            |_| {},
-        )
+        .connect_with_backoff(1, std::time::Duration::from_secs(5), |_info| {}, |_| {})
         .await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::ConnectionFailed { step, source, .. }) => {
             assert_eq!(step, "retries_exceeded");
             assert!(source.contains("e2"));
             assert!(source.contains("bootstrap"));
@@ -110,12 +100,7 @@ async fn connect_when_already_connected() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
     let res = manager
-        .connect_with_backoff(
-            0,
-            std::time::Duration::from_secs(5),
-            |_a, _d, _e| {},
-            |_| {},
-        )
+        .connect_with_backoff(0, std::time::Duration::from_secs(5), |_info| {}, |_| {})
         .await;
     assert!(matches!(res, Err(Error::AlreadyConnected)));
 }
@@ -125,15 +110,10 @@ async fn connect_with_backoff_timeout() {
     MockTorClient::push_result(Err("e1".into()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager
-        .connect_with_backoff(
-            5,
-            std::time::Duration::from_secs(0),
-            |_a, _d, _e| {},
-            |_| {},
-        )
+        .connect_with_backoff(5, std::time::Duration::from_secs(0), |_info| {}, |_| {})
         .await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::ConnectionFailed { step, source, .. }) => {
             assert_eq!(step, "timeout");
             assert!(source.contains("e1"));
             assert!(source.contains("bootstrap"));
@@ -151,7 +131,7 @@ async fn bridge_parse_error() {
         .unwrap();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::ConnectionFailed { step, source, .. }) => {
             assert_eq!(step, "build_config");
             assert!(source.contains("bridge parsing failed"));
         }
@@ -165,7 +145,7 @@ async fn bootstrap_error_context() {
     let manager: TorManager<MockTorClient> = TorManager::new();
     let res = manager.connect().await;
     match res {
-        Err(Error::ConnectionFailed { step, source }) => {
+        Err(Error::ConnectionFailed { step, source, .. }) => {
             assert_eq!(step, "bootstrap");
             assert!(source.contains("boot"));
         }
@@ -211,7 +191,7 @@ async fn new_identity_reconfigure_error() {
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::NetworkFailure { step, source }) => {
+        Err(Error::NetworkFailure { step, source, .. }) => {
             assert_eq!(step, "reconfigure");
             assert!(source.contains("reconf"));
         }
@@ -229,7 +209,7 @@ async fn new_identity_build_error() {
     manager.connect().await.unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::NetworkFailure { step, source }) => {
+        Err(Error::NetworkFailure { step, source, .. }) => {
             assert_eq!(step, "build_circuit");
             assert!(source.contains("build"));
         }
@@ -251,7 +231,7 @@ async fn new_identity_build_config_error() {
         .unwrap();
     let res = manager.new_identity().await;
     match res {
-        Err(Error::NetworkFailure { step, source }) => {
+        Err(Error::NetworkFailure { step, source, .. }) => {
             assert_eq!(step, "build_config");
             assert!(source.contains("bridge parsing failed"));
         }
@@ -307,7 +287,7 @@ async fn connect_rate_limited() {
     let mut last = Ok(());
     for _ in 0..6 {
         last = manager
-            .connect_with_backoff(0, std::time::Duration::from_secs(1), |_, _, _| {}, |_| {})
+            .connect_with_backoff(0, std::time::Duration::from_secs(1), |_info| {}, |_| {})
             .await;
         if last.is_err() {
             break;

@@ -1,6 +1,6 @@
-use axum::{routing::get, Router, Json, extract::Extension};
-use std::{net::SocketAddr, sync::Arc};
 use crate::state::AppState;
+use axum::{extract::Extension, routing::get, Json, Router};
+use std::{net::SocketAddr, sync::Arc};
 
 async fn status(Extension(state): Extension<Arc<AppState>>) -> Json<&'static str> {
     let s = if state.tor_manager.is_connected().await {
