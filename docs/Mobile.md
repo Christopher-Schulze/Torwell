@@ -25,6 +25,18 @@ The Svelte frontend is reused by pointing `webDir` to the compiled web assets.
    ./mobile/scripts/build_ios.sh       # generates the IPA (macOS required)
    ```
 
+### Reusing the frontend build
+
+The build scripts check if the `build/` directory already exists. If present,
+`bun run build` is skipped and the existing assets are reused. This shortens
+subsequent mobile builds, for example:
+
+```bash
+bun run build              # create web assets once
+./mobile/scripts/build_android.sh   # reuses build/
+./mobile/scripts/build_ios.sh
+```
+
 ## IPC Bridge
 
 When compiled with the `mobile` feature, the Rust backend automatically launches
