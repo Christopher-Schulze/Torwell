@@ -274,7 +274,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/torwell84/Torwell84
+ExecStart=/opt/torwell84/torwell84
 Restart=always
 User=torwell
 Group=torwell
