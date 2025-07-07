@@ -7,6 +7,15 @@
   let countries: string[] = [];
   let loading = false;
 
+  async function lookupCountry(ip: string): Promise<string> {
+    try {
+      const res = (await invoke("lookup_country", { ip })) as string;
+      return res.trim() || "??";
+    } catch (_) {
+      return "??";
+    }
+  }
+
 
   function copyDns() {
     navigator.clipboard.writeText(dns.join('\n'));
