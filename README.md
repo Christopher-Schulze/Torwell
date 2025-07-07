@@ -251,7 +251,8 @@ Im Ordner `cf worker` liegt ein kleines Beispiel für einen HTTPS-Proxy als Clou
 
 Eine ausführlichere Anleitung findet sich in
 [docs/Todo-fuer-User.md](docs/Todo-fuer-User.md).
-
+Um den systemd-Service schnell einzurichten, kann das Skript
+`scripts/install_service.sh` verwendet werden.
 
 ## Production Deployment
 
