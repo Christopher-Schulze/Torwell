@@ -3,6 +3,8 @@
   import { X, Edit3, Plus } from "lucide-svelte";
   import { uiStore } from "$lib/stores/uiStore";
   import TorrcEditorModal from './TorrcEditorModal.svelte';
+  import WorkerSetupModal from './WorkerSetupModal.svelte';
+  import { importWorkers } from '../../../scripts/import_workers.ts';
 
   const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
 
@@ -38,6 +40,7 @@
 
   const dispatch = createEventDispatcher();
   let showTorrcEditor = false;
+  let showWorkerSetup = false;
   let closeButton: HTMLButtonElement | null = null;
   let modalEl: HTMLElement | null = null;
   let previouslyFocused: HTMLElement | null = null;
@@ -110,14 +113,18 @@
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
     const text = await input.files[0].text();
-    workerList = text
+    const list = text
       .split(/\r?\n/)
       .map((l) => l.trim())
       .filter((l) => l.length > 0);
+    workerList = list;
+    await importWorkers(text, workerToken);
+    await uiStore.actions.importWorkerList(list);
   }
 
   function exportFile() {
-    const blob = new Blob([workerList.join('\n')], {
+    const list = uiStore.actions.exportWorkerList();
+    const blob = new Blob([list.join('\n')], {
       type: 'text/plain',
     });
     const url = URL.createObjectURL(blob);
@@ -362,10 +369,14 @@
           >
             Save
           </button>
-          <p class="text-xs text-gray-200 mt-2">
-            Multiple workers improve reliability.
-            <a href="/docs/Todo-fuer-User.md" target="_blank" class="underline">Mehr Infos in der Dokumentation</a>
-          </p>
+          <p class="text-xs text-gray-200 mt-2">Multiple workers improve reliability.</p>
+          <button
+            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+            on:click={() => (showWorkerSetup = true)}
+            aria-label="Open worker setup help"
+          >
+            Worker Setup Help
+          </button>
         </div>
 
         <div class="mb-8">
@@ -446,4 +457,10 @@
 <TorrcEditorModal
   bind:show={showTorrcEditor}
   on:close={() => (showTorrcEditor = false)}
+/>
+
+<!-- Worker Setup Help Modal -->
+<WorkerSetupModal
+  bind:show={showWorkerSetup}
+  on:close={() => (showWorkerSetup = false)}
 />
