@@ -79,3 +79,25 @@
     />
   {/if}
 </svg>
+<svg {width} {height} class="text-purple-300" role="img" aria-label="Average build time chart">
+  {#if avgPath}
+    <path
+      d={avgPath}
+      fill="currentColor"
+      fill-opacity="0.3"
+      stroke="currentColor"
+      stroke-width="1"
+    />
+  {/if}
+</svg>
+<svg {width} {height} class="text-red-400" role="img" aria-label="Failed attempts chart">
+  {#if failPath}
+    <path
+      d={failPath}
+      fill="currentColor"
+      fill-opacity="0.3"
+      stroke="currentColor"
+      stroke-width="1"
+    />
+  {/if}
+</svg>

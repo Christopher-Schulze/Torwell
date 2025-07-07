@@ -29,6 +29,8 @@
 
   $: cpuPath = buildPath(metrics, 'cpuPercent');
   $: networkPath = buildPath(metrics, 'networkBytes');
+  $: avgPath = buildPath(metrics, 'avgCreateMs');
+  $: failPath = buildPath(metrics, 'failedAttempts');
 
   $: latest =
     metrics[metrics.length - 1] ?? {
@@ -100,6 +102,22 @@
       <svg {width} {height} class="text-purple-400" aria-label="Network usage chart" role="img">
         {#if networkPath}
           <path d={networkPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
+        {/if}
+      </svg>
+    </div>
+    <div class="flex-1">
+      <p class="text-sm text-white">Avg build: {latest.avgCreateMs} ms</p>
+      <svg {width} {height} class="text-purple-300" aria-label="Average build time chart" role="img">
+        {#if avgPath}
+          <path d={avgPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
+        {/if}
+      </svg>
+    </div>
+    <div class="flex-1">
+      <p class="text-sm text-white">Failures: {latest.failedAttempts}</p>
+      <svg {width} {height} class="text-red-400" aria-label="Failed attempts chart" role="img">
+        {#if failPath}
+          <path d={failPath} fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1" />
         {/if}
       </svg>
     </div>
