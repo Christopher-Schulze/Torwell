@@ -14,6 +14,16 @@ This guide lists common problems encountered during development and how to analy
 - **Dependencies not installed**: If the frontend will not build, run `bun install` to fetch Node packages.
 - **Build errors**: Ensure `bun run check` and `cargo check` succeed before opening a pull request.
 
+## Node-Tools installieren
+
+Das Projekt verwendet Bun als Paketmanager und SvelteKit für das Frontend. Führe einmalig
+
+```bash
+task setup    # oder: bun run setup
+```
+
+aus, um `bun install` und die Installation von `@sveltejs/kit` automatisch zu starten.
+
 ## Debugging & Log Analysis
 
 - Start the app in development mode with `bun tauri dev` to view live output.
