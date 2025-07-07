@@ -18,6 +18,17 @@ The service starts `/opt/torwell84/Torwell84` as the `torwell` user and group
 and restarts automatically on failure. Logs are available with
 `journalctl -u torwell84.service`.
 
+## Service Installation
+
+Instead of running the commands manually you can use the helper script:
+
+```bash
+sudo ./scripts/install_service.sh
+```
+
+The script copies `src-tauri/torwell84.service` into `/etc/systemd/system/`,
+reloads systemd and enables the service immediately.
+
 ## Certificate Configuration
 
 Edit `src-tauri/certs/cert_config.json` to point to your production update server:
