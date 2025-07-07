@@ -174,6 +174,7 @@ pub fn run() {
             commands::clear_logs,
             commands::get_log_file_path,
             commands::set_log_limit,
+            commands::load_metrics,
             commands::set_update_interval,
             commands::set_geoip_path,
             commands::ping_host,

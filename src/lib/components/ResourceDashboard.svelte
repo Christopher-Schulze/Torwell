@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
+  import { invoke } from '@tauri-apps/api/tauri';
   import MetricsChart from './MetricsChart.svelte';
   import type { MetricPoint } from '$lib/stores/torStore';
 
@@ -45,7 +46,14 @@
       time: 0,
     };
 
-  onMount(() => {
+  onMount(async () => {
+    try {
+      const data = await invoke<MetricPoint[]>('load_metrics');
+      metrics = data.slice(-MAX_POINTS);
+    } catch (e) {
+      console.error('Failed to load metrics', e);
+    }
+
     const unlisten = listen<any>('metrics-update', (event) => {
       const point: MetricPoint = {
         time: Date.now(),

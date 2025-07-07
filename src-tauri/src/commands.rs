@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use crate::icmp;
-use crate::state::{AppState, LogEntry};
+use crate::state::{AppState, LogEntry, MetricPoint};
 use crate::tor_manager::{BridgePreset, RetryInfo};
 use governor::{
     clock::DefaultClock,
@@ -305,11 +305,7 @@ pub async fn set_worker_config(
 #[tauri::command]
 pub async fn validate_worker_token(state: State<'_, AppState>) -> Result<bool> {
     check_api_rate()?;
-    match state
-        .http_client
-        .get_text("https://example.com")
-        .await
-    {
+    match state.http_client.get_text("https://example.com").await {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }
@@ -426,7 +422,7 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
         let mgr = state.tor_manager.read().await.clone();
         mgr.new_identity().await?;
     } // potential metric: measure time to build new circuit
-                                             // Emit event to update frontend
+      // Emit event to update frontend
     app_handle.emit_all(
         "tor-status-update",
         serde_json::json!({ "status": "NEW_IDENTITY" }),
@@ -494,6 +490,13 @@ pub async fn get_log_file_path(state: State<'_, AppState>, token: String) -> Res
 pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<()> {
     check_api_rate()?;
     state.set_max_log_lines(limit).await
+}
+
+#[tauri::command]
+pub async fn load_metrics(state: State<'_, AppState>) -> Result<Vec<MetricPoint>> {
+    track_call("load_metrics").await;
+    check_api_rate()?;
+    state.load_metrics().await
 }
 
 #[tauri::command]
