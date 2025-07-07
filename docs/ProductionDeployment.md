@@ -52,6 +52,18 @@ If the value is greater than zero a background task periodically calls
 the interval at runtime using the `TORWELL_UPDATE_INTERVAL` environment
 variable.
 
+## Updater Configuration
+
+Set the URL for Tauri's auto-updater in `src-tauri/tauri.conf.json`. You may
+hard-code the production endpoint or reference an environment variable:
+
+```json
+"endpoints": ["${TAURI_UPDATE_URL}"]
+```
+
+Export `TAURI_UPDATE_URL` before running `task release` to inject the desired
+update server.
+
 ## Building Release Packages
 
 Run the release task on the target platform to create the installer packages.
