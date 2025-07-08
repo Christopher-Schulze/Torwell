@@ -23,6 +23,7 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: task mobile:android
+      - run: ./mobile/scripts/test_artifacts.sh android
       - name: Collect APK
         id: apk
         run: |
@@ -58,6 +59,7 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: task mobile:ios
+      - run: ./mobile/scripts/test_artifacts.sh ios
       - name: Collect IPA
         id: ipa
         run: |
