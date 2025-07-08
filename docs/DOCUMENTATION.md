@@ -160,6 +160,11 @@ Das Backend akzeptiert verschiedene Umgebungsvariablen zur Laufzeitkonfiguration
 - `TORWELL_MAX_LOG_LINES` – Maximale Anzahl von Logzeilen, die in `torwell.log` aufbewahrt werden (Standard `1000`).
 - `TORWELL_MAX_MEMORY_MB` – Schwellenwert für Speichernutzung, ab dem Warnungen ausgegeben werden (Standard `1024`).
 - `TORWELL_MAX_CIRCUITS` – Maximale Anzahl erlaubter paralleler Tor-Circuits (Standard `20`).
+- `TORWELL_METRICS_FILE` – Pfad für aufgezeichnete Metrikpunkte (Standard `metrics.json`).
+- `TORWELL_MAX_METRIC_LINES` – Maximale Zeilenanzahl der Metrikdatei (Standard `10000`).
+- `TORWELL_MAX_METRIC_MB` – Maximale Dateigröße in MB (Standard `5`).
+- `TORWELL_METRIC_INTERVAL` – Intervall der Metrikerfassung in Sekunden (Standard `30`).
+- `TORWELL_LOG_ENDPOINT` – Optionaler HTTP-Endpunkt zum Weiterleiten von Logeinträgen.
 - Bei Überschreitung dieser Limits erscheint ein Warnhinweis im Systemtray-Menü.
 
 
