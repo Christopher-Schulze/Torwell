@@ -242,7 +242,7 @@ relevant:
    automatisch und lädt sie zu GitHub Releases hoch.
 ### Optional Cloudflare Worker
 
-Im Ordner `cf worker` liegt ein kleines Beispiel für einen HTTPS-Proxy als Cloudflare Worker. Diese Worker sind optional und für den Betrieb von Torwell84 nicht erforderlich.
+Im Ordner `cf worker` liegen zwei Beispielskripte für einen HTTPS-Proxy als Cloudflare Worker. Die Datei `Super-HTTPS-Proxy-CF-Worker-.txt` enthält eine Token-Prüfung, `Basic-HTTPS-Proxy-CF-Worker.txt` kommt ohne Authentifizierung aus. Diese Worker sind optional und für den Betrieb von Torwell84 nicht erforderlich.
 
 **Deployment:**
 
@@ -253,6 +253,10 @@ Im Ordner `cf worker` liegt ein kleines Beispiel für einen HTTPS-Proxy als Clou
 
 Eine ausführlichere Anleitung findet sich in
 [docs/Todo-fuer-User.md](docs/Todo-fuer-User.md).
+
+Der Worker erwartet die Zieladresse im Query-Parameter `url`. Torwell84 sendet
+den Token im `X-Proxy-Token`‑Header und validiert ihn nach dem Speichern über
+den internen Befehl `validate_worker_token`.
 
 
 ## Production Deployment
