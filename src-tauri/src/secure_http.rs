@@ -555,7 +555,13 @@ impl SecureHttpClient {
         let token = { self.worker_token.lock().await.clone() };
         let worker_count = { self.worker_urls.lock().await.len() };
         for _ in 0..worker_count {
-            let worker = { self.worker_urls.lock().await.front().cloned() };
+            let worker = {
+                let mut guard = self.worker_urls.lock().await;
+                guard.pop_front().map(|w| {
+                    guard.push_back(w.clone());
+                    w
+                })
+            };
             if let Some(w) = worker {
                 let mut target = w.clone();
                 let encoded = encode(parsed.as_str());
@@ -577,10 +583,6 @@ impl SecureHttpClient {
                     }
                     Err(e) => {
                         log::warn!("worker {} unreachable: {}", w, e);
-                        let mut guard = self.worker_urls.lock().await;
-                        if let Some(first) = guard.pop_front() {
-                            guard.push_back(first);
-                        }
                     }
                 }
             }
@@ -601,7 +603,13 @@ impl SecureHttpClient {
         let token = { self.worker_token.lock().await.clone() };
         let worker_count = { self.worker_urls.lock().await.len() };
         for _ in 0..worker_count {
-            let worker = { self.worker_urls.lock().await.front().cloned() };
+            let worker = {
+                let mut guard = self.worker_urls.lock().await;
+                guard.pop_front().map(|w| {
+                    guard.push_back(w.clone());
+                    w
+                })
+            };
             if let Some(w) = worker {
                 let mut target = w.clone();
                 let encoded = encode(url);
@@ -623,10 +631,6 @@ impl SecureHttpClient {
                     }
                     Err(e) => {
                         log::warn!("worker {} unreachable: {}", w, e);
-                        let mut guard = self.worker_urls.lock().await;
-                        if let Some(first) = guard.pop_front() {
-                            guard.push_back(first);
-                        }
                     }
                 }
             }

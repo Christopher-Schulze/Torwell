@@ -35,6 +35,8 @@ pub const DEFAULT_SESSION_TTL: u64 = 3600;
 pub const DEFAULT_MAX_METRIC_LINES: usize = 10_000;
 /// Default maximum metrics file size in megabytes
 pub const DEFAULT_MAX_METRIC_MB: usize = 5;
+/// Default interval for metric collection in seconds
+pub const DEFAULT_METRIC_INTERVAL_SECS: u64 = 30;
 
 #[derive(Deserialize, Default)]
 struct AppConfig {
@@ -148,6 +150,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub max_memory_mb: u64,
     /// Maximum number of circuits before warning
     pub max_circuits: usize,
+    /// Interval for metrics collection in seconds
+    pub metric_interval_secs: u64,
     /// Session manager for authentication tokens
     pub session: Arc<SessionManager>,
     /// Handle used to emit frontend events
@@ -181,6 +185,10 @@ impl<C: TorClientBehavior> Default for AppState<C> {
         let mut max_metric_lines = cfg.max_metric_lines;
         let mut max_metric_mb = cfg.max_metric_mb;
         let mut geoip_path = cfg.geoip_path.clone();
+        let metric_interval_secs = std::env::var("TORWELL_METRIC_INTERVAL")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(DEFAULT_METRIC_INTERVAL_SECS);
         if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
             if let Ok(n) = val.parse::<usize>() {
                 max_log_lines = n;
@@ -252,6 +260,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
+            metric_interval_secs,
             session: SessionManager::new(Duration::from_secs(
                 std::env::var("TORWELL_SESSION_TTL")
                     .ok()
@@ -288,6 +297,10 @@ impl<C: TorClientBehavior> AppState<C> {
         let mut max_metric_lines = cfg.max_metric_lines;
         let mut max_metric_mb = cfg.max_metric_mb;
         let mut geoip_path = cfg.geoip_path.clone();
+        let metric_interval_secs = std::env::var("TORWELL_METRIC_INTERVAL")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(DEFAULT_METRIC_INTERVAL_SECS);
         if let Ok(val) = std::env::var("TORWELL_MAX_LOG_LINES") {
             if let Ok(n) = val.parse::<usize>() {
                 max_log_lines = n;
@@ -357,6 +370,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 .ok()
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
+            metric_interval_secs,
             session: SessionManager::new(Duration::from_secs(
                 std::env::var("TORWELL_SESSION_TTL")
                     .ok()
@@ -698,10 +712,7 @@ impl<C: TorClientBehavior> AppState<C> {
     /// Start periodic collection of performance metrics and emit events
     pub fn start_metrics_task(self: Arc<Self>, handle: AppHandle) {
         tokio::spawn(async move {
-            let interval_secs = std::env::var("TORWELL_METRIC_INTERVAL")
-                .ok()
-                .and_then(|v| v.parse::<u64>().ok())
-                .unwrap_or(30);
+            let interval_secs = self.metric_interval_secs;
             let mut interval = tokio::time::interval(Duration::from_secs(interval_secs));
             let mut sys = System::new();
             let pid = match sysinfo::get_current_pid() {
