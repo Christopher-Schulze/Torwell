@@ -386,6 +386,30 @@ async fn import_many_workers_from_file() {
         .unwrap();
 }
 
+#[tokio::test]
+async fn import_over_hundred_workers() {
+    use std::io::Write;
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let state = app.state::<AppState<MockTorClient>>();
+
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("over_100.txt");
+    let mut file = std::fs::File::create(&path).unwrap();
+    for i in 0..150 {
+        writeln!(file, "https://many{i}.example.com").unwrap();
+    }
+
+    let content = std::fs::read_to_string(&path).unwrap();
+    let workers: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+    commands::set_worker_config(state, workers.clone(), Some("tok".into()))
+        .await
+        .unwrap();
+
+    let count = state.http_client.worker_urls.lock().await.len();
+    assert_eq!(count, workers.len());
+}
+
 #[tokio::test(start_paused = true)]
 async fn command_connect_error_propagates_details() {
     for _ in 0..6 {

@@ -352,6 +352,18 @@
           Import Worker List
         </button>
         {#if importProgress !== null}
+          <div
+            class="w-full bg-gray-700/50 rounded-full h-2 mt-1"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow={importProgress}
+          >
+            <div
+              class="bg-white h-2 rounded-full transition-all duration-500 ease-out"
+              style="width: {importProgress}%"
+            ></div>
+          </div>
           <p class="text-xs mt-1">{importProgress}%</p>
         {/if}
         <button

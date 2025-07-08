@@ -48,6 +48,10 @@ Alternativ steht das CLI-Skript bereit:
 bun scripts/import_workers_cli.ts worker-list.txt meinToken
 ```
 
+Rufe es einfach im Projektordner auf und ersetze `worker-list.txt` durch den
+Pfad zu deiner Liste. Der optionale zweite Parameter setzt den Token direkt
+beim Import.
+
 Damit lassen sich hunderte URLs bequem importieren.
 
 ## Hardware Security Module verwenden
