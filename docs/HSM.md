@@ -43,10 +43,11 @@ Example using a YubiHSM:
    pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --slot 0 --pin 1234 \
        -w cert.pem -y cert -d 01 -a tls-cert
    ```
-4. Setze die Variablen `TORWELL_HSM_LIB`, `TORWELL_HSM_SLOT` und `TORWELL_HSM_PIN` entsprechend:
+4. Setze die Variablen `TORWELL_HSM_LIB`, `TORWELL_HSM_SLOT` und `TORWELL_HSM_PIN` entsprechend.  
+   Für SoftHSM kann beispielsweise folgender Wert verwendet werden:
    ```bash
    export TORWELL_HSM_LIB=/usr/lib/softhsm/libsofthsm2.so
-   export TORWELL_HSM_SLOT=$(softhsm2-util --show-slots | awk '/Label:\s*torwell/{getline;print $2}')
+   export TORWELL_HSM_SLOT=0
    export TORWELL_HSM_PIN=1234
    ```
 5. Baue Torwell anschließend wie oben beschrieben mit dem Feature `hsm` und starte die Anwendung.
