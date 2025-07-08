@@ -137,7 +137,7 @@ Import the maintainer's public GPG key and verify the package before
 installation:
 
 ```bash
-gpg --verify torwell84_2.4.0_amd64.deb.asc torwell84_2.4.0_amd64.deb
+gpg --verify torwell84_2.4.1_amd64.deb.asc torwell84_2.4.1_amd64.deb
 ```
 
 On Windows you can additionally validate the MSI's code signing certificate:
