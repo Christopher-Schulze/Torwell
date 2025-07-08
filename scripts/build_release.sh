@@ -8,6 +8,8 @@
 # resulting bundles to `src-tauri/target/release/bundle`.
 set -e
 
+echo "Building release bundles..."
+
 check_dep() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Error: '$1' is required but not installed." >&2

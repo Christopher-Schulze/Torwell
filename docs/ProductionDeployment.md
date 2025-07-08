@@ -40,7 +40,9 @@ Running the script prints the commands that would be executed and a brief
 status report:
 
 ```text
-Installing service file to /tmp/tmp.XYZ
+Installing Torwell84 systemd service...
+Copying service file to /tmp/tmp.XYZ
+Service file installed
 systemctl daemon-reload
 Enabling and starting torwell84.service
 systemctl enable --now torwell84.service
@@ -48,6 +50,7 @@ Service status:
 \u25cf torwell84.service - Fake Service
    Loaded: loaded (/tmp/tmp.XYZ/torwell84.service; enabled)
    Active: active (running)
+Installation complete.
 Service file installed in /tmp/tmp.XYZ
 Test completed successfully
 ```

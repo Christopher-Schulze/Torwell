@@ -2,6 +2,7 @@
 set -e
 
 TMP_DIR=$(mktemp -d)
+echo "Testing service installation in temporary directory $TMP_DIR"
 FAKE_SYSTEMCTL="$TMP_DIR/systemctl"
 
 cat > "$FAKE_SYSTEMCTL" <<'SCRIPT'
