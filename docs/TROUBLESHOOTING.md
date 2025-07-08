@@ -9,10 +9,27 @@ This guide lists common problems encountered during development and how to analy
 
   1. `sudo apt-get update`
   2. `sudo apt-get install libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup2.4-dev pkg-config`
+  3. Auf Systemen, die nur die `4.1` Varianten bereitstellen, fehlen die `*.pc`
+     Dateien für `webkit2gtk-4.0` und `javascriptcoregtk-4.0`. Lege in diesem
+     Fall symbolische Links an:
+
+     ```bash
+     sudo ln -s /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc
+     sudo ln -s /usr/lib/x86_64-linux-gnu/pkgconfig/javascriptcoregtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/javascriptcoregtk-4.0.pc
+     ```
+
+     Andernfalls meldet `cargo check` fehlende Pakete.
 
   Afterwards `cargo test` should run without missing-library errors.
 - **Dependencies not installed**: If the frontend will not build, run `bun install` to fetch Node packages.
 - **Build errors**: Ensure `bun run check` and `cargo check` succeed before opening a pull request.
+  `cargo check` schlägt außerdem fehl, wenn die Umgebungsvariable
+  `TAURI_UPDATE_URL` nicht gesetzt ist. Für lokale Builds genügt ein Dummy-Wert,
+  z. B.:
+
+  ```bash
+  export TAURI_UPDATE_URL="https://example.com"
+  ```
 
 ## Node-Tools installieren
 
