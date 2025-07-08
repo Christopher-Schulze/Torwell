@@ -34,9 +34,8 @@
     isCreatingCircuit = true;
     try {
       await invoke("new_identity");
-      console.log("New circuit requested successfully");
     } catch (error) {
-      console.error("New circuit failed:", error);
+      
     } finally {
       isCreatingCircuit = false;
     }
@@ -47,9 +46,8 @@
     isCreatingIdentity = true;
     try {
       await invoke("new_identity");
-      console.log("New identity request sent successfully");
     } catch (error) {
-      console.error("New identity failed:", error);
+      
     } finally {
       isCreatingIdentity = false;
     }

@@ -47,12 +47,11 @@
 				message: entry.message,
 				level: entry.level
 			}));
-		} catch (error) {
-			console.error('Failed to load logs:', error);
-			logs = [
-				{ type: 'system', timestamp: new Date().toLocaleString(), message: 'Failed to load logs from backend', level: 'ERROR' }
-			];
-		} finally {
+                } catch (error) {
+                        logs = [
+                                { type: 'system', timestamp: new Date().toLocaleString(), message: 'Failed to load logs from backend', level: 'ERROR' }
+                        ];
+                } finally {
 			isLoading = false;
                 }
         }
@@ -61,7 +60,6 @@
                 try {
                         logFilePath = (await invoke('get_log_file_path')) as string;
                 } catch (error) {
-                        console.error('Failed to get log file path', error);
                 }
         }
 
@@ -109,10 +107,8 @@
                 isClearing = true;
                 try {
                         await invoke('clear_logs');
-                        console.log('Logs cleared successfully');
                         logs = [];
                 } catch (error) {
-                        console.error('Failed to clear logs:', error);
                 } finally {
                         isClearing = false;
                 }
