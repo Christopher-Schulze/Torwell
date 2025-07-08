@@ -2,7 +2,6 @@ import { writable, get } from "svelte/store";
 import { db } from "$lib/database";
 import type { Settings } from "$lib/database";
 import { invoke } from "@tauri-apps/api/tauri";
-import { parseWorkerList } from "../../../scripts/import_workers.ts";
 
 type AppSettings = {
   workerList: string[];
@@ -343,14 +342,35 @@ function createUIStore() {
       update((state) => ({ ...state, importProgress: val })),
 
     importWorkersFromText: async (text: string) => {
-      const { workers } = parseWorkerList(text);
-      const total = workers.length;
+      const lines = text.split(/\r?\n/);
+      const workers: string[] = [];
+      const seen = new Set<string>();
+      let processed = 0;
+      const total = lines.filter((l) => l.trim().length > 0).length;
       actions.setImportProgress(0);
+      for (const line of lines) {
+        const url = line.trim();
+        if (!url) {
+          processed++;
+          continue;
+        }
+        try {
+          new URL(url);
+          if (!seen.has(url)) {
+            seen.add(url);
+            workers.push(url);
+          }
+        } catch {
+          // ignore invalid here, UI just imports valid entries
+        }
+        processed++;
+        actions.setImportProgress(Math.round((processed / lines.length) * 100));
+      }
       const current = get({ subscribe });
       await actions.saveWorkerConfig(workers, current.settings.workerToken);
       actions.setImportProgress(100);
       setTimeout(() => actions.setImportProgress(null), 500);
-      return total;
+      return workers.length;
     },
 
     setLogLimit: async (limit: number) => {

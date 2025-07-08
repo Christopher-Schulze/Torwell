@@ -10,10 +10,15 @@ async function main() {
   }
   const { readFileSync } = await import('fs');
   const content = readFileSync(file, 'utf-8');
-  const { invalid } = parseWorkerList(content);
+  const { invalid, duplicates } = parseWorkerList(content);
   const result = await importWorkersFromFile(file, token);
   if (invalid.length > 0) {
-    console.warn(`Ignored ${invalid.length} invalid entries`);
+    console.warn(`Ignored ${invalid.length} invalid URLs: ${invalid.join(', ')}`);
+  }
+  if (duplicates.length > 0) {
+    console.warn(
+      `Ignored ${duplicates.length} duplicate entries: ${duplicates.join(', ')}`
+    );
   }
   console.log(`Imported ${result.imported} workers`);
 }
