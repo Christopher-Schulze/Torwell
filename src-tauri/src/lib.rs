@@ -80,10 +80,6 @@ pub fn run() {
                         }
                         state.update_tray_menu().await;
                     });
-                    let st = app.state::<AppState>();
-                    tauri::async_runtime::spawn(async move {
-                        st.update_tray_menu().await;
-                    });
                 }
                 "disconnect" => {
                     let state = app.state::<AppState>();
@@ -93,10 +89,6 @@ pub fn run() {
                             log::error!("tray disconnect failed: {}", e);
                         }
                         state.update_tray_menu().await;
-                    });
-                    let st = app.state::<AppState>();
-                    tauri::async_runtime::spawn(async move {
-                        st.update_tray_menu().await;
                     });
                 }
                 "reconnect" => {

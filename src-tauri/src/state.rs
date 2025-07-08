@@ -827,65 +827,63 @@ impl<C: TorClientBehavior> AppState<C> {
         *self.app_handle.lock().await = Some(handle);
     }
 
+    /// Build a new system tray menu based on the current state
+    async fn build_tray_menu(&self) -> SystemTrayMenu {
+        let connected = {
+            let mgr = self.tor_manager.read().await.clone();
+            mgr.is_connected().await
+        };
+        let status = if connected { "Connected" } else { "Disconnected" };
+        let memory_mb = *self.memory_usage.lock().await / 1024 / 1024;
+        let circuits = *self.circuit_count.lock().await;
+        let mem_label = if memory_mb > self.max_memory_mb {
+            format!("Memory: {} MB \u{26A0}\u{fe0f}", memory_mb)
+        } else {
+            format!("Memory: {} MB", memory_mb)
+        };
+        let circ_label = if circuits > self.max_circuits {
+            format!("Circuits: {} \u{26A0}\u{fe0f}", circuits)
+        } else {
+            format!("Circuits: {}", circuits)
+        };
+
+        let mut menu = SystemTrayMenu::new()
+            .add_item(CustomMenuItem::new("status", format!("Status: {}", status)).disabled())
+            .add_item(CustomMenuItem::new("memory", mem_label).disabled())
+            .add_item(CustomMenuItem::new("circuits", circ_label).disabled())
+            .add_item(CustomMenuItem::new("show", "Show"));
+
+        if connected {
+            menu = menu.add_item(CustomMenuItem::new("disconnect", "Disconnect"));
+        } else {
+            menu = menu.add_item(CustomMenuItem::new("connect", "Connect"));
+        }
+
+        menu = menu
+            .add_item(CustomMenuItem::new("reconnect", "Reconnect"))
+            .add_item(CustomMenuItem::new("show_dashboard", "Show Dashboard"))
+            .add_item(CustomMenuItem::new("show_logs", "Show Logs"))
+            .add_item(CustomMenuItem::new("open_logs_file", "Open Log File"))
+            .add_item(CustomMenuItem::new("settings", "Settings"))
+            .add_item(CustomMenuItem::new("open_settings_file", "Open Settings File"))
+            .add_item(CustomMenuItem::new("quit", "Quit"));
+
+        if let Some(w) = self.tray_warning.lock().await.clone() {
+            let mut item = CustomMenuItem::new("warning", format!("\u{26A0}\u{FE0F} {}", w)).disabled();
+            #[cfg(target_os = "macos")]
+            {
+                item = item.native_image(NativeImage::Caution);
+            }
+            menu = menu.add_item(item);
+        }
+
+        menu
+    }
+
     /// Update the system tray menu with current status and warning if set
     async fn update_tray_menu(&self) {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
-            let connected = {
-                let mgr = self.tor_manager.read().await.clone();
-                mgr.is_connected().await
-            };
-            let status = if connected {
-                "Connected"
-            } else {
-                "Disconnected"
-            };
-            let memory_mb = *self.memory_usage.lock().await / 1024 / 1024;
-            let circuits = *self.circuit_count.lock().await;
-            let mem_label = if memory_mb > self.max_memory_mb {
-                format!("Memory: {} MB \u{26A0}\u{fe0f}", memory_mb)
-            } else {
-                format!("Memory: {} MB", memory_mb)
-            };
-            let circ_label = if circuits > self.max_circuits {
-                format!("Circuits: {} \u{26A0}\u{fe0f}", circuits)
-            } else {
-                format!("Circuits: {}", circuits)
-            };
-
-            let mut menu = SystemTrayMenu::new()
-                .add_item(CustomMenuItem::new("status", format!("Status: {}", status)).disabled())
-                .add_item(CustomMenuItem::new("memory", mem_label).disabled())
-                .add_item(CustomMenuItem::new("circuits", circ_label).disabled())
-                .add_item(CustomMenuItem::new("show", "Show"));
-
-            if connected {
-                menu = menu.add_item(CustomMenuItem::new("disconnect", "Disconnect"));
-            } else {
-                menu = menu.add_item(CustomMenuItem::new("connect", "Connect"));
-            }
-
-            menu = menu
-                .add_item(CustomMenuItem::new("reconnect", "Reconnect"))
-                .add_item(CustomMenuItem::new("show_dashboard", "Show Dashboard"))
-                .add_item(CustomMenuItem::new("show_logs", "Show Logs"))
-                .add_item(CustomMenuItem::new("open_logs_file", "Open Log File"))
-                .add_item(CustomMenuItem::new("settings", "Settings"))
-                .add_item(CustomMenuItem::new(
-                    "open_settings_file",
-                    "Open Settings File",
-                ))
-                .add_item(CustomMenuItem::new("quit", "Quit"));
-
-            if let Some(w) = self.tray_warning.lock().await.clone() {
-                let mut item =
-                    CustomMenuItem::new("warning", format!("\u{26A0}\u{FE0F} {}", w)).disabled();
-                #[cfg(target_os = "macos")]
-                {
-                    item = item.native_image(NativeImage::Caution);
-                }
-                menu = menu.add_item(item);
-            }
-
+            let menu = self.build_tray_menu().await;
             let tray = handle.tray_handle();
             // Fully recreate the tray menu to avoid stale entries
             let _ = tray.set_menu(SystemTrayMenu::new());
