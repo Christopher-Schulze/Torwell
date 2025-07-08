@@ -132,11 +132,14 @@ pub(crate) fn init_hsm() -> anyhow::Result<(Ctx, Option<HsmKeyPair>)> {
 
     let module = std::env::var("TORWELL_HSM_LIB")
         .unwrap_or_else(|_| "/usr/lib/softhsm/libsofthsm2.so".into());
-    let slot: CK_SLOT_ID = std::env::var("TORWELL_HSM_SLOT")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0);
+    let slot_var = std::env::var("TORWELL_HSM_SLOT").unwrap_or_else(|_| "0".into());
+    let slot: CK_SLOT_ID = slot_var
+        .parse()
+        .map_err(|_| anyhow!("invalid TORWELL_HSM_SLOT value: {}", slot_var))?;
     let pin = std::env::var("TORWELL_HSM_PIN").unwrap_or_else(|_| "1234".into());
+    if pin.is_empty() {
+        return Err(anyhow!("invalid HSM PIN"));
+    }
     let key_label = std::env::var("TORWELL_HSM_KEY_LABEL").unwrap_or_else(|_| "tls-key".into());
     let cert_label = std::env::var("TORWELL_HSM_CERT_LABEL").unwrap_or_else(|_| "tls-cert".into());
 
