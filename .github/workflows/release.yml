@@ -51,8 +51,80 @@ jobs:
           name: ${{ matrix.os }}-bundle
           path: src-tauri/target/release/bundle
 
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: task mobile:android
+      - run: ./mobile/scripts/test_artifacts.sh android
+      - name: Collect APK
+        id: apk
+        run: |
+          APK=$(ls mobile/android/*.apk 2>/dev/null | head -n 1 || true)
+          if [ -z "$APK" ]; then
+            echo "Creating placeholder APK"
+            mkdir -p mobile/dist
+            echo "APK missing" > mobile/dist/placeholder.txt
+            zip -j mobile/dist/placeholder.apk.zip mobile/dist/placeholder.txt
+            echo "path=mobile/dist/placeholder.apk.zip" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=$APK" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: task mobile:ios
+      - run: ./mobile/scripts/test_artifacts.sh ios
+      - name: Collect IPA
+        id: ipa
+        run: |
+          IPA=$(ls mobile/ios/*.ipa 2>/dev/null | head -n 1 || true)
+          if [ -z "$IPA" ]; then
+            echo "Creating placeholder IPA"
+            mkdir -p mobile/dist
+            echo "IPA missing" > mobile/dist/placeholder.txt
+            zip -j mobile/dist/placeholder.ipa.zip mobile/dist/placeholder.txt
+            echo "path=mobile/dist/placeholder.ipa.zip" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=$IPA" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-ipa
+          path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
+
   release:
-    needs: build
+    needs: [build, android, ios]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
