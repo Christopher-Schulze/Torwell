@@ -355,6 +355,7 @@ impl<C: TorClientBehavior> TorManager<C> {
         let mut attempt = 0;
         let mut delay = INITIAL_BACKOFF;
         let mut last_error = String::new();
+        let mut last_step = ConnectionStep::Bootstrap;
         loop {
             if start.elapsed() >= max_total_time {
                 log::error!("connect_with_backoff: timeout after {:?}", max_total_time);
@@ -363,7 +364,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                 } else {
                     format!("timeout after {:?}: {}", max_total_time, last_error)
                 };
-                return Err(log_and_convert_error(ConnectionStep::Timeout, msg));
+                return Err(log_and_convert_error(last_step, msg));
             }
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
@@ -371,7 +372,12 @@ impl<C: TorClientBehavior> TorManager<C> {
                     if attempt == 0 && matches!(e, Error::AlreadyConnected) {
                         return Err(e);
                     }
-                    last_error = e.to_string();
+                    if let Error::ConnectionFailed { step, source, .. } = &e {
+                        last_step = *step;
+                        last_error = source.clone();
+                    } else {
+                        last_error = e.to_string();
+                    }
                     attempt += 1;
                     on_retry(RetryInfo {
                         attempt,
@@ -389,10 +395,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                         } else {
                             format!("retries exceeded after {} attempts: {}", attempt, last_error)
                         };
-                        return Err(log_and_convert_error(
-                            ConnectionStep::RetriesExceeded,
-                            msg,
-                        ));
+                        return Err(log_and_convert_error(last_step, msg));
                     }
                     if start.elapsed() + delay > max_total_time {
                         log::error!("connect_with_backoff: total timeout reached");
@@ -401,7 +404,7 @@ impl<C: TorClientBehavior> TorManager<C> {
                         } else {
                             format!("timeout after {:?}: {}", max_total_time, last_error)
                         };
-                        return Err(log_and_convert_error(ConnectionStep::Timeout, msg));
+                        return Err(log_and_convert_error(last_step, msg));
                     }
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, MAX_BACKOFF);
