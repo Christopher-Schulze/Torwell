@@ -123,6 +123,14 @@ For official releases the GitHub workflow `release.yml` runs the same script on
 Windows, macOS and Linux runners. The generated bundles are signed (when
 secrets are available) and uploaded automatically to the GitHub Releases page.
 
+## Signing Release Artifacts
+
+The job defined in [`release.yml`](../.github/workflows/release.yml) imports a
+GPG key and attaches detached signatures for every uploaded bundle. MSI files on
+Windows are additionally signed with a code-signing certificate when the
+secrets are configured. If you build packages manually, sign them using
+`gpg --armor --detach-sign <file>` before distributing them.
+
 ## Tray Menu
 
 When running with a system tray the application provides several actions:
