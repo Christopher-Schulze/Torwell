@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   export let connectionProgress = 0; // 0-100
   export let currentStatus = "Idle"; // Current Tor status
   export let retryCount = 0;

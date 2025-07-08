@@ -4,7 +4,7 @@
   import { uiStore } from "$lib/stores/uiStore";
   import TorrcEditorModal from './TorrcEditorModal.svelte';
   import WorkerSetupModal from './WorkerSetupModal.svelte';
-  import { parseWorkerList } from '../../../scripts/import_workers.ts';
+  import { parseWorkerList } from '../../../scripts/import_workers';
 
   const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
 
