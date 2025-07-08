@@ -4,10 +4,17 @@ set -e
 TMP_DIR=$(mktemp -d)
 FAKE_SYSTEMCTL="$TMP_DIR/systemctl"
 
-# create a fake systemctl that just echoes the arguments
 cat > "$FAKE_SYSTEMCTL" <<'SCRIPT'
 #!/usr/bin/env bash
+if [ "$1" = "--no-pager" ]; then
+  shift
+fi
 echo "systemctl $@"
+if [ "$1" = "status" ]; then
+  echo "\u25cf torwell84.service - Fake Service"
+  echo "   Loaded: loaded ($TARGET_DIR/torwell84.service; enabled)"
+  echo "   Active: active (running)"
+fi
 SCRIPT
 chmod +x "$FAKE_SYSTEMCTL"
 
@@ -25,3 +32,4 @@ else
 fi
 
 echo "Test completed successfully"
+
