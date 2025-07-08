@@ -809,9 +809,12 @@ impl<C: TorClientBehavior> AppState<C> {
 
                 let failures = *self.http_client.update_failures.lock().await;
                 if failures >= 3 {
-                    let msg = format!("{failures} consecutive certificate update failures");
-                    *self.tray_warning.lock().await = Some(msg.clone());
-                    self.update_tray_menu().await;
+                    let mut guard = self.tray_warning.lock().await;
+                    if guard.is_none() {
+                        let msg = format!("{failures} consecutive certificate update failures");
+                        *guard = Some(msg.clone());
+                        self.update_tray_menu().await;
+                    }
                 }
 
                 let _ = handle.emit_all(
