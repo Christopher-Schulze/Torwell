@@ -22,7 +22,7 @@ Dieses Dokument beschreibt, wie du den Beispiel‑Worker aus dem Ordner `cf work
    wrangler deploy
    ```
    Der Worker prüft bei jeder Anfrage, ob der Header `X-Proxy-Token` dem gesetzten `SECRET_TOKEN` entspricht.
-   Die Zieladresse wird im Query-Parameter `url` 
+   Die Zieladresse wird im Query-Parameter `url`
    übergeben, z.B. `https://<worker-url>/?url=https://example.com`.
 
 ## Proxy in Torwell84 einrichten
@@ -72,3 +72,25 @@ Damit lassen sich hunderte URLs bequem importieren.
 Unter **Settings → HSM Configuration** kannst du den Pfad zur PKCS#11‑Bibliothek und den Slot angeben. Nach dem Speichern werden die Werte im Backend übernommen und für neue TLS‑Verbindungen genutzt.
 
 Unter **Settings → Update Interval** legst du fest, in welchem Abstand (in Sekunden) das Zertifikat automatisch aktualisiert wird.
+
+## Minimalbeispiel
+
+1. Worker mit Wrangler erstellen und deployen:
+
+   ```bash
+   bun add -g wrangler
+   wrangler init
+   wrangler secret put SECRET_TOKEN
+   wrangler deploy
+   ```
+
+2. Torwell84 starten und im Einstellungsdialog die URL deines Workers unter
+   **Worker List** eintragen. Den beim Deployment verwendeten Token in das Feld
+   **Worker token** kopieren.
+
+3. Mit **Import Worker List** kannst du eine Datei mit vielen Adressen laden.
+   Über **Export Worker List** lässt sich die aktuelle Konfiguration sichern.
+
+Damit ist der Proxy einsatzbereit. Torwell84 validiert den Token automatisch
+über `validate_worker_token` und verwendet deine Worker anschließend für alle
+Verbindungen.

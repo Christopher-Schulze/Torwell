@@ -32,20 +32,33 @@ export function parseWorkerList(content: string): ImportResult {
 export async function importWorkers(content: string, token = "") {
   const { workers, invalid, duplicates } = parseWorkerList(content);
   const isMobile = typeof window !== "undefined" && (window as any).Capacitor;
-  if (isMobile) {
-    await fetch("http://127.0.0.1:1421/workers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workers, token }),
-    });
-  } else {
-    await invoke("set_worker_config", { workers, token });
+  try {
+    if (isMobile) {
+      const res = await fetch("http://127.0.0.1:1421/workers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workers, token }),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+    } else {
+      await invoke("set_worker_config", { workers, token });
+    }
+    return { imported: workers.length, invalid, duplicates };
+  } catch (err) {
+    console.error("Failed to import workers:", err);
+    throw err;
   }
-  return { imported: workers.length, invalid, duplicates };
 }
 
 export async function importWorkersFromFile(path: string, token = "") {
-  const { readFileSync } = await import("fs");
-  const content = readFileSync(path, "utf-8");
-  return importWorkers(content, token);
+  try {
+    const { readFileSync } = await import("fs");
+    const content = readFileSync(path, "utf-8");
+    return await importWorkers(content, token);
+  } catch (err) {
+    console.error("Failed to read worker file:", err);
+    throw err;
+  }
 }

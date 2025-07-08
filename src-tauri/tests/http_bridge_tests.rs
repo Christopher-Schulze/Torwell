@@ -113,4 +113,85 @@ async fn http_bridge_sets_workers() {
         .unwrap();
 
     assert_eq!(res.status(), reqwest::StatusCode::NO_CONTENT);
+    let urls = state.http_client.worker_urls.lock().await;
+    assert_eq!(urls.len(), 1);
+    assert_eq!(urls[0], "https://example.com");
+}
+
+#[cfg(feature = "mobile")]
+#[tokio::test]
+async fn http_bridge_validates_worker_token() {
+    use httpmock::prelude::*;
+    use urlencoding::encode;
+
+    let worker = MockServer::start_async().await;
+    let target = "https://example.com/hello";
+    let encoded = encode(target);
+    worker
+        .mock_async(|when, then| {
+            when.method(GET)
+                .path(format!("/proxy?url={}", encoded))
+                .header("X-Proxy-Token", "secret");
+            then.status(200).body("ok");
+        })
+        .await;
+
+    let state = mock_state();
+    torwell84::http_bridge::start(state.clone());
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let client = reqwest::Client::new();
+    client
+        .post("http://127.0.0.1:1421/workers")
+        .json(&serde_json::json!({
+            "workers": [worker.url("/proxy")],
+            "token": "secret"
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    let valid = torwell84::commands::validate_worker_token(state.clone())
+        .await
+        .unwrap();
+    assert!(valid);
+}
+
+#[cfg(feature = "mobile")]
+#[tokio::test]
+async fn http_bridge_validate_token_fails() {
+    use httpmock::prelude::*;
+    use urlencoding::encode;
+
+    let worker = MockServer::start_async().await;
+    let target = "https://example.com/hello";
+    let encoded = encode(target);
+    worker
+        .mock_async(|when, then| {
+            when.method(GET)
+                .path(format!("/proxy?url={}", encoded))
+                .header("X-Proxy-Token", "right");
+            then.status(200).body("ok");
+        })
+        .await;
+
+    let state = mock_state();
+    torwell84::http_bridge::start(state.clone());
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let client = reqwest::Client::new();
+    client
+        .post("http://127.0.0.1:1421/workers")
+        .json(&serde_json::json!({
+            "workers": [worker.url("/proxy")],
+            "token": "wrong"
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    let valid = torwell84::commands::validate_worker_token(state.clone())
+        .await
+        .unwrap();
+    assert!(!valid);
 }
