@@ -651,3 +651,61 @@ async fn update_fails_with_wrong_worker_token() {
     let res = client.update_certificates(target).await;
     assert!(res.is_err());
 }
+
+#[tokio::test]
+async fn tray_warning_after_local_update_failures() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(500);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
+
+    for _ in 0..3 {
+        let _ = client
+            .update_certificates_from(&[server.url("/cert.pem")])
+            .await;
+    }
+
+    let mut app = tauri::test::mock_app();
+    let state = torwell84::state::AppState {
+        tor_manager: Arc::new(torwell84::tor_manager::TorManager::new()),
+        http_client: client.clone(),
+        log_file: cert_path.clone(),
+        log_lock: Arc::new(tokio::sync::Mutex::new(())),
+        retry_counter: Arc::new(tokio::sync::Mutex::new(0)),
+        max_log_lines: Arc::new(tokio::sync::Mutex::new(1000)),
+        memory_usage: Arc::new(tokio::sync::Mutex::new(0)),
+        circuit_count: Arc::new(tokio::sync::Mutex::new(0)),
+        oldest_circuit_age: Arc::new(tokio::sync::Mutex::new(0)),
+        latency_ms: Arc::new(tokio::sync::Mutex::new(0)),
+        cpu_usage: Arc::new(tokio::sync::Mutex::new(0.0)),
+        network_throughput: Arc::new(tokio::sync::Mutex::new(0)),
+        max_memory_mb: 1024,
+        max_circuits: 20,
+        session: torwell84::session::SessionManager::new(Duration::from_secs(60)),
+        app_handle: Arc::new(tokio::sync::Mutex::new(None)),
+        tray_warning: Arc::new(tokio::sync::Mutex::new(None)),
+    };
+    app.manage(state);
+    let state = app.state::<torwell84::state::AppState>();
+    state.register_handle(app.handle()).await;
+
+    tokio::time::pause();
+    state.clone().start_metrics_task(app.handle());
+    tokio::time::advance(Duration::from_secs(31)).await;
+
+    assert!(state
+        .tray_warning
+        .lock()
+        .await
+        .as_ref()
+        .unwrap()
+        .contains("certificate update"));
+}

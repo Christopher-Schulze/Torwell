@@ -16,12 +16,12 @@ Place `server.pem` on your update server. Renew the file every 90 days.
 
 ## 2. Adjust `cert_config.json`
 
-Use the example configuration in `docs/examples/cert_config.json` as a template. Copy it to `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. The repository no longer ships a certificate file. Place your production PEM in `/etc/torwell/server.pem` or adjust `cert_path` accordingly.  Windows and macOS paths can be configured via `cert_path_windows` and `cert_path_macos`.
+Use the example configuration in `docs/examples/cert_config.json` as a template. Copy it to `src-tauri/certs/cert_config.json` and set `cert_url` to the HTTPS endpoint where `server.pem` is hosted. The repository no longer ships a certificate file. Place your production PEM in `/etc/torwell/server.pem` or adjust `cert_path` accordingly. Windows and macOS paths can be configured via `cert_path_windows` and `cert_path_macos`.
 
 ```json
 {
   "cert_path": "/etc/torwell/server.pem",
-  "cert_url": "https://updates.torwell.com/certs/server.pem",
+  "cert_url": "https://updates.example.com/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2"
 }
@@ -30,6 +30,25 @@ Use the example configuration in `docs/examples/cert_config.json` as a template.
 ## 3. Set Up Your Update Endpoint
 
 Host `server.pem` on a web server reachable via HTTPS. The path must match the `cert_url` value from the configuration file, e.g. `https://updates.example.com/certs/server.pem`.  Ensure the file is replaced whenever a new certificate is issued.
+
+A minimal Nginx setup might look like this:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name updates.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/updates.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/updates.example.com/privkey.pem;
+
+    location /certs/ {
+        alias /var/www/certs/;
+        autoindex off;
+    }
+}
+```
+
+Copy `server.pem` into `/var/www/certs/` so it is served under `/certs/server.pem`.
 
 Automate uploads with a cronjob that calls a small script after each renewal:
 
