@@ -5,6 +5,7 @@
 #   ./mobile/scripts/build_ios.sh
 #
 # Requires `bun`, `cargo`, `npx`, Xcode tools and CocoaPods installed.
+# iOS SDK 17 or newer is recommended.
 set -euo pipefail
 
 trap 'echo "[ERROR] Build failed at line $LINENO" >&2' ERR
@@ -18,6 +19,7 @@ check_dep() {
 
 
 missing=0
+REQUIRED_IOS_SDK=17
 
 msg() {
   echo "[INFO] $*"
@@ -30,6 +32,13 @@ done
 
 if ! npx cap --version >/dev/null 2>&1; then
   echo "[ERROR] Capacitor CLI not found. Run 'bun install' first." >&2
+  missing=1
+fi
+
+IOS_SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo 0)
+IOS_MAJOR=${IOS_SDK_VERSION%%.*}
+if [ "$IOS_MAJOR" -lt "$REQUIRED_IOS_SDK" ]; then
+  echo "[ERROR] iOS SDK $REQUIRED_IOS_SDK or newer required (found $IOS_SDK_VERSION)" >&2
   missing=1
 fi
 
@@ -56,6 +65,8 @@ cargo build --release --manifest-path "$ROOT_DIR/src-tauri/Cargo.toml" --feature
 # Build the iOS app using Capacitor.
 cd "$SCRIPT_DIR/.."
 bun install
+msg "Synchronizing Capacitor project"
+npx cap sync ios
 msg "Copying assets"
 npx cap copy ios
 msg "Building iOS project"

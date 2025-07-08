@@ -93,3 +93,28 @@ prüfen, ob die APK- bzw. IPA-Datei korrekt erstellt wurde.
 - **iOS:** Öffne `mobile/ios/App.xcworkspace` in Xcode und wähle einen
   Simulator aus. Du kannst das erzeugte `.ipa` aus `mobile/dist` auch über das
   Geräte-Fenster von Xcode auf ein verbundenes Gerät ziehen.
+
+## Installation & Debugging
+
+### Android
+
+1. Stelle sicher, dass die Android-SDK-Plattform \(API 34\) installiert ist.
+2. Installiere das APK auf einem Gerät oder Emulator und verfolge die Logs:
+
+   ```bash
+   adb install -r mobile/dist/*.apk
+   adb logcat
+   ```
+
+### iOS
+
+1. Öffne das Projekt mit Xcode:
+
+   ```bash
+   npx cap open ios
+   ```
+
+2. Wähle einen Simulator oder ein angeschlossenes Gerät und starte die App. Die
+   Xcode-Konsole zeigt die Debug-Ausgabe an. Alternativ kannst du die `.ipa`
+   mittels `xcrun simctl install booted mobile/dist/*.ipa` auf einen Simulator
+   kopieren.

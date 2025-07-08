@@ -4,8 +4,8 @@
 # Usage:
 #   ./mobile/scripts/build_android.sh
 #
-# Make sure `bun`, `cargo`, `npx`, `java` and the Android SDK are installed and
-# that the ANDROID_HOME or ANDROID_SDK_ROOT environment variable is set.
+# Make sure `bun`, `cargo`, `npx`, `java` and the Android SDK (34+) are installed
+# and that the ANDROID_HOME or ANDROID_SDK_ROOT environment variable is set.
 set -euo pipefail
 
 trap 'echo "[ERROR] Build failed at line $LINENO" >&2' ERR
@@ -19,6 +19,7 @@ check_dep() {
 
 
 missing=0
+REQUIRED_API=34
 
 msg() {
   echo "[INFO] $*"
@@ -36,6 +37,13 @@ fi
 
 if [ -z "${ANDROID_HOME:-}" ] && [ -z "${ANDROID_SDK_ROOT:-}" ] && ! command -v sdkmanager >/dev/null 2>&1; then
   echo "[ERROR] Android SDK not found. Please set ANDROID_HOME or ANDROID_SDK_ROOT." >&2
+  missing=1
+fi
+
+SDK_PATH="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+if [ -n "$SDK_PATH" ] && [ ! -d "$SDK_PATH/platforms/android-$REQUIRED_API" ]; then
+  echo "[ERROR] Android SDK platform $REQUIRED_API not installed in $SDK_PATH" >&2
+  echo "Install with: sdkmanager \"platforms;android-$REQUIRED_API\"" >&2
   missing=1
 fi
 
@@ -62,6 +70,8 @@ cargo build --release --manifest-path "$ROOT_DIR/src-tauri/Cargo.toml" --feature
 # Build the Android app using Capacitor.
 cd "$SCRIPT_DIR/.."
 bun install
+msg "Synchronizing Capacitor project"
+npx cap sync android
 msg "Copying assets"
 npx cap copy android
 msg "Building Android project"
