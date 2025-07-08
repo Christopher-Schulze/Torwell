@@ -46,7 +46,7 @@
 
 Torwell84 is a privacy-focused Tor client built with modern technologies to provide secure and private internet access. Built with Rust and Tauri, it offers a native desktop experience with strong privacy guarantees through the Tor network.
 
-> 🚀 **Status**: Actively developed with core Tor functionality implemented and working.
+> 🚀 **Status**: Version 2.4.0 – actively developed with core Tor functionality implemented and working.
 
 ## ✨ Current Features
 
@@ -77,11 +77,6 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 - **Cross-Platform**: macOS, Linux and Windows supported
 
 ## 🛠️ Development Status
-
-### Current Focus
-- Enhancing Tor connection stability
-- Improving error handling and recovery
-- Optimizing performance and resource usage
 
 ### Project Structure
 
@@ -350,16 +345,14 @@ The backend emits structured `Error` variants via the `tor-status-update` event.
 
 ## 📈 Roadmap
 
-### In Progress
-- [ ] Enhanced error handling and recovery
-- [ ] Improved connection stability
-- [ ] Better system tray integration
-
-### Upcoming Features
-- [x] Windows support
-- [x] Advanced circuit management
-- [x] Live resource monitoring with tray warnings
-- [x] Network monitoring tools
+### Version 2.4.0
+- Enhanced error handling and recovery
+- Improved connection stability
+- Better system tray integration
+- Windows support
+- Advanced circuit management
+- Live resource monitoring with tray warnings
+- Network monitoring tools
 
 ## 🤝 Contributing
 
