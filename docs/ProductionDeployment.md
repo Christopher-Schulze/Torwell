@@ -122,3 +122,23 @@ enabling the systemd service.
 For official releases the GitHub workflow `release.yml` runs the same script on
 Windows, macOS and Linux runners. The generated bundles are signed (when
 secrets are available) and uploaded automatically to the GitHub Releases page.
+
+## Tray Menu
+
+When running with a system tray the application provides several actions:
+
+- **Status** – shows whether Tor is currently connected.
+- **Memory** and **Circuits** – display current resource usage.
+- **Show** – opens the main window.
+- **Connect** or **Disconnect** depending on the current state.
+- **Reconnect** – attempts to reconnect when disconnected.
+- **Show Dashboard** – opens the metrics dashboard.
+- **Show Logs** – displays collected logs.
+- **Open Log File** – reveals the log file on disk.
+- **Settings** – opens the settings dialog.
+- **Open Settings File** – opens the JSON configuration file.
+- **Quit** – exits the application.
+
+If a security warning occurs (for example high memory usage or repeated
+certificate update failures) an additional disabled item is appended at the end
+of the menu. On macOS this item uses the `NativeImage::Caution` icon.

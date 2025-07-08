@@ -455,3 +455,24 @@ async fn warning_set_clear_rebuilds_menu() {
     let tray = app.tray_handle();
     assert!(tray.try_get_item("warning").is_none());
 }
+
+#[tokio::test]
+async fn tray_menu_after_cert_failure() {
+    let mut app = tauri::test::mock_app();
+    let client = Arc::new(SecureHttpClient::new_default().unwrap());
+    *client.update_failures.lock().await = 3;
+
+    let mut state = AppState::<DummyClient>::default();
+    state.http_client = client;
+    state.metric_interval_secs = 1;
+    app.manage(state);
+    let state = app.state::<AppState<DummyClient>>();
+    state.register_handle(app.handle()).await;
+
+    tokio::time::pause();
+    state.clone().start_metrics_task(app.handle());
+    tokio::time::advance(Duration::from_secs(2)).await;
+
+    let tray = app.tray_handle();
+    assert!(tray.try_get_item("warning").is_some());
+}
