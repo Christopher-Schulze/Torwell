@@ -179,6 +179,7 @@ pub fn run() {
             commands::get_isolated_circuit,
             commands::set_exit_country,
             commands::set_bridges,
+            commands::set_torrc_config,
             commands::set_worker_config,
             commands::validate_worker_token,
             commands::set_hsm_config,

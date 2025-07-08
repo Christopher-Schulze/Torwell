@@ -225,6 +225,7 @@ function createUIStore() {
           torrcConfig: config,
         };
         await db.settings.put({ id: 1, ...newSettings });
+        await invoke("set_torrc_config", { config });
         update((state) => ({ ...state, settings: newSettings, error: null }));
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
