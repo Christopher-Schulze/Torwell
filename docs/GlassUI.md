@@ -30,3 +30,7 @@ Farbwahl und Kontrast müssen dabei den WCAG&nbsp;2.1 AA Richtlinien entsprechen
 * Die Tab-Reihenfolge folgt der visuellen Darstellung.
 * In Modalen landet der Fokus zunächst auf dem Schließen‑Button und wird anschließend innerhalb des Dialogs gehalten (Fokusfalle).
 * Alle Bedienelemente müssen per Tastatur erreichbar sein und aussagekräftige `aria-label` Attribute besitzen.
+
+## Netzwerk-Metriken
+
+`NetworkMonitor.svelte` und `NetworkTools.svelte` visualisieren die im Backend ermittelten Nutzungsdaten. CPU- und Netzwerkverbrauch werden über das Kommando `load_metrics` geladen. Für Host-Informationen nutzen die Tools die Befehle `dns_lookup` und `traceroute_host`. Die gemessenen Werte werden direkt in der Oberfläche dargestellt.

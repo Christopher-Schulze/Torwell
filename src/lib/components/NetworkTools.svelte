@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke, lookupCountry } from "$lib/api";
+  import { invoke } from "$lib/api";
   import { addToast, addErrorToast } from "$lib/stores/toastStore";
   let host = "";
   let dns: string[] = [];
@@ -7,7 +7,7 @@
   let countries: string[] = [];
   let loading = false;
 
-  async function lookupCountry(ip: string): Promise<string> {
+  async function lookupCountryLocal(ip: string): Promise<string> {
     try {
       const res = (await invoke("lookup_country", { ip })) as string;
       return res.trim() || "??";
@@ -46,7 +46,7 @@
     loading = true;
     try {
       route = (await invoke("traceroute_host", { host, maxHops: 8 })) as string[];
-      countries = await Promise.all(route.map((ip) => lookupCountry(ip)));
+      countries = await Promise.all(route.map((ip) => lookupCountryLocal(ip)));
     } catch (e: any) {
       route = [];
       countries = [];
@@ -59,17 +59,17 @@
 
 <div class="glass-md rounded-xl p-4 flex flex-col gap-2" aria-label="Network tools">
   <div>
-    <label class="text-sm text-white">Host</label>
-    <input class="ml-2 p-1 rounded text-black" bind:value={host} />
+    <label class="text-sm text-white" for="host-input">Host</label>
+    <input id="host-input" aria-label="Host" class="ml-2 p-1 rounded text-black" bind:value={host} />
   </div>
   <div class="flex gap-2">
-    <button class="glass px-2 py-1 rounded" on:click|preventDefault={lookup} disabled={loading}>DNS Lookup</button>
-    <button class="glass px-2 py-1 rounded" on:click|preventDefault={trace} disabled={loading}>Traceroute</button>
+    <button aria-label="DNS Lookup" class="glass px-2 py-1 rounded" on:click|preventDefault={lookup} disabled={loading}>DNS Lookup</button>
+    <button aria-label="Traceroute" class="glass px-2 py-1 rounded" on:click|preventDefault={trace} disabled={loading}>Traceroute</button>
   </div>
   {#if dns.length}
     <div class="flex items-center justify-between">
       <h3 class="text-sm text-white">DNS Results</h3>
-      <button class="glass px-1 rounded text-xs" on:click={copyDns}>Copy</button>
+      <button aria-label="Copy DNS results" class="glass px-1 rounded text-xs" on:click={copyDns}>Copy</button>
     </div>
     <table class="text-xs text-white w-full" aria-label="DNS results">
       <thead>
@@ -86,7 +86,7 @@
   {#if route.length}
     <div class="flex items-center justify-between mt-2">
       <h3 class="text-sm text-white">Traceroute</h3>
-      <button class="glass px-1 rounded text-xs" on:click={copyRoute}>Copy</button>
+      <button aria-label="Copy traceroute results" class="glass px-1 rounded text-xs" on:click={copyRoute}>Copy</button>
     </div>
     <table class="text-xs text-white w-full" aria-label="Traceroute results">
       <thead>
