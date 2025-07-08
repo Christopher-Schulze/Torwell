@@ -60,7 +60,7 @@ function createTorStore() {
   const { subscribe, update, set } = writable<TorState>(initialState);
 
   // Listen for metrics updates from the Rust backend
-  const MAX_POINTS = 120;
+  const MAX_POINTS = 720;
   listen<any>("metrics-update", (event) => {
     const point: MetricPoint = {
       time: Date.now(),
