@@ -189,6 +189,40 @@ async fn command_new_identity_not_connected() {
 }
 
 #[tokio::test]
+async fn command_new_identity_error_event_contains_details() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: false,
+        build_ok: true,
+    }));
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    state.tor_manager.connect().await.unwrap();
+    app.manage(state);
+    let received = Arc::new(StdMutex::new(Vec::new()));
+    let recv_clone = received.clone();
+    let _handler = app.listen_global("tor-status-update", move |event| {
+        if let Some(p) = event.payload() {
+            recv_clone.lock().unwrap().push(p.to_string());
+        }
+    });
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::new_identity(app.handle(), state).await;
+    match res {
+        Err(Error::NetworkFailure { step, source, .. }) => {
+            assert_eq!(step, "reconfigure");
+            assert!(source.contains("reconf"));
+        }
+        _ => panic!("expected network failure"),
+    }
+    let events = received.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    let payload: serde_json::Value = serde_json::from_str(&events[0]).unwrap();
+    assert_eq!(payload["status"], "ERROR");
+    assert_eq!(payload["errorStep"], "reconfigure");
+    assert!(payload["errorSource"].as_str().unwrap().contains("reconf"));
+}
+
+#[tokio::test]
 async fn command_log_retrieval() {
     let mut app = tauri::test::mock_app();
     let state = mock_state();
@@ -346,7 +380,9 @@ async fn tray_warning_set_and_cleared() {
     let state = app.state::<AppState<MockTorClient>>();
 
     // trigger warning
-    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
+    state
+        .update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30)
+        .await;
     assert!(state.tray_warning.lock().await.is_some());
 
     // clear warning
@@ -435,7 +471,10 @@ async fn command_connect_error_propagates_details() {
     let last: serde_json::Value = serde_json::from_str(&events[events.len() - 1]).unwrap();
     assert_eq!(last["status"], "ERROR");
     assert_eq!(last["errorStep"], "bootstrap");
-    assert!(last["errorSource"].as_str().unwrap().contains("retries exceeded"));
+    assert!(last["errorSource"]
+        .as_str()
+        .unwrap()
+        .contains("retries exceeded"));
 }
 
 #[tokio::test(start_paused = true)]

@@ -393,7 +393,10 @@ impl<C: TorClientBehavior> TorManager<C> {
                         let msg = if last_error.is_empty() {
                             format!("retries exceeded after {} attempts", attempt)
                         } else {
-                            format!("retries exceeded after {} attempts: {}", attempt, last_error)
+                            format!(
+                                "retries exceeded after {} attempts: {}",
+                                attempt, last_error
+                            )
                         };
                         return Err(log_and_convert_error(last_step, msg));
                     }
@@ -548,7 +551,10 @@ impl<C: TorClientBehavior> TorManager<C> {
         #[cfg(feature = "experimental-api")]
         {
             use arti_client::client::CircuitInfoExt as _;
-            let circs = _client.circmgr().list_circuits()?;
+            let circs = _client
+                .circmgr()
+                .list_circuits()
+                .map_err(|e| report_error("list_circuits", e))?;
             return Ok(circs.iter().map(|c| c.id().into()).collect());
         }
 
@@ -569,12 +575,17 @@ impl<C: TorClientBehavior> TorManager<C> {
         #[cfg(feature = "experimental-api")]
         {
             use arti_client::client::CircuitInfoExt as _;
-            if let Ok(circs) = _client.circmgr().list_circuits() {
-                for c in circs {
-                    if c.id().into() == id {
-                        let _ = _client.circmgr().close_circuit(c.id());
-                        break;
-                    }
+            let circs = _client
+                .circmgr()
+                .list_circuits()
+                .map_err(|e| report_error("list_circuits", e))?;
+            for c in circs {
+                if c.id().into() == id {
+                    _client
+                        .circmgr()
+                        .close_circuit(c.id())
+                        .map_err(|e| report_error("close_circuit", e))?;
+                    break;
                 }
             }
         }
@@ -762,7 +773,10 @@ impl TorManager {
             // circuits and calculate their age.
             use arti_client::client::CircuitInfoExt as _;
 
-            let circs = client.circmgr().list_circuits()?;
+            let circs = client
+                .circmgr()
+                .list_circuits()
+                .map_err(|e| report_error("list_circuits", e))?;
             let count = circs.len();
             let oldest_age = circs
                 .iter()

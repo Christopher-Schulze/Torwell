@@ -30,4 +30,18 @@ describe('IdlePanel', () => {
     expect(getByText('Starting')).toBeInTheDocument();
     expect(getByText(/retry 2 in 5s/i)).toBeInTheDocument();
   });
+
+  it('displays error details', () => {
+    const { getByText } = render(IdlePanel, {
+      props: {
+        connectionProgress: 0,
+        currentStatus: 'ERROR',
+        errorStep: 'bootstrap',
+        errorSource: 'timeout'
+      }
+    });
+
+    expect(getByText(/bootstrap/i)).toBeInTheDocument();
+    expect(getByText(/timeout/i)).toBeInTheDocument();
+  });
 });
