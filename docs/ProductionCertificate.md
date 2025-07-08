@@ -9,7 +9,7 @@ Create a PEM encoded certificate with your internal or public CA. For quick test
 ```bash
 openssl req -new -newkey rsa:4096 -days 90 -nodes -x509 \
     -keyout server.key -out server.pem \
-    -subj "/CN=certs.torwell.com"
+    -subj "/CN=certs.yourdomain.example"
 ```
 
 Place `server.pem` on your update server. Renew the file every 90 days.
@@ -73,7 +73,7 @@ Running this job ensures that clients can fetch the new certificate during the n
 Instead of editing the configuration file you can override the values at runtime:
 
 ```bash
-export TORWELL_CERT_URL=https://updates.torwell.com/certs/server.pem
+export TORWELL_CERT_URL=https://updates.yourdomain.example/certs/server.pem
 export TORWELL_CERT_PATH=/etc/torwell/server.pem
 export TORWELL_FALLBACK_CERT_URL=https://backup.example.com/server.pem
 ```
@@ -88,7 +88,7 @@ Automate certificate updates with a small script that copies the new PEM to the 
 #!/bin/bash
 set -e
 scp /pki/torwell/server.pem \
-    user@certs.torwell.com:/var/www/certs/server.pem
+    user@certs.yourdomain.example:/var/www/certs/server.pem
 ```
 
 Running this script after each renewal ensures that clients download the new certificate during the next update check.
