@@ -63,7 +63,7 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
 - **Native UI**: Cross-platform desktop application using Tauri
 - **Modern Stack**: Svelte-based frontend with TypeScript
 - **Structured Logging**: JSON log entries with level and timestamp
-- **Resource Monitoring**: Tray warnings for memory usage, circuit count and latency
+- **Resource Monitoring**: Tray warnings for memory usage and circuit count; latency is measured for metrics
  - **Network Metrics**: `NetworkMonitor` and `NetworkTools` visualise CPU usage, traffic and traceroute results obtained from the backend.
    These widgets rely entirely on the metrics measured by the Rust backend.
 - **HSM Support**: Optional PKCS#11 integration when built with the `hsm` feature
