@@ -8,7 +8,7 @@ This guide lists common problems encountered during development and how to analy
   To install the necessary headers on Ubuntu:
 
   1. `sudo apt-get update`
-  2. `sudo apt-get install libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config`
+  2. `sudo apt-get install libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup2.4-dev pkg-config`
 
   Afterwards `cargo test` should run without missing-library errors.
 - **Dependencies not installed**: If the frontend will not build, run `bun install` to fetch Node packages.
