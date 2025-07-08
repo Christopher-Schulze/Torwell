@@ -6,25 +6,33 @@ trap 'echo "[ERROR] Build failed at line $LINENO" >&2' ERR
 check_dep() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "[ERROR] '$1' is required but not installed." >&2
-    exit 1
+    missing=1
   fi
 }
+
+
+missing=0
 
 msg() {
   echo "[INFO] $*"
 }
 
-for cmd in bun cargo npx; do
+for cmd in bun cargo npx java gradle; do
   check_dep "$cmd"
 done
 
 if ! npx cap --version >/dev/null 2>&1; then
   echo "[ERROR] Capacitor CLI not found. Run 'bun install' first." >&2
-  exit 1
+  missing=1
 fi
 
 if [ -z "${ANDROID_HOME:-}" ] && [ -z "${ANDROID_SDK_ROOT:-}" ] && ! command -v sdkmanager >/dev/null 2>&1; then
   echo "[ERROR] Android SDK not found. Please set ANDROID_HOME or ANDROID_SDK_ROOT." >&2
+  missing=1
+fi
+
+if [ "$missing" -eq 1 ]; then
+  echo "[ERROR] Missing dependencies detected. Aborting." >&2
   exit 1
 fi
 
