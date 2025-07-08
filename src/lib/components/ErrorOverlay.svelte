@@ -1,9 +1,9 @@
 <script lang="ts">
-import { errorStore } from './AppErrorBoundary.svelte';
+import { errorStore } from '$lib/stores/errorStore';
 import { onDestroy } from 'svelte';
 
 let error: Error | null = null;
-const unsub = errorStore.subscribe((e) => (error = e));
+const unsub = errorStore.subscribe((e: Error | null) => (error = e));
 onDestroy(unsub);
 </script>
 

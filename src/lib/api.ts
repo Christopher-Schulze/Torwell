@@ -1,5 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/tauri';
-import { errorStore } from '$lib/components/AppErrorBoundary.svelte';
+import { errorStore } from '$lib/stores/errorStore';
 
 let token: string | null = null;
 

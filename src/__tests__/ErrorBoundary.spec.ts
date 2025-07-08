@@ -1,6 +1,6 @@
 import { render } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
-import { errorStore } from '../lib/components/AppErrorBoundary.svelte';
+import { errorStore } from '../lib/stores/errorStore';
 import Wrapper from './ErrorBoundaryWrapper.svelte';
 
 describe('AppErrorBoundary', () => {
