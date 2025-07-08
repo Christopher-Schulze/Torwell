@@ -11,6 +11,7 @@ export default {
     if (!target) {
       return new Response('Missing ?url parameter', { status: 400 });
     }
-    return fetch(target, request);
+    const proxyRequest = new Request(target, request);
+    return fetch(proxyRequest);
   }
 };

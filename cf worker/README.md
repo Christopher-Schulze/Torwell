@@ -27,4 +27,4 @@ Dieses Verzeichnis enthält Beispielskripte für einen HTTPS‑Proxy als Cloudfl
 Nach dem Deployment kann die URL des Workers in Torwell84 unter **Settings → Worker List** eingetragen und das Token hinterlegt werden. Optional lässt sich die Adresse in `src/lib/bridge_presets.json` vorbelegen.
 Torwell84 validiert den eingetragenen Token sofort mittels `validate_worker_token`. Erst nach erfolgreichem Test wird die Konfiguration aktiv.
 
-Mehrere Worker lassen sich komfortabel mit dem Skript `scripts/import_workers.ts` importieren.
+Mehrere Worker lassen sich komfortabel mit dem Skript `scripts/import_workers.ts` importieren. Alternativ steht das CLI-Skript `scripts/import_workers_cli.ts` bereit.
