@@ -64,3 +64,35 @@ auszuschließen.
 - Falsch konfigurierte Zertifikats-URLs melden `certificate update failed` im `torwell.log`.
 - Scheitert die Schlüsselbundintegration, erscheint `keyring access denied` in der Konsole.
 
+## Service Installation
+
+Die Skripte `scripts/install_service.sh` und `scripts/test_service_install.sh`
+helfen beim Einrichten des systemd-Dienstes. Die Testvariante verzichtet auf Root-Rechte
+und simuliert `systemctl` Aufrufe. Eine erfolgreiche Ausführung zeigt z.B.:
+
+```
+Installing service file to /tmp/tmp.n82vj3ZQOZ
+systemctl daemon-reload
+Enabling and starting torwell84.service
+systemctl enable --now torwell84.service
+Service status:
+systemctl status torwell84.service
+● torwell84.service - Fake Service
+   Loaded: loaded (/tmp/tmp.n82vj3ZQOZ/torwell84.service; enabled)
+   Active: active (running)
+Service file installed in /tmp/tmp.n82vj3ZQOZ
+Test completed successfully
+```
+
+Wird `install_service.sh` direkt gestartet und `systemctl` durch ein Skript ersetzt,
+sieht die Ausgabe beispielsweise so aus:
+
+```
+Installing service file to /tmp/tmp.1PBAKvEo7u
+fake systemctl daemon-reload
+Enabling and starting torwell84.service
+fake systemctl enable --now torwell84.service
+Service status:
+fake systemctl --no-pager status torwell84.service
+```
+
