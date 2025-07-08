@@ -6,4 +6,5 @@
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "update_interval": 86400,
-  "note": "Production certificate update endpoint"}
+  "note": "Production certificate update endpoint"
+}
