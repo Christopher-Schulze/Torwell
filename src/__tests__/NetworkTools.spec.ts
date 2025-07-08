@@ -41,7 +41,8 @@ describe('NetworkTools', () => {
     (tauriInvoke as any).mockReset();
     (tauriInvoke as any)
       .mockResolvedValueOnce(42)
-      .mockResolvedValueOnce(['hop1', 'hop2']);
+      .mockResolvedValueOnce(['hop1', 'hop2'])
+      .mockResolvedValue('US');
 
     const { getByText, getByLabelText, findByText } = render(NetworkTools);
     const input = getByLabelText('Host') as HTMLInputElement;
@@ -50,6 +51,8 @@ describe('NetworkTools', () => {
 
     await findByText('hop2');
     expect(tauriInvoke).toHaveBeenNthCalledWith(2, 'traceroute_host', { token: 42, host: 'example.com', maxHops: 8 });
+    expect(tauriInvoke).toHaveBeenNthCalledWith(3, 'lookup_country', { ip: 'hop1' });
+    expect(tauriInvoke).toHaveBeenNthCalledWith(4, 'lookup_country', { ip: 'hop2' });
   });
 
   it('copies traceroute results', async () => {

@@ -57,7 +57,7 @@
   }
 </script>
 
-<div class="glass-md rounded-xl p-4 flex flex-col gap-2" aria-label="Network tools">
+<div class="glass-md rounded-xl p-4 flex flex-col gap-2" role="region" aria-label="Network tools">
   <div>
     <label class="text-sm text-white" for="host-input">Host</label>
     <input id="host-input" aria-label="Host" class="ml-2 p-1 rounded text-black" bind:value={host} />
