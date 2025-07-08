@@ -123,6 +123,32 @@ For official releases the GitHub workflow `release.yml` runs the same script on
 Windows, macOS and Linux runners. The generated bundles are signed (when
 secrets are available) and uploaded automatically to the GitHub Releases page.
 
+## Obtaining Release Packages
+
+The easiest way to install Torwell84 V2 on production machines is to reuse the
+packages produced by CI. Navigate to the repository's **Actions** tab and open
+the run for the `release` workflow matching the desired tag. Each job provides
+an artifact named after the runner platform (for example `ubuntu-latest-bundle`
+or `windows-latest-bundle`). Download the artifact for your operating system and
+extract it locally. Inside you'll find the installer file along with a detached
+signature ending in `.asc`.
+
+Import the maintainer's public GPG key and verify the package before
+installation:
+
+```bash
+gpg --verify torwell84_2.4.0_amd64.deb.asc torwell84_2.4.0_amd64.deb
+```
+
+On Windows you can additionally validate the MSI's code signing certificate:
+
+```powershell
+Get-AuthenticodeSignature Torwell84\torwell84.msi
+```
+
+After a successful verification copy the package to the target system and
+install it before enabling the service.
+
 ## Signing Release Artifacts
 
 The job defined in [`release.yml`](../.github/workflows/release.yml) imports a
