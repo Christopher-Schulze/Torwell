@@ -24,11 +24,22 @@ This guide lists common problems encountered during development and how to analy
 - **Dependencies not installed**: If the frontend will not build, run `bun install` to fetch Node packages.
 - **Build errors**: Ensure `bun run check` and `cargo check` succeed before opening a pull request.
   `cargo check` schlägt außerdem fehl, wenn die Umgebungsvariable
-  `TAURI_UPDATE_URL` nicht gesetzt ist. Für lokale Builds genügt ein Dummy-Wert,
-  z. B.:
+`TAURI_UPDATE_URL` nicht gesetzt ist. Für lokale Builds genügt ein Dummy-Wert,
+z. B.:
 
   ```bash
-  export TAURI_UPDATE_URL="https://example.com"
+export TAURI_UPDATE_URL="https://example.com"
+```
+
+- **Updater URL not substituted**: Wenn trotz gesetzter Variablen der Fehler
+  `relative URL without a base: "${TAURI_UPDATE_URL}"` erscheint, wurde die
+  Umgebungsvariable beim Kompilieren nicht korrekt übernommen. Stelle sicher,
+  dass sie im selben Shell-Kontext exportiert wurde und verwende beim Export
+  keine Anführungszeichen:
+
+  ```bash
+  export TAURI_UPDATE_URL=https://example.com
+  cargo check --manifest-path src-tauri/Cargo.toml
   ```
 
 ## Node-Tools installieren
