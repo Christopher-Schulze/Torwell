@@ -27,8 +27,6 @@ pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/app_config.json";
 
 /// Default number of log lines retained if no configuration is provided
 pub const DEFAULT_MAX_LOG_LINES: usize = 1000;
-/// Default number of metric lines retained
-pub const DEFAULT_MAX_METRIC_LINES: usize = 1000;
 /// Default session token lifetime in seconds
 pub const DEFAULT_SESSION_TTL: u64 = 3600;
 /// Default maximum number of metric lines
@@ -484,8 +482,11 @@ impl<C: TorClientBehavior> AppState<C> {
         if let Some(path) = &self.metrics_file {
             let contents = fs::read_to_string(path).await.unwrap_or_default();
             let mut lines: Vec<&str> = contents.lines().collect();
-            let limit = DEFAULT_MAX_METRIC_LINES;
-            if lines.len() > limit {
+            let line_limit = self.max_metric_lines;
+            let size_limit = self.max_metric_mb * 1024 * 1024;
+            let mut total_size: usize = lines.iter().map(|l| l.len() + 1).sum();
+
+            if total_size > size_limit || lines.len() > line_limit {
                 let archive_dir = path
                     .parent()
                     .map(|p| p.join("archive"))
@@ -494,8 +495,20 @@ impl<C: TorClientBehavior> AppState<C> {
                 let ts = Utc::now().format("%Y%m%d%H%M%S");
                 let archive_path = archive_dir.join(format!("metrics-{}.json", ts));
                 fs::rename(path, &archive_path).await?;
-                lines = lines[lines.len() - limit..].to_vec();
-                fs::write(path, lines.join("\n")).await?;
+
+                if lines.len() > line_limit {
+                    lines = lines[lines.len() - line_limit..].to_vec();
+                    total_size = lines.iter().map(|l| l.len() + 1).sum();
+                }
+                while total_size > size_limit && !lines.is_empty() {
+                    total_size -= lines[0].len() + 1;
+                    lines.remove(0);
+                }
+                let mut data = lines.join("\n");
+                if !data.is_empty() {
+                    data.push('\n');
+                }
+                fs::write(path, data).await?;
             }
         }
         Ok(())
@@ -515,34 +528,6 @@ impl<C: TorClientBehavior> AppState<C> {
             file.write_all(b"\n").await?;
             drop(file);
             self.trim_metrics().await?;
-        }
-        Ok(())
-    }
-
-    async fn trim_metrics(&self) -> Result<()> {
-        if let Some(path) = &self.metrics_file {
-            let contents = fs::read_to_string(path).await.unwrap_or_default();
-            let mut lines: Vec<&str> = contents.lines().collect();
-            let line_limit = self.max_metric_lines;
-            let size_limit = self.max_metric_mb * 1024 * 1024;
-            let mut total_size: usize = lines.iter().map(|l| l.len() + 1).sum();
-
-            if total_size > size_limit || lines.len() > line_limit {
-                if lines.len() > line_limit {
-                    lines = lines[lines.len() - line_limit..].to_vec();
-                    total_size = lines.iter().map(|l| l.len() + 1).sum();
-                }
-                while total_size > size_limit && !lines.is_empty() {
-                    total_size -= lines[0].len() + 1;
-                    lines.remove(0);
-                }
-                let mut data = lines.join("\n");
-                if !data.is_empty() {
-                    data.push('\n');
-                }
-                fs::write(path, data).await?;
-            }
-
         }
         Ok(())
     }
@@ -786,9 +771,15 @@ impl<C: TorClientBehavior> AppState<C> {
                     self.update_tray_menu().await;
                 }
 
-                self
-                    .update_metrics(mem, circ.count, circ.oldest_age, cpu, network, interval_secs)
-                    .await;
+                self.update_metrics(
+                    mem,
+                    circ.count,
+                    circ.oldest_age,
+                    cpu,
+                    network,
+                    interval_secs,
+                )
+                .await;
                 self.update_latency(latency).await;
                 self.update_tray_menu().await;
 
@@ -847,7 +838,11 @@ impl<C: TorClientBehavior> AppState<C> {
             let mgr = self.tor_manager.read().await.clone();
             mgr.is_connected().await
         };
-        let status = if connected { "Connected" } else { "Disconnected" };
+        let status = if connected {
+            "Connected"
+        } else {
+            "Disconnected"
+        };
         let memory_mb = *self.memory_usage.lock().await / 1024 / 1024;
         let circuits = *self.circuit_count.lock().await;
         let mem_label = if memory_mb > self.max_memory_mb {
@@ -879,11 +874,15 @@ impl<C: TorClientBehavior> AppState<C> {
             .add_item(CustomMenuItem::new("show_logs", "Show Logs"))
             .add_item(CustomMenuItem::new("open_logs_file", "Open Log File"))
             .add_item(CustomMenuItem::new("settings", "Settings"))
-            .add_item(CustomMenuItem::new("open_settings_file", "Open Settings File"))
+            .add_item(CustomMenuItem::new(
+                "open_settings_file",
+                "Open Settings File",
+            ))
             .add_item(CustomMenuItem::new("quit", "Quit"));
 
         if let Some(w) = self.tray_warning.lock().await.clone() {
-            let mut item = CustomMenuItem::new("warning", format!("\u{26A0}\u{FE0F} {}", w)).disabled();
+            let mut item =
+                CustomMenuItem::new("warning", format!("\u{26A0}\u{FE0F} {}", w)).disabled();
             #[cfg(target_os = "macos")]
             {
                 item = item.native_image(NativeImage::Caution);
