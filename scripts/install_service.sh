@@ -4,8 +4,9 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SERVICE_FILE="$ROOT_DIR/src-tauri/torwell84.service"
 TARGET_DIR="${TARGET_DIR:-/etc/systemd/system}"
+export TARGET_DIR
 SYSTEMCTL="${SYSTEMCTL:-systemctl}"
-SUDO="${SUDO:-sudo}"
+SUDO="${SUDO-sudo}"
 
 # Basic path validation
 if [ ! -f "$SERVICE_FILE" ]; then
@@ -42,5 +43,6 @@ $SUDO $SYSTEMCTL daemon-reload
 echo "Enabling and starting torwell84.service"
 $SUDO $SYSTEMCTL enable --now torwell84.service
 
-echo "Service status:" 
-$SUDO $SYSTEMCTL --no-pager status torwell84.service | head -n 10
+echo "Service status:"
+$SUDO $SYSTEMCTL --no-pager status torwell84.service
+
