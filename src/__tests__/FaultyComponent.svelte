@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let trigger = false;
+  export let trigger: boolean = false;
   if (trigger) {
     throw new Error('Boom');
   }

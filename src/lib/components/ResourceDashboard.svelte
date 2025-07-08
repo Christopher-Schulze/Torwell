@@ -54,7 +54,7 @@
     (async () => {
       try {
         const data = await invoke<MetricPoint[]>('load_metrics');
-        metrics = data.map((m) => ({ complete: true, ...m })).slice(-MAX_POINTS);
+        metrics = data.map((m) => ({ ...m, complete: true })).slice(-MAX_POINTS);
       } catch (e) {
         console.error('Failed to load metrics', e);
       }

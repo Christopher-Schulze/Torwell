@@ -7,7 +7,7 @@
   async function refresh() {
     if (!show) return;
     try {
-      circuits = await invoke('list_circuits');
+      circuits = (await invoke('list_circuits')) as number[];
     } catch (e) {
       console.error('list_circuits failed', e);
       circuits = [];
