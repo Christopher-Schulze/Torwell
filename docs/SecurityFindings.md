@@ -56,3 +56,7 @@ Error::Identity { step: "build_circuit", source: "build_circuit: timeout" }
 ## Aktueller Stand (2025-07-05)
 
 Aktuell sind keine weiteren offenen Findings bekannt.
+
+## Abschluss
+
+Penetration Tests abgeschlossen – keine offenen Punkte.

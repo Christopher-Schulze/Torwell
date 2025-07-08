@@ -54,7 +54,7 @@ calls.
 - [x] Inspect front-end code in `src/` for secure IPC and data handling
 - [x] Run `cargo audit` for Rust dependencies
 - [x] Run `bun audit` for JavaScript dependencies
-- [ ] Use static analysis tools (`clippy`, `svelte-check`)
-- [ ] Conduct penetration testing
+- [x] Use static analysis tools (`clippy`, `svelte-check`)
+- [x] Conduct penetration testing
 - [x] Document findings in [docs/SecurityFindings.md](docs/SecurityFindings.md)
 
