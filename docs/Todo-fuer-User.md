@@ -22,6 +22,8 @@ Dieses Dokument beschreibt, wie du den Beispiel‑Worker aus dem Ordner `cf work
    wrangler deploy
    ```
    Der Worker prüft bei jeder Anfrage, ob der Header `X-Proxy-Token` dem gesetzten `SECRET_TOKEN` entspricht.
+   Die Zieladresse wird im Query-Parameter `url` 
+   übergeben, z.B. `https://<worker-url>/?url=https://example.com`.
 
 ## Proxy in Torwell84 einrichten
 
