@@ -176,3 +176,18 @@ When running with a system tray the application provides several actions:
 If a security warning occurs (for example high memory usage or repeated
 certificate update failures) an additional disabled item is appended at the end
 of the menu. On macOS this item uses the `NativeImage::Caution` icon.
+
+## Custom Torrc Options
+
+Advanced users can override Arti's defaults with a custom torrc snippet.
+Open the settings dialog and edit the **Torrc Configuration** section. After
+saving, the frontend sends the updated text to the backend using the
+`set_torrc_config` command. The snippet is parsed as TOML and merged with the
+generated configuration whenever a connection is established.
+
+Example to disable IPv4 traffic:
+
+```toml
+[net]
+ipv4 = false
+```

@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::num::NonZeroU32;
 use std::path::Path;
+use toml;
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -210,6 +211,7 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     isolation_tokens: Arc<Mutex<HashMap<String, Vec<(IsolationToken, std::time::Instant)>>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
     bridges: Arc<Mutex<Vec<String>>>,
+    torrc_config: Arc<Mutex<String>>,
     country_cache: Arc<Mutex<HashMap<String, String>>>,
     geoip_db: GeoipDb,
     connect_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
@@ -223,6 +225,7 @@ impl<C> Clone for TorManager<C> {
             isolation_tokens: Arc::clone(&self.isolation_tokens),
             exit_country: Arc::clone(&self.exit_country),
             bridges: Arc::clone(&self.bridges),
+            torrc_config: Arc::clone(&self.torrc_config),
             country_cache: Arc::clone(&self.country_cache),
             geoip_db: self.geoip_db.clone(),
             connect_limiter: Arc::clone(&self.connect_limiter),
@@ -247,6 +250,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             isolation_tokens: Arc::new(Mutex::new(HashMap::new())),
             exit_country: Arc::new(Mutex::new(None)),
             bridges: Arc::new(Mutex::new(Vec::new())),
+            torrc_config: Arc::new(Mutex::new(String::new())),
             country_cache: Arc::new(Mutex::new(HashMap::new())),
             geoip_db: db,
             connect_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
@@ -282,34 +286,47 @@ impl<C: TorClientBehavior> TorManager<C> {
     async fn build_config(&self) -> Result<TorClientConfig> {
         let bridges = self.bridges.lock().await.clone();
         let exit_country = self.exit_country.lock().await.clone();
-        if bridges.is_empty() && exit_country.is_none() {
-            Ok(TorClientConfig::default())
-        } else {
-            use arti_client::config::{
-                BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
-            };
+        let torrc = self.torrc_config.lock().await.clone();
 
-            let mut builder = TorClientConfigBuilder::default();
-            if let Some(cc) = exit_country {
-                builder.exit_country(cc);
-            }
-            if !bridges.is_empty() {
-                let mut bridge_builder = BridgesConfigBuilder::default();
-                bridge_builder.enabled(BoolOrAuto::Explicit(true));
-                for line in bridges {
-                    let b: BridgeConfigBuilder = line
-                        .parse()
-                        .map_err(|e| Error::BridgeParse(e.to_string()))?;
-                    bridge_builder.bridges().push(b);
-                }
-                builder.bridges(bridge_builder);
-            }
-            builder.build().map_err(|e| Error::ConfigError {
-                step: "config_build".into(),
+        use arti_client::config::{
+            BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
+        };
+
+        let mut builder = if torrc.trim().is_empty() {
+            TorClientConfigBuilder::default()
+        } else {
+            let val: toml::Value = toml::from_str(&torrc).map_err(|e| Error::ConfigError {
+                step: "torrc_parse".into(),
                 source: e.to_string(),
                 backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
-            })
+            })?;
+            let cfg: TorClientConfigBuilder = val.try_into().map_err(|e| Error::ConfigError {
+                step: "torrc_convert".into(),
+                source: e.to_string(),
+                backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
+            })?;
+            cfg
+        };
+
+        if let Some(cc) = exit_country {
+            builder.exit_country(cc);
         }
+        if !bridges.is_empty() {
+            let mut bridge_builder = BridgesConfigBuilder::default();
+            bridge_builder.enabled(BoolOrAuto::Explicit(true));
+            for line in bridges {
+                let b: BridgeConfigBuilder = line
+                    .parse()
+                    .map_err(|e| Error::BridgeParse(e.to_string()))?;
+                bridge_builder.bridges().push(b);
+            }
+            builder.bridges(bridge_builder);
+        }
+        builder.build().map_err(|e| Error::ConfigError {
+            step: "config_build".into(),
+            source: e.to_string(),
+            backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
+        })
     }
 
     async fn connect_once<P>(&self, progress: &mut P) -> Result<()>
@@ -478,6 +495,11 @@ impl<C: TorClientBehavior> TorManager<C> {
         let mut guard = self.bridges.lock().await;
         *guard = bridges;
         Ok(())
+    }
+
+    pub async fn set_torrc_config(&self, config: String) {
+        let mut guard = self.torrc_config.lock().await;
+        *guard = config;
     }
 
     /// Get the currently configured exit country as an ISO 3166-1 alpha-2 code.

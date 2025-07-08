@@ -24,6 +24,8 @@ struct MockTorClient {
 
 static CONNECT_RESULTS: Lazy<StdMutex<VecDeque<Result<MockTorClient, String>>>> =
     Lazy::new(|| StdMutex::new(VecDeque::new()));
+static CAPTURED_CONFIGS: Lazy<StdMutex<Vec<TorClientConfig>>> =
+    Lazy::new(|| StdMutex::new(Vec::new()));
 
 impl MockTorClient {
     fn push_result(res: Result<MockTorClient, String>) {
@@ -33,7 +35,8 @@ impl MockTorClient {
 
 #[async_trait::async_trait]
 impl TorClientBehavior for MockTorClient {
-    async fn create_bootstrapped(_config: TorClientConfig) -> std::result::Result<Self, String> {
+    async fn create_bootstrapped(config: TorClientConfig) -> std::result::Result<Self, String> {
+        CAPTURED_CONFIGS.lock().unwrap().push(config);
         CONNECT_RESULTS
             .lock()
             .unwrap()
@@ -505,4 +508,28 @@ async fn command_connect_retry_event_contains_details() {
         .expect("retry event missing");
     assert_eq!(retry["errorStep"], "bootstrap");
     assert!(retry["errorSource"].as_str().unwrap().contains("boot"));
+}
+
+#[tokio::test]
+async fn command_set_torrc_config_used_in_build() {
+    MockTorClient::push_result(Ok(MockTorClient::default()));
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_torrc_config(
+        state,
+        "[override_net_params]\nwombats-per-quokka = 99\n".into(),
+    )
+    .await
+    .unwrap();
+    commands::connect(app.handle(), state).await.unwrap();
+
+    let cfgs = CAPTURED_CONFIGS.lock().unwrap();
+    let cfg = cfgs.last().expect("no config captured");
+    assert_eq!(
+        cfg.override_net_params.get("wombats-per-quokka"),
+        Some(&99)
+    );
 }

@@ -324,6 +324,16 @@ pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Re
 }
 
 #[tauri::command]
+pub async fn set_torrc_config(state: State<'_, AppState>, config: String) -> Result<()> {
+    check_api_rate()?;
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.set_torrc_config(config).await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn set_worker_config(
     state: State<'_, AppState>,
     workers: Vec<String>,
