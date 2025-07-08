@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Build a release bundle of the Tauri application.
+#
+# Usage:
+#   ./scripts/build_release.sh
+#
+# The script requires `bun` and `cargo` to be installed and writes the
+# resulting bundles to `src-tauri/target/release/bundle`.
 set -e
 
 check_dep() {
@@ -14,6 +21,7 @@ done
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Install Node dependencies and build the Tauri project in release mode.
 (cd "$ROOT_DIR" && bun install)
 (cd "$ROOT_DIR" && bun run tauri build --features experimental-api)
 

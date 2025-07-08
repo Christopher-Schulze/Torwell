@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Build the Android release APK using Capacitor and the Rust backend.
+#
+# Usage:
+#   ./mobile/scripts/build_android.sh
+#
+# Make sure `bun`, `cargo`, `npx`, `java` and the Android SDK are installed and
+# that the ANDROID_HOME or ANDROID_SDK_ROOT environment variable is set.
 set -euo pipefail
 
 trap 'echo "[ERROR] Build failed at line $LINENO" >&2' ERR
@@ -17,6 +24,7 @@ msg() {
   echo "[INFO] $*"
 }
 
+# Verify all required tools are present.
 for cmd in bun cargo npx java gradle; do
   check_dep "$cmd"
 done
@@ -39,7 +47,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Build the Svelte frontend only if the build directory doesn't exist
+# Build the Svelte frontend if no previous build is available.
 if [ -d "$ROOT_DIR/build" ]; then
   msg "Reusing existing frontend build at $ROOT_DIR/build"
 else
@@ -47,11 +55,11 @@ else
   (cd "$ROOT_DIR" && bun run build)
 fi
 
-# Compile the Rust backend with the `mobile` feature so the HTTP bridge is available when the app runs.
+# Compile the Rust backend with mobile support so the HTTP bridge is available.
 msg "Compiling Rust backend"
 cargo build --release --manifest-path "$ROOT_DIR/src-tauri/Cargo.toml" --features mobile
 
-# Build the Android app using Capacitor
+# Build the Android app using Capacitor.
 cd "$SCRIPT_DIR/.."
 bun install
 msg "Copying assets"

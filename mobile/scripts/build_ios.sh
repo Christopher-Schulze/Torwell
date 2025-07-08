@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Build the iOS release IPA using Capacitor and the Rust backend.
+#
+# Usage:
+#   ./mobile/scripts/build_ios.sh
+#
+# Requires `bun`, `cargo`, `npx`, Xcode tools and CocoaPods installed.
 set -euo pipefail
 
 trap 'echo "[ERROR] Build failed at line $LINENO" >&2' ERR
@@ -17,6 +23,7 @@ msg() {
   echo "[INFO] $*"
 }
 
+# Verify required build tools.
 for cmd in bun cargo npx xcodebuild pod; do
   check_dep "$cmd"
 done
@@ -34,7 +41,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Build the Svelte frontend only if the build directory doesn't exist
+# Build the Svelte frontend if no previous build is available.
 if [ -d "$ROOT_DIR/build" ]; then
   msg "Reusing existing frontend build at $ROOT_DIR/build"
 else
@@ -42,11 +49,11 @@ else
   (cd "$ROOT_DIR" && bun run build)
 fi
 
-# Compile the Rust backend with the `mobile` feature so the HTTP bridge is available when the app runs.
+# Compile the Rust backend with mobile support so the HTTP bridge is available.
 msg "Compiling Rust backend"
 cargo build --release --manifest-path "$ROOT_DIR/src-tauri/Cargo.toml" --features mobile
 
-# Build the iOS app using Capacitor
+# Build the iOS app using Capacitor.
 cd "$SCRIPT_DIR/.."
 bun install
 msg "Copying assets"
