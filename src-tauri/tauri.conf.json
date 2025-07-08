@@ -66,5 +66,4 @@
         "${TAURI_UPDATE_URL}"
       ]
     }
-  }
-}
+  }}

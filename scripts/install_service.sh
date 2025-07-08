@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+echo "Installing Torwell84 systemd service..."
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SERVICE_FILE="$ROOT_DIR/src-tauri/torwell84.service"
 TARGET_DIR="${TARGET_DIR:-/etc/systemd/system}"
@@ -33,8 +35,9 @@ fi
 $SUDO mkdir -p /opt/torwell84
 
 # Copy service file to systemd directory
-echo "Installing service file to $TARGET_DIR"
+echo "Copying service file to $TARGET_DIR"
 $SUDO cp "$SERVICE_FILE" "$TARGET_DIR/"
+echo "Service file installed"
 
 # Reload systemd manager configuration
 $SUDO $SYSTEMCTL daemon-reload
@@ -45,4 +48,5 @@ $SUDO $SYSTEMCTL enable --now torwell84.service
 
 echo "Service status:"
 $SUDO $SYSTEMCTL --no-pager status torwell84.service
+echo "Installation complete."
 
