@@ -30,11 +30,21 @@ Trage die URL deines Workers in der Anwendung unter **Settings → Worker List**
 Um viele Worker-Adressen komfortabel einzubinden, liest das Skript `scripts/import_workers.ts` eine Datei mit jeweils einer URL pro Zeile und übergibt sie per `set_worker_config` an den laufenden Dienst. Im Einstellungsdialog steht zudem der Button **Import Worker List** bereit, der die Liste aus einer Datei übernimmt.
 Ab Version 2.3 kannst du die aktuelle Liste auch über **Export Worker List** als Textdatei herunterladen und einfach weitergeben.
 
+Beim Speichern ruft Torwell84 intern den Befehl `set_worker_config` auf. Dadurch werden die konfigurierte URL-Liste und der Token an den Backend-Prozess übermittelt. Hinterlege daher deinen Token im Einstellungsdialog, damit er für jede Verbindung im `X-Proxy-Token`‑Header mitgesendet wird.
+
 Nach dem Speichern der Einstellungen werden alle über den Worker geleiteten Verbindungen mit dem gesetzten Token authentifiziert. Mehrere Worker erhöhen Zuverlässigkeit und ermöglichen eine einfache horizontale Skalierung.
 
 ## Token-Verwaltung und Batch-Import
 
 Das Feld **Worker token** sollte den geheimen Wert enthalten, den du beim Deploy des Workers unter `SECRET_TOKEN` definiert hast. Beim Speichern prüft Torwell84 automatisch, ob der Token gültig ist und warnt dich bei Fehlern.
+
+### Token validieren
+
+Die Anwendung ruft nach dem Speichern den Befehl `validate_worker_token` auf. Dabei
+wird eine Testanfrage über deinen Worker an `https://example.com` geschickt. Gibt
+der Worker eine Antwort zurück, gilt der hinterlegte Token als korrekt. Schlägt
+die Verbindung fehl, werden die alten Einstellungen wiederhergestellt und du
+erhältst eine Fehlermeldung.
 
 Um sehr große Listen einzubinden, kannst du das Skript `scripts/import_workers.ts` verwenden:
 
@@ -42,7 +52,7 @@ Um sehr große Listen einzubinden, kannst du das Skript `scripts/import_workers.
 bun scripts/import_workers.ts worker-list.txt meinToken
 ```
 
-Alternativ steht das CLI-Skript bereit:
+Alternativ kannst du Worker auch ohne Oberfläche über das CLI-Skript importieren:
 
 ```bash
 bun scripts/import_workers_cli.ts worker-list.txt meinToken
@@ -50,7 +60,8 @@ bun scripts/import_workers_cli.ts worker-list.txt meinToken
 
 Rufe es einfach im Projektordner auf und ersetze `worker-list.txt` durch den
 Pfad zu deiner Liste. Der optionale zweite Parameter setzt den Token direkt
-beim Import.
+beim Import. Das Skript nutzt ebenfalls `set_worker_config` und eignet sich für
+automatisierte Setups oder CI-Umgebungen.
 
 Damit lassen sich hunderte URLs bequem importieren.
 
