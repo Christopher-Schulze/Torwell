@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '$lib/api';
+  export let className = '';
   let circuits: number[] = [];
 
   async function refresh() {
@@ -24,7 +25,7 @@
   onMount(refresh);
 </script>
 
-<div class="glass-md rounded-xl p-4" aria-label="Circuits">
+<div class={"glass-md rounded-xl p-4 " + className} aria-label="Circuits">
   <h3 class="text-base font-medium text-white mb-2">Circuits</h3>
   <ul class="space-y-1">
     {#each circuits as id}

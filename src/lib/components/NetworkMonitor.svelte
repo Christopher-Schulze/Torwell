@@ -3,6 +3,7 @@
   import { listen } from '@tauri-apps/api/event';
   import { invoke } from '@tauri-apps/api/tauri';
   import type { MetricPoint } from '$lib/stores/torStore';
+  export let className = '';
 
   let metrics: MetricPoint[] = [];
   const MAX_POINTS = 30;
@@ -76,7 +77,7 @@
   });
 </script>
 
-<div class="glass-md rounded-xl p-4 space-y-4" role="region" aria-label="Network monitor">
+<div class={"glass-md rounded-xl p-4 space-y-4 " + className} role="region" aria-label="Network monitor">
   <div class="flex gap-4">
     <div class="flex-1">
       <p class="text-sm text-white">CPU: {latest.cpuPercent.toFixed(1)} %</p>
