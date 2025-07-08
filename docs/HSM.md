@@ -98,3 +98,11 @@ cargo test --features hsm
 
 When using a YubiHSM replace the library path with the location of
 `libyubihsm_pkcs11.so` and omit the SoftHSM setup steps.
+
+## Troubleshooting
+
+If initialization fails, verify the configured slot and PIN values. SoftHSM
+returns `CKR_SLOT_ID_INVALID` or `CKR_TOKEN_NOT_PRESENT` when the slot number
+does not match an available token. Errors like `CKR_PIN_INCORRECT` or
+`CKR_PIN_LEN_RANGE` indicate an invalid PIN. Check `TORWELL_HSM_SLOT` via
+`softhsm2-util --show-slots` and ensure `TORWELL_HSM_PIN` is correct.
