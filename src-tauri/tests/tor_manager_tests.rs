@@ -85,9 +85,9 @@ async fn connect_with_backoff_error() {
         .await;
     match res {
         Err(Error::ConnectionFailed { step, source, .. }) => {
-            assert_eq!(step, "retries_exceeded");
+            assert_eq!(step, "bootstrap");
+            assert!(source.contains("retries exceeded"));
             assert!(source.contains("e2"));
-            assert!(source.contains("bootstrap"));
         }
         _ => panic!("expected connection failure"),
     }
@@ -114,9 +114,9 @@ async fn connect_with_backoff_timeout() {
         .await;
     match res {
         Err(Error::ConnectionFailed { step, source, .. }) => {
-            assert_eq!(step, "timeout");
+            assert_eq!(step, "bootstrap");
+            assert!(source.contains("timeout"));
             assert!(source.contains("e1"));
-            assert!(source.contains("bootstrap"));
         }
         _ => panic!("expected timeout error"),
     }

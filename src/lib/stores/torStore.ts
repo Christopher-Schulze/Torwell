@@ -127,7 +127,15 @@ function createTorStore() {
 
     const newStatus =
       (event.payload.status as TorStatus) ?? initialState.status;
-    if (newStatus !== "CONNECTED") {
+    if (newStatus === "CONNECTED") {
+      update((state) => ({
+        ...state,
+        securityWarning: null,
+        errorMessage: null,
+        errorStep: null,
+        errorSource: null,
+      }));
+    } else {
       update((state) => ({
         ...state,
         memoryUsageMB: 0,

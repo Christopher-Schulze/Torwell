@@ -434,6 +434,36 @@ async fn command_connect_error_propagates_details() {
     assert!(!events.is_empty());
     let last: serde_json::Value = serde_json::from_str(&events[events.len() - 1]).unwrap();
     assert_eq!(last["status"], "ERROR");
-    assert_eq!(last["errorStep"], "retries_exceeded");
-    assert!(last["errorSource"].as_str().unwrap().contains("bootstrap"));
+    assert_eq!(last["errorStep"], "bootstrap");
+    assert!(last["errorSource"].as_str().unwrap().contains("retries exceeded"));
+}
+
+#[tokio::test(start_paused = true)]
+async fn command_connect_retry_event_contains_details() {
+    for _ in 0..2 {
+        MockTorClient::push_result(Err("boot".into()));
+    }
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let received = Arc::new(StdMutex::new(Vec::new()));
+    let recv_clone = received.clone();
+    let _handler = app.listen_global("tor-status-update", move |event| {
+        if let Some(p) = event.payload() {
+            recv_clone.lock().unwrap().push(p.to_string());
+        }
+    });
+    let state = app.state::<AppState<MockTorClient>>();
+    commands::connect(app.handle(), state).await.unwrap();
+
+    advance(Duration::from_secs(10)).await;
+    tokio::task::yield_now().await;
+
+    let events = received.lock().unwrap();
+    let retry: serde_json::Value = events
+        .iter()
+        .filter_map(|e| serde_json::from_str::<serde_json::Value>(e).ok())
+        .find(|v| v["status"] == "RETRYING")
+        .expect("retry event missing");
+    assert_eq!(retry["errorStep"], "bootstrap");
+    assert!(retry["errorSource"].as_str().unwrap().contains("boot"));
 }
