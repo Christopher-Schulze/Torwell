@@ -113,6 +113,13 @@ all required system libraries:
 ./scripts/setup_env.sh
 ```
 
+On Windows install the Visual Studio Build Tools with the "Desktop development
+with C++" workload. macOS users need the Xcode command-line tools. In either
+case ensure `bun` and `cargo` are on your `PATH`.
+
+The build script expects `TAURI_UPDATE_URL` to point to a valid update endpoint
+or to a dummy URL when testing locally.
+
 Depending on the operating system this produces:
 
 - Windows: an `.msi` installer in `src-tauri/target/release/bundle/msi`
@@ -149,8 +156,7 @@ On Windows you can additionally validate the MSI's code signing certificate:
 Get-AuthenticodeSignature Torwell84\torwell84.msi
 ```
 
-After a successful verification copy the package to the target system and
-install it before enabling the service.
+After a successful verification copy the package to the target system.
 
 ## Signing Release Artifacts
 
@@ -159,6 +165,34 @@ GPG key and attaches detached signatures for every uploaded bundle. MSI files on
 Windows are additionally signed with a code-signing certificate when the
 secrets are configured. If you build packages manually, sign them using
 `gpg --armor --detach-sign <file>` before distributing them.
+
+## Verifying Signatures
+
+Always verify the signatures on the production host before installation:
+
+```bash
+gpg --verify torwell84_2.4.1_amd64.deb.asc torwell84_2.4.1_amd64.deb
+```
+
+```powershell
+Get-AuthenticodeSignature Torwell84\torwell84.msi
+```
+
+The commands report `Good signature` (and a valid certificate on Windows) if the
+package has not been tampered with.
+
+## Final Deployment Workflow
+
+1. Build release packages with `task release` (ensure `TAURI_UPDATE_URL` is
+   configured and dependencies are installed).
+2. Sign the generated files using `gpg --armor --detach-sign` and apply a
+   code-signing certificate on Windows.
+3. Transfer the installer and signature to the production machine and verify
+   them as shown above.
+4. Install the package using the system installer (`dpkg -i`, double-click the
+   MSI, etc.).
+5. Enable the systemd service using `sudo ./scripts/install_service.sh`.
+6. Check the status with `systemctl status torwell84.service`.
 
 ## Tray Menu
 
