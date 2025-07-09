@@ -124,16 +124,22 @@
 <svelte:window on:keydown={handleKeydown} />
 
 {#if show}
-       <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" on:click={() => dispatch('close')} tabindex="-1">
+       <div
+               class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+               role="button"
+               tabindex="0"
+               aria-label="Close logs"
+               on:click={() => dispatch('close')}
+               on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && dispatch('close')}
+               on:keydown={trapFocus}
+       >
                <div
                        class="glass-lg rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden"
                        role="dialog"
                        aria-modal="true"
                        aria-labelledby="logs-modal-title"
-                       tabindex="0"
                        bind:this={modalEl}
-                       on:keydown={trapFocus}
-                       on:click|stopPropagation
+                       on:pointerdown|stopPropagation
                >
 			<!-- Header -->
 			<div class="flex items-center justify-between p-6 border-b border-white/10">

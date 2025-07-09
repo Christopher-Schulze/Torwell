@@ -98,8 +98,3 @@
   </div>
 </div>
 
-<style>
-  .glass-md {
-    @apply bg-white/20 backdrop-blur-xl;
-  }
-</style>
