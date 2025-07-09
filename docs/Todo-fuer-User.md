@@ -65,7 +65,7 @@ Pfad zu deiner Liste. Der optionale zweite Parameter setzt den Token direkt
 beim Import. Das Skript nutzt ebenfalls `set_worker_config` und eignet sich für
 automatisierte Setups oder CI-Umgebungen.
 
-Damit lassen sich hunderte URLs bequem importieren.
+Damit lassen sich hunderte URLs bequem importieren. Bei einem ungültigen Token bleibt die alte Konfiguration erhalten und du erhältst eine Fehlermeldung. Sowohl das Skript als auch der Dialog erkennen doppelte oder ungültige Zeilen automatisch.
 
 ## Hardware Security Module verwenden
 
