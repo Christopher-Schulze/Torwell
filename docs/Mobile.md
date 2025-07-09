@@ -118,3 +118,12 @@ prüfen, ob die APK- bzw. IPA-Datei korrekt erstellt wurde.
    Xcode-Konsole zeigt die Debug-Ausgabe an. Alternativ kannst du die `.ipa`
    mittels `xcrun simctl install booted mobile/dist/*.ipa` auf einen Simulator
    kopieren.
+
+### Häufige Stolperfallen
+
+- **Android SDK nicht gefunden:** Stelle sicher, dass `ANDROID_HOME` oder `ANDROID_SDK_ROOT` korrekt gesetzt ist und die Plattform API 34 installiert ist. Ohne diese Pfade schlagen die Build-Skripte sofort fehl.
+- **Fehlende Java- oder Gradle-Version:** Das Android-Projekt benötigt eine funktionierende Java- und Gradle-Installation. Verwende die Versionen aus Android Studio oder setze `JAVA_HOME` passend.
+- **iOS-Provisioning:** Xcode verlangt ein gültiges Entwicklerprofil. Prüfe, dass dein Apple-Account Provisioning-Profile und Zertifikate für das Projekt generiert hat, sonst lässt sich das IPA nicht auf Geräten testen.
+- **Bun- und Node-Version:** Die Scripts setzen das `bun`-Tool voraus. Vergewissere dich, dass `bun install` erfolgreich gelaufen ist und eine aktuelle Node-Version verwendet wird.
+- **Bridge-Port 1421 blockiert:** Der mobile Build kommuniziert über `http://127.0.0.1:1421`. Wenn dieser Port durch eine Firewall blockiert ist, lässt sich der Tor-Client nicht steuern.
+
