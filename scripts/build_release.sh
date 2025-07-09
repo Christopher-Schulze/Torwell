@@ -6,7 +6,7 @@
 #
 # The script requires `bun` and `cargo` to be installed and writes the
 # resulting bundles to `src-tauri/target/release/bundle`.
-set -e
+set -euo pipefail
 
 echo "Building release bundles..."
 
