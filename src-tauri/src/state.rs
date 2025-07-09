@@ -486,7 +486,10 @@ impl<C: TorClientBehavior> AppState<C> {
             let size_limit = self.max_metric_mb * 1024 * 1024;
             let mut total_size: usize = lines.iter().map(|l| l.len() + 1).sum();
 
-            if total_size > size_limit || lines.len() > line_limit {
+            let lines_exceeded = lines.len() > line_limit;
+            let size_exceeded = total_size > size_limit;
+
+            if lines_exceeded || size_exceeded {
                 let archive_dir = path
                     .parent()
                     .map(|p| p.join("archive"))
@@ -509,6 +512,14 @@ impl<C: TorClientBehavior> AppState<C> {
                     data.push('\n');
                 }
                 fs::write(path, data).await?;
+
+                let msg = if lines_exceeded {
+                    format!("metric log exceeded line limit {}", line_limit)
+                } else {
+                    format!("metric log exceeded size limit {} MB", self.max_metric_mb)
+                };
+                *self.tray_warning.lock().await = Some(msg.clone());
+                self.update_tray_menu().await;
             }
         }
         Ok(())

@@ -88,7 +88,9 @@ async fn update_metrics_closes_circuits_on_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("state.log").await;
-    state.update_metrics(2 * 1024 * 1024, 2, 0, 0.0, 0, 30).await;
+    state
+        .update_metrics(2 * 1024 * 1024, 2, 0, 0.0, 0, 30)
+        .await;
 
     assert!(*flag.lock().unwrap());
     let logs = state.read_logs().await.unwrap();
@@ -123,7 +125,9 @@ async fn tray_warning_on_memory_limit() {
         tray_warning: Arc::new(Mutex::new(None)),
     };
     let _ = tokio::fs::remove_file("mem.log").await;
-    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
+    state
+        .update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30)
+        .await;
     assert!(state
         .tray_warning
         .lock()
@@ -261,6 +265,82 @@ async fn metrics_rotation_creates_archive() {
 }
 
 #[tokio::test]
+async fn log_trim_handles_large_file() {
+    let mut state = AppState::<DummyClient>::default();
+    state.log_file = PathBuf::from("large.log");
+    let _ = tokio::fs::remove_file("large.log").await;
+    let _ = tokio::fs::remove_dir_all("archive").await;
+
+    for _ in 0..=(torwell84::state::DEFAULT_MAX_LOG_LINES * 2) {
+        state
+            .add_log(Level::Info, "big".into(), None)
+            .await
+            .unwrap();
+    }
+
+    let mut dir = tokio::fs::read_dir("archive").await.unwrap();
+    let mut has_file = false;
+    while let Some(_) = dir.next_entry().await.unwrap() {
+        has_file = true;
+        break;
+    }
+    assert!(has_file);
+
+    let logs = state.read_logs().await.unwrap();
+    assert_eq!(logs.len(), torwell84::state::DEFAULT_MAX_LOG_LINES);
+}
+
+#[tokio::test]
+async fn metrics_limit_from_env_shows_warning() {
+    std::env::set_var("TORWELL_MAX_METRIC_LINES", "5");
+    std::env::set_var("TORWELL_MAX_METRIC_MB", "1");
+
+    let mut state = AppState::<DummyClient>::default();
+    state.log_file = PathBuf::from("metric_warn.log");
+    state.metrics_file = Some(PathBuf::from("metric_warn.json"));
+
+    let _ = tokio::fs::remove_file("metric_warn.json").await;
+    let _ = tokio::fs::remove_dir_all("archive").await;
+
+    let point = torwell84::state::MetricPoint {
+        time: 0,
+        memory_mb: 0,
+        circuit_count: 0,
+        latency_ms: 0,
+        oldest_age: 0,
+        avg_create_ms: 0,
+        failed_attempts: 0,
+        cpu_percent: 0.0,
+        network_bytes: 0,
+        network_total: 0,
+        complete: false,
+    };
+
+    // create existing large file
+    let mut data = String::new();
+    let line = format!("{}\n", serde_json::to_string(&point).unwrap());
+    for _ in 0..10 {
+        data.push_str(&line);
+    }
+    tokio::fs::write("metric_warn.json", data).await.unwrap();
+
+    state.append_metric(&point).await.unwrap();
+
+    let metrics = state.load_metrics().await.unwrap();
+    assert_eq!(metrics.len(), 5);
+    assert!(state
+        .tray_warning
+        .lock()
+        .await
+        .as_ref()
+        .unwrap()
+        .contains("metric"));
+
+    std::env::remove_var("TORWELL_MAX_METRIC_LINES");
+    std::env::remove_var("TORWELL_MAX_METRIC_MB");
+}
+
+#[tokio::test]
 async fn security_warning_emits_event() {
     let mut app = tauri::test::mock_app();
     let state = AppState {
@@ -325,7 +405,9 @@ async fn tray_menu_contains_metrics_items() {
     app.manage(state);
     let state = app.state::<AppState<DummyClient>>();
     state.register_handle(app.handle()).await;
-    state.update_metrics(10 * 1024 * 1024, 3, 0, 0.0, 0, 30).await;
+    state
+        .update_metrics(10 * 1024 * 1024, 3, 0, 0.0, 0, 30)
+        .await;
     state.update_tray_menu().await;
 
     let tray = app.tray_handle();
@@ -368,7 +450,9 @@ async fn update_metrics_emits_security_warning() {
         }
     });
 
-    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
+    state
+        .update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30)
+        .await;
 
     let events = received.lock().unwrap();
     assert_eq!(events.len(), 1);
@@ -403,7 +487,9 @@ async fn tray_warning_cycle() {
     state.register_handle(app.handle()).await;
 
     // trigger warning by exceeding memory limit
-    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
+    state
+        .update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30)
+        .await;
     let tray = app.tray_handle();
     assert!(tray.try_get_item("warning").is_some());
 
@@ -441,7 +527,9 @@ async fn warning_set_clear_rebuilds_menu() {
     state.register_handle(app.handle()).await;
 
     // trigger warning
-    state.update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30).await;
+    state
+        .update_metrics(2 * 1024 * 1024, 0, 0, 0.0, 0, 30)
+        .await;
     let tray = app.tray_handle();
     assert!(tray.try_get_item("warning").is_some());
 

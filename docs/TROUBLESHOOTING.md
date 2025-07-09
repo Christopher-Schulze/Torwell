@@ -56,6 +56,7 @@ aus, um `bun install` und die Installation von `@sveltejs/kit` automatisch zu st
 
 - Start the app in development mode with `bun tauri dev` to view live output.
 - The backend writes logs to a persistent file named `torwell.log` in the project directory. When the file exceeds the configured line limit it is rotated and the previous log is moved into an `archive` folder.
+- Metrics are stored in `metrics.json`. If the file grows beyond the limits specified via `TORWELL_MAX_METRIC_LINES` or `TORWELL_MAX_METRIC_MB`, it is rotated as well and a warning is shown in the system tray.
 - Each line of this file is a JSON object with `level`, `timestamp` and `message` fields.
 - If the UI fails to load, open the browser developer tools (`Ctrl+Shift+I`) to inspect console logs and network activity.
 - Failed connection attempts are recorded with `WARN` level. The retry counter resets when a new connection starts.
