@@ -166,6 +166,40 @@ jobs:
             [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERT))
             signtool sign /f $certPath /p $env:WINDOWS_CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 src-tauri/target/release/bundle/msi/*.msi
           }
+      - name: Import signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
+          fi
+      - name: Sign bundles
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -n "$GPG_PASSPHRASE" ]; then
+            find src-tauri/target/release/bundle -type f -not -name '*.asc' -print0 | while IFS= read -r -d '' file; do
+              gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" -ab "$file"
+            done
+          fi
+      - name: Verify bundles
+        shell: bash
+        run: |
+          test -d src-tauri/target/release/bundle
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ls src-tauri/target/release/bundle/msi/*.msi
+            signtool verify /pa src-tauri/target/release/bundle/msi/*.msi
+          elif [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            ls src-tauri/target/release/bundle/deb/*.deb
+            ls src-tauri/target/release/bundle/appimage/*.AppImage
+          else
+            ls src-tauri/target/release/bundle/dmg/*.dmg
+          fi
+          if [ -n "$GPG_PASSPHRASE" ]; then
+            for asc in $(find src-tauri/target/release/bundle -name '*.asc'); do
+              gpg --verify "$asc" "${asc%.asc}"
+            done
+          fi
       - name: Upload MSI
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
