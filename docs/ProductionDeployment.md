@@ -20,6 +20,8 @@ The service starts `/opt/torwell84/torwell84` as the `torwell` user and group
 and restarts automatically on failure. Logs are available with
 `journalctl -u torwell84.service`.
 
+**Root privileges are required** for installation because the script creates the `torwell` system user, copies the unit file to /etc/systemd/system and enables the service. If the application is installed in a different location adjust the `ExecStart`, `ExecStartPre` and `WorkingDirectory` paths in src-tauri/torwell84.service. Change the `User=` and `Group=` entries when using a different service account.
+
 ## Service Installation
 
 Instead of running the commands manually you can use the helper script. It
@@ -192,7 +194,7 @@ package has not been tampered with.
 4. Install the package using the system installer (`dpkg -i`, double-click the
    MSI, etc.).
 5. Enable the systemd service using `sudo ./scripts/install_service.sh`.
-6. Check the status with `systemctl status torwell84.service`.
+6. Check the status with `systemctl status torwell84.service` and view logs with `journalctl -u torwell84.service`.
 
 ## Tray Menu
 
