@@ -54,19 +54,21 @@
 {#if show}
   <div
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    role="button"
+    tabindex="0"
+    aria-label="Close torrc editor"
     on:click={() => dispatch('close')}
-    tabindex="-1"
+    on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && dispatch('close')}
+    on:keydown={trapFocus}
   >
     <section
       class="glass-lg rounded-2xl w-[90%] max-w-2xl p-6 flex flex-col"
-      on:click|stopPropagation
-      on:keydown={trapFocus}
+      on:pointerdown|stopPropagation
       bind:this={modalEl}
       role="dialog"
       aria-modal="true"
       aria-labelledby="torrc-editor-title"
-      tabindex="0"
-    >
+      >
       <div class="flex justify-between items-center mb-4 shrink-0">
         <h2 id="torrc-editor-title" class="text-2xl font-semibold">Edit torrc</h2>
         <button

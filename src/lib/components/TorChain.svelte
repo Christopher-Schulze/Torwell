@@ -68,7 +68,7 @@
 	}
 </script>
 
-<div class="glass-md rounded-xl p-6" tabindex="0" role="region" aria-label="Tor chain configuration">
+<div class="glass-md rounded-xl p-6" role="region" aria-label="Tor chain configuration">
 	<!-- Single Row with Title, Dropdowns and Active Switch -->
 	<div class="grid grid-cols-5 gap-4 mb-4 items-center h-8">
 		<!-- Tor Chain Title -->
@@ -315,7 +315,7 @@
 		</div>
 		
 		<!-- Cloudflare Card -->
-                <div class="bg-black/50 rounded-xl p-4 flex flex-col min-h-[200px] {cloudflareEnabled ? '' : 'opacity-50'}" tabindex="0" aria-label="Cloudflare node">
+                <div class="bg-black/50 rounded-xl p-4 flex flex-col min-h-[200px] {cloudflareEnabled ? '' : 'opacity-50'}" aria-label="Cloudflare node">
 			<div class="flex justify-center items-center h-12 mb-2">
 				<div class="text-3xl {cloudflareEnabled ? '' : 'opacity-50'}">☁️</div>
 			</div>

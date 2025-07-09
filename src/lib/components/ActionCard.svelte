@@ -64,7 +64,6 @@
 
 <div
   class="glass-md rounded-xl p-6"
-  tabindex="0"
   role="region"
   aria-label="Tor controls"
 >
