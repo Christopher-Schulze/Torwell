@@ -709,3 +709,98 @@ async fn tray_warning_after_local_update_failures() {
         .unwrap()
         .contains("certificate update"));
 }
+#[tokio::test]
+async fn init_interval_zero_disables_scheduling() {
+    let server = MockServer::start_async().await;
+    let mock = server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let config_path = dir.path().join("config.json");
+    let config = serde_json::json!({
+        "cert_path": cert_path.to_string_lossy(),
+        "cert_url": server.url("/cert.pem"),
+        "update_interval": 0
+    });
+    fs::write(&config_path, config.to_string()).unwrap();
+
+    tokio::time::pause();
+    let _client = SecureHttpClient::init(&config_path, None, None, None, None)
+        .await
+        .unwrap();
+    tokio::time::advance(Duration::from_millis(50)).await;
+
+    assert_eq!(mock.hits(), 1);
+}
+
+#[tokio::test]
+async fn schedule_updates_uses_fallback_url() {
+    let primary = MockServer::start_async().await;
+    primary
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(500);
+        })
+        .await;
+
+    let fallback = MockServer::start_async().await;
+    fallback
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
+    tokio::time::pause();
+    client
+        .clone()
+        .schedule_updates(
+            vec![primary.url("/cert.pem"), fallback.url("/cert.pem")],
+            Duration::from_millis(20),
+        )
+        .await;
+
+    tokio::time::advance(Duration::from_millis(30)).await;
+
+    let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
+async fn update_failures_set_backoff() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(500);
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+
+    for _ in 0..3 {
+        let _ = client
+            .update_certificates_from(&[server.url("/cert.pem")])
+            .await;
+    }
+
+    assert_eq!(*client.update_failures.lock().await, 3);
+    assert_eq!(
+        *client.update_backoff.lock().await,
+        Some(Duration::from_secs(60 * 60))
+    );
+}

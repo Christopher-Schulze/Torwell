@@ -108,3 +108,52 @@ async fn tray_warning_after_failed_updates() {
         .unwrap()
         .contains("certificate update"));
 }
+const INVALID_PEM: &str = "-----BEGIN CERTIFICATE-----\ninvalid\n-----END CERTIFICATE-----\n";
+
+#[tokio::test]
+async fn schedule_updates_recovers_from_invalid_pem() {
+    let invalid = MockServer::start_async().await;
+    invalid
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(INVALID_PEM);
+        })
+        .await;
+
+    let valid = MockServer::start_async().await;
+    valid
+        .mock_async(|when, then| {
+            when.method(GET).path("/cert.pem");
+            then.status(200).body(NEW_CERT);
+        })
+        .await;
+    valid
+        .mock_async(|when, then| {
+            when.method(GET).path("/hello");
+            then.status(200).body("ok");
+        })
+        .await;
+
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+    let client = Arc::new(SecureHttpClient::new(&cert_path).unwrap());
+
+    tokio::time::pause();
+    client
+        .clone()
+        .schedule_updates(vec![invalid.url("/cert.pem")], Duration::from_millis(20))
+        .await;
+    tokio::time::advance(Duration::from_millis(25)).await;
+    assert_eq!(*client.update_failures.lock().await, 1);
+
+    client
+        .clone()
+        .schedule_updates(vec![valid.url("/cert.pem")], Duration::from_millis(20))
+        .await;
+    tokio::time::advance(Duration::from_millis(25)).await;
+
+    assert!(client.get_text(&valid.url("/hello")).await.is_ok());
+    let updated = fs::read_to_string(&cert_path).unwrap();
+    assert_eq!(updated, NEW_CERT);
+}
