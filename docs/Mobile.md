@@ -94,6 +94,25 @@ prüfen, ob die APK- bzw. IPA-Datei korrekt erstellt wurde.
   Simulator aus. Du kannst das erzeugte `.ipa` aus `mobile/dist` auch über das
   Geräte-Fenster von Xcode auf ein verbundenes Gerät ziehen.
 
+## Pakete auf Geräten installieren
+
+Nach `task mobile:release` findest du die fertigen Dateien im Ordner
+`mobile/dist`. Von dort lassen sie sich auf echte Geräte übertragen:
+
+### Android (Gerät)
+
+1. USB-Debugging aktivieren und das Smartphone anschließen.
+2. APK installieren:
+
+   ```bash
+   adb install -r mobile/dist/*.apk
+   ```
+
+### iOS (Gerät)
+
+1. Öffne den Geräte-Dialog in Xcode und wähle dein iPhone aus.
+2. Ziehe die `.ipa` aus `mobile/dist` in das Fenster, um die App zu installieren.
+
 ## Installation & Debugging
 
 ### Android
