@@ -57,7 +57,10 @@ endpoint used to retrieve updates. If the primary endpoint fails, an optional
 `fallback_cert_url` can provide an alternative location. `min_tls_version`
 defines the minimum TLS protocol version the client will accept (either `1.2`
 or `1.3`). `update_interval` defines how often (in seconds) the application
-checks for new certificates.
+checks for new certificates. A value of `0` disables the background task
+entirely so updates must be triggered manually. Consecutive download failures
+increase an internal counter; after three failed attempts the client waits one
+hour before retrying and emits a warning message.
 
 When calling `SecureHttpClient::init` you can override these values without
 modifying the file:
@@ -223,7 +226,9 @@ und Probleme frühzeitig erkannt werden.
 
 Beim Start liest `SecureHttpClient` das Feld `update_interval` aus
 `cert_config.json`. Ist der Wert größer als 0, startet eine Hintergrundaufgabe,
-die in diesem Abstand `update_certificates_from` aufruft. Das Intervall kann
-alternativ über die Umgebungsvariable `TORWELL_UPDATE_INTERVAL` angepasst
-werden. So bleiben die Zertifikate automatisch aktuell.
+die in diesem Abstand `update_certificates_from` aufruft. Ein Wert von `0`
+deaktiviert die automatische Aktualisierung. Das Intervall kann alternativ über
+die Umgebungsvariable `TORWELL_UPDATE_INTERVAL` angepasst werden. Bei drei
+aufeinanderfolgenden Fehlern legt der Client eine einstündige Pause ein und gibt
+eine Warnung aus. So bleiben die Zertifikate automatisch aktuell.
 \nSee `GeoIPDatabase.md` for configuring an external GeoIP database.
