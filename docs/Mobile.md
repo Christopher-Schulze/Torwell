@@ -96,8 +96,16 @@ prüfen, ob die APK- bzw. IPA-Datei korrekt erstellt wurde.
 
 ## Pakete auf Geräten installieren
 
-Nach `task mobile:release` findest du die fertigen Dateien im Ordner
-`mobile/dist`. Von dort lassen sie sich auf echte Geräte übertragen:
+Nachdem du `task mobile:release` ausgeführt hast, liegen APK und IPA im
+Verzeichnis `mobile/dist`. Prüfe die erzeugten Archive vor dem Kopieren auf ein
+Gerät mit:
+
+```bash
+./mobile/scripts/test_artifacts.sh
+```
+
+Erst nach erfolgreicher Prüfung solltest du die Pakete auf ein echtes Gerät
+übertragen:
 
 ### Android (Gerät)
 
