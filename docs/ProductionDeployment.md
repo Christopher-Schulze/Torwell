@@ -85,9 +85,11 @@ Copy `docs/examples/cert_config.json` to `src-tauri/certs/cert_config.json` and 
 ```
 
 Set the environment variables so `SecureHttpClient` can locate the
-certificate and HSM library:
+certificate and update endpoint:
 
 ```bash
+export TORWELL_CERT_URL=https://updates.torwell.com/certs/server.pem
+export TORWELL_FALLBACK_CERT_URL=https://backup.torwell.com/server.pem
 export TORWELL_CERT_PATH=/etc/torwell/server.pem
 export TORWELL_HSM_LIB=/usr/local/lib/libyubihsm_pkcs11.so
 ```
