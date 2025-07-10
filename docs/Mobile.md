@@ -154,3 +154,14 @@ Erst nach erfolgreicher Prüfung solltest du die Pakete auf ein echtes Gerät
 - **Bun- und Node-Version:** Die Scripts setzen das `bun`-Tool voraus. Vergewissere dich, dass `bun install` erfolgreich gelaufen ist und eine aktuelle Node-Version verwendet wird.
 - **Bridge-Port 1421 blockiert:** Der mobile Build kommuniziert über `http://127.0.0.1:1421`. Wenn dieser Port durch eine Firewall blockiert ist, lässt sich der Tor-Client nicht steuern.
 
+
+## Zusammenfassung: Installation auf realen Geraeten
+
+1. Fuehre `task mobile:release` aus, um APK und IPA zu erzeugen.
+2. Teste beide Pakete mit `./mobile/scripts/test_artifacts.sh`.
+3. **Android:** USB-Debugging aktivieren, Geraet anschliessen und
+   `adb install -r mobile/dist/*.apk` ausfuehren.
+4. **iOS:** In Xcode das Geraete-Fenster oeffnen und die `.ipa` aus
+   `mobile/dist` hineinziehen oder mit
+   `xcrun simctl install booted mobile/dist/*.ipa` installieren.
+
