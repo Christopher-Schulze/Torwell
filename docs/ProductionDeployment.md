@@ -59,6 +59,13 @@ Service file installed in /tmp/tmp.XYZ
 Test completed successfully
 ```
 
+If the application resides in a custom directory or should run under a
+different service account, edit `src-tauri/torwell84.service` before invoking
+the installer. Adjust `ExecStart`, `ExecStartPre`, `WorkingDirectory`, `User`
+and `Group` to match your setup. The helper script creates the `torwell` user
+by default; when using another account create it manually first or modify the
+`useradd` command in `scripts/install_service.sh`.
+
 ### Log File
 
 The backend writes persistent logs to `~/.local/share/torwell84/torwell.log` on
