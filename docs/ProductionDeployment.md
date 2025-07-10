@@ -22,6 +22,8 @@ and restarts automatically on failure. Logs are available with
 
 **Root privileges are required** for installation because the script creates the `torwell` system user, copies the unit file to /etc/systemd/system and enables the service. If the application is installed in a different location adjust the `ExecStart`, `ExecStartPre` and `WorkingDirectory` paths in src-tauri/torwell84.service. Change the `User=` and `Group=` entries when using a different service account.
 
+Ensure the binary under `/opt/torwell84/` exists and that the unit file's `ExecStart` and `WorkingDirectory` entries match the installation directory. When installing Torwell84 elsewhere update these directives accordingly and adapt `User=` and `Group=` to the owner of the files.
+
 ## Service Installation
 
 Instead of running the commands manually you can use the helper script. It
@@ -56,6 +58,16 @@ Installation complete.
 Service file installed in /tmp/tmp.XYZ
 Test completed successfully
 ```
+
+### Log File
+
+The backend writes persistent logs to `~/.local/share/torwell84/torwell.log` on
+Linux systems (or `./torwell.log` when the XDG directories are unavailable).
+Once the file grows beyond the limit defined by the `TORWELL_MAX_LOG_LINES`
+environment variable (default `1000` lines), it is automatically rotated and the
+previous log is moved into an `archive` subdirectory. Journald stores the
+service output separately and handles rotation according to the system
+configuration.
 
 ## Certificate Configuration
 
