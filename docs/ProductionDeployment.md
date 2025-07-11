@@ -86,7 +86,7 @@ Copy `docs/examples/cert_config.json` to `src-tauri/certs/cert_config.json` and 
 ```json
 {
   "cert_path": "/etc/torwell/server.pem",
-  "cert_url": "https://updates.torwell.com/certs/server.pem",
+  "cert_url": "https://certs.torwell.com/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "update_interval": 86400,
@@ -98,7 +98,7 @@ Set the environment variables so `SecureHttpClient` can locate the
 certificate and update endpoint:
 
 ```bash
-export TORWELL_CERT_URL=https://updates.torwell.com/certs/server.pem
+export TORWELL_CERT_URL=https://certs.torwell.com/server.pem
 export TORWELL_FALLBACK_CERT_URL=https://backup.torwell.com/server.pem
 export TORWELL_CERT_PATH=/etc/torwell/server.pem
 export TORWELL_HSM_LIB=/usr/local/lib/libyubihsm_pkcs11.so

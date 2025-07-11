@@ -27,7 +27,7 @@ use pkcs11::Ctx;
 pub const DEFAULT_CERT_PATH: &str = "src-tauri/certs/server.pem";
 
 /// Default URL for retrieving updated certificates
-pub const DEFAULT_CERT_URL: &str = "https://updates.torwell.com/certs/server.pem";
+pub const DEFAULT_CERT_URL: &str = "https://certs.torwell.com/server.pem";
 
 /// Default location of the certificate configuration file
 pub const DEFAULT_CONFIG_PATH: &str = "src-tauri/certs/cert_config.json";
