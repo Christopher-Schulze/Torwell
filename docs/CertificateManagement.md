@@ -41,7 +41,7 @@ locations during development.
   "cert_path": "/etc/torwell/server.pem",
   "cert_path_windows": "%APPDATA%\\Torwell84\\server.pem",
   "cert_path_macos": "/Library/Application Support/Torwell84/server.pem",
-  "cert_url": "https://certs.torwell.com/server.pem",
+  "cert_url": "https://updates.yourdomain.example/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "update_interval": 86400
@@ -91,7 +91,7 @@ let client = SecureHttpClient::init(
 
 ## Konfiguration
 
-Der Standardwert für `cert_url` verweist auf `https://certs.torwell.com/server.pem` und dient lediglich als Platzhalter.
+Der Standardwert für `cert_url` verweist auf `https://updates.yourdomain.example/certs/server.pem` und dient lediglich als Platzhalter.
 Für produktive Einsätze muss dieser Wert auf den eigenen Update-Server zeigen.
 Dazu öffnen Sie `src-tauri/certs/cert_config.json` und ersetzen die URL durch den gewünschten Endpunkt.
 Alternativ können Sie beim Aufruf von `SecureHttpClient::init` einen abweichenden Wert übergeben, ohne die Datei zu verändern.
@@ -147,7 +147,7 @@ Das Skript `push_cert.sh` könnte beispielsweise so aussehen:
 #!/bin/bash
 set -e
 scp /pki/torwell/server.pem \
-    user@certs.torwell.com:/var/www/certs/server.pem
+    user@updates.yourdomain.example:/var/www/certs/server.pem
 ```
 
 Nach der Übertragung steht das neue Zertifikat umgehend für alle Clients zum
@@ -164,7 +164,7 @@ Neustart der Anwendung erforderlich ist.
 ### Rotation Workflow
 
 1. Lege das neue Zertifikat auf dem Produktionsserver unter
-   `https://certs.torwell.com/server.pem` ab.
+   `https://updates.yourdomain.example/certs/server.pem` ab.
 2. Beim Start liest `SecureHttpClient` `cert_config.json` ein und
    verwendet `cert_url`, sofern keine Umgebungsvariable gesetzt ist.
    Wird `TORWELL_CERT_URL` definiert, hat dieser Wert Vorrang.
@@ -190,7 +190,7 @@ sicherstellt, dass immer ein gültiges Zertifikat vorliegt.
 
 1. **Quellserver**
    Das frische Zertifikat wird von der unternehmensinternen PKI erzeugt und auf
-   dem Update-Server unter `https://certs.torwell.com/server.pem` abgelegt. Der
+   dem Update-Server unter `https://updates.yourdomain.example/certs/server.pem` abgelegt. Der
    Pfad ist in `cert_config.json` hinterlegt und kann über
    `TORWELL_CERT_URL` überschrieben werden.
 2. **Zeitplan**

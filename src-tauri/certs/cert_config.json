@@ -2,7 +2,7 @@
   "cert_path": "/etc/torwell/server.pem",
   "cert_path_windows": "%APPDATA%\\Torwell84\\server.pem",
   "cert_path_macos": "/Library/Application Support/Torwell84/server.pem",
-  "cert_url": "https://certs.torwell.com/server.pem",
+  "cert_url": "https://updates.yourdomain.example/certs/server.pem",
   "fallback_cert_url": null,
   "min_tls_version": "1.2",
   "update_interval": 86400,
