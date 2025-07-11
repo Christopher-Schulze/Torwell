@@ -227,8 +227,10 @@ und Probleme frühzeitig erkannt werden.
 Beim Start liest `SecureHttpClient` das Feld `update_interval` aus
 `cert_config.json`. Ist der Wert größer als 0, startet eine Hintergrundaufgabe,
 die in diesem Abstand `update_certificates_from` aufruft. Ein Wert von `0`
-deaktiviert die automatische Aktualisierung. Das Intervall kann alternativ über
-die Umgebungsvariable `TORWELL_UPDATE_INTERVAL` angepasst werden, z. B.:
+deaktiviert die automatische Aktualisierung. Alternativ kann das Intervall 
+über die Umgebungsvariable `TORWELL_UPDATE_INTERVAL` angepasst werden. 
+Setzen Sie `TORWELL_UPDATE_INTERVAL=0`, um den Dienst auszuschalten, 
+oder wählen Sie einen anderen Sekundenwert, z. B.:
 
 ```bash
 export TORWELL_UPDATE_INTERVAL=86400
