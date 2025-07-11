@@ -31,7 +31,13 @@
     {#each circuits as id}
       <li class="flex items-center justify-between text-xs text-white bg-black/50 rounded px-2 py-1">
         <span>#{id}</span>
-        <button class="text-red-200 hover:text-red-400" on:click={() => close(id)}>Close</button>
+        <button
+          class="text-red-200 hover:text-red-400"
+          on:click={() => close(id)}
+          aria-label="Close circuit"
+        >
+          Close
+        </button>
       </li>
     {/each}
     {#if circuits.length === 0}

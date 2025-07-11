@@ -71,7 +71,7 @@
     on:keydown={trapFocus}
   >
     <section
-      class="glass-lg rounded-2xl w-[90%] max-w-2xl p-6 flex flex-col"
+      class="glass-md rounded-2xl w-[90%] max-w-2xl p-6 flex flex-col"
       on:pointerdown|stopPropagation
       bind:this={modalEl}
       role="dialog"
@@ -103,6 +103,7 @@
       <button
         class="text-sm py-2 px-4 mt-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
         on:click={() => filePicker && filePicker.click()}
+        aria-label="Import worker list"
       >
         Import Worker List
       </button>

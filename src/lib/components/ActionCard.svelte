@@ -104,7 +104,7 @@
         class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
         disabled={true}
       >
-        <div class="animate-spin"><RefreshCw size={16} /></div>
+        <div class="animate-[spin_2s_linear_infinite]"><RefreshCw size={16} /></div>
         {#if isRetrying}
           Retrying in {$torStore.retryDelay}s (attempt {$torStore.retryCount})
         {:else}
@@ -124,7 +124,7 @@
         class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
         disabled={true}
       >
-        <div class="animate-spin"><RefreshCw size={16} /></div>
+        <div class="animate-[spin_2s_linear_infinite]"><RefreshCw size={16} /></div>
         Disconnecting...
       </button>
     {/if}
@@ -140,7 +140,7 @@
       aria-label="Request new circuit"
     >
       {#if isCreatingCircuit}
-        <div class="animate-spin"><RefreshCw size={16} /></div>
+        <div class="animate-[spin_2s_linear_infinite]"><RefreshCw size={16} /></div>
         Creating...
       {:else}
         <RotateCcw size={16} /> New Circuit
