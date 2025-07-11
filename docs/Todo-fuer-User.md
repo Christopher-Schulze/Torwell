@@ -67,6 +67,27 @@ automatisierte Setups oder CI-Umgebungen.
 
 Damit lassen sich hunderte URLs bequem importieren. Bei einem ungültigen Token bleibt die alte Konfiguration erhalten und du erhältst eine Fehlermeldung. Sowohl das Skript als auch der Dialog erkennen doppelte oder ungültige Zeilen automatisch.
 
+### Ergebnisse und typische Fehlermeldungen
+
+Nach einem erfolgreichen Durchlauf meldet das CLI beispielsweise:
+
+```bash
+Imported 2 workers
+```
+
+Fehlen Abhängigkeiten oder wird das Skript außerhalb des Tauri‑Kontexts ausgeführt, erscheinen Fehler wie
+
+```bash
+Cannot find module '@tauri-apps/api/tauri'
+```
+oder
+
+```bash
+ReferenceError: window is not defined
+```
+
+Führe in diesem Fall `bun install` im Projektordner aus und starte das Skript erneut mit `bun`.
+
 ## Hardware Security Module verwenden
 
 Unter **Settings → HSM Configuration** kannst du den Pfad zur PKCS#11‑Bibliothek und den Slot angeben. Nach dem Speichern werden die Werte im Backend übernommen und für neue TLS‑Verbindungen genutzt.
