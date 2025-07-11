@@ -33,6 +33,9 @@ fi
 
 # Ensure application directory exists
 $SUDO mkdir -p /opt/torwell84
+if [ ! -f /opt/torwell84/torwell84 ]; then
+  echo "Warning: /opt/torwell84/torwell84 not found" >&2
+fi
 
 # Copy service file to systemd directory
 echo "Copying service file to $TARGET_DIR"

@@ -59,6 +59,9 @@ Service file installed in /tmp/tmp.XYZ
 Test completed successfully
 ```
 
+The GitHub Actions workflow executes this script on every pull request to
+validate the service installation logic.
+
 If the application resides in a custom directory or should run under a
 different service account, edit `src-tauri/torwell84.service` before invoking
 the installer. Adjust `ExecStart`, `ExecStartPre`, `WorkingDirectory`, `User`
