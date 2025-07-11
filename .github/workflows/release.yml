@@ -8,6 +8,10 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      TAURI_UPDATE_URL: https://updates.torwell.com
+      TORWELL_CERT_URL: https://certs.torwell.com/server.pem
+      TORWELL_CERT_PATH: /etc/torwell/server.pem
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -126,6 +130,10 @@ jobs:
   release:
     needs: [build, android, ios]
     runs-on: ubuntu-latest
+    env:
+      TAURI_UPDATE_URL: https://updates.torwell.com
+      TORWELL_CERT_URL: https://certs.torwell.com/server.pem
+      TORWELL_CERT_PATH: /etc/torwell/server.pem
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
