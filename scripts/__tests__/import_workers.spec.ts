@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 
-vi.mock("@tauri-apps/api/tauri", () => ({ invoke: vi.fn(async () => undefined) }));
+vi.mock("@tauri-apps/api/tauri", () => ({
+  invoke: vi.fn(async (cmd: string) => {
+    if (cmd === "validate_worker_token") return true;
+    return undefined;
+  }),
+}));
 
 import { parseWorkerList, importWorkers, importWorkersFromFile } from "../import_workers.ts";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -44,6 +49,7 @@ describe("import functions", () => {
       workers: ["https://x.com", "https://y.com"],
       token: "tok",
     });
+    expect(invoke).toHaveBeenCalledWith("validate_worker_token");
     expect(res.imported).toBe(2);
     expect(res.invalid).toEqual(["invalid"]);
   });
@@ -56,6 +62,7 @@ describe("import functions", () => {
       workers: ["https://a", "https://b"],
       token: "secret",
     });
+    expect(invoke).toHaveBeenCalledWith("validate_worker_token");
     fs.unlinkSync(file);
   });
 });

@@ -38,10 +38,22 @@ async fn set_workers(
     StatusCode::NO_CONTENT
 }
 
+async fn validate_worker(
+    Extension(state): Extension<Arc<AppState>>,
+) -> Json<bool> {
+    let res = state
+        .http_client
+        .get_text("https://example.com")
+        .await
+        .is_ok();
+    Json(res)
+}
+
 pub fn start(state: AppState) {
     let router = Router::new()
         .route("/status", get(status))
         .route("/workers", post(set_workers))
+        .route("/validate", get(validate_worker))
         .layer(Extension(Arc::new(state)));
 
     tauri::async_runtime::spawn(async move {

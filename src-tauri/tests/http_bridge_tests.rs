@@ -151,7 +151,12 @@ async fn http_bridge_validates_worker_token() {
         .await
         .unwrap();
 
-    let valid = torwell84::commands::validate_worker_token(state.clone())
+    let valid: bool = client
+        .get("http://127.0.0.1:1421/validate")
+        .send()
+        .await
+        .unwrap()
+        .json()
         .await
         .unwrap();
     assert!(valid);
@@ -190,7 +195,12 @@ async fn http_bridge_validate_token_fails() {
         .await
         .unwrap();
 
-    let valid = torwell84::commands::validate_worker_token(state.clone())
+    let valid: bool = client
+        .get("http://127.0.0.1:1421/validate")
+        .send()
+        .await
+        .unwrap()
+        .json()
         .await
         .unwrap();
     assert!(!valid);

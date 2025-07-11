@@ -42,8 +42,20 @@ export async function importWorkers(content: string, token = "") {
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
+      const val = await fetch("http://127.0.0.1:1421/validate");
+      if (!val.ok) {
+        throw new Error(`HTTP ${val.status}`);
+      }
+      const ok = await val.json();
+      if (!ok) {
+        throw new Error("Invalid worker token");
+      }
     } else {
       await invoke("set_worker_config", { workers, token });
+      const valid = await invoke<boolean>("validate_worker_token");
+      if (!valid) {
+        throw new Error("Invalid worker token");
+      }
     }
     return { imported: workers.length, invalid, duplicates };
   } catch (err) {

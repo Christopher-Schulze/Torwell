@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "fs";
 import path from "path";
 
-vi.mock("@tauri-apps/api/tauri", () => ({ invoke: vi.fn(async () => undefined) }));
+vi.mock("@tauri-apps/api/tauri", () => ({
+  invoke: vi.fn(async (cmd: string) => {
+    if (cmd === "validate_worker_token") return true;
+    return undefined;
+  }),
+}));
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -17,5 +22,7 @@ it("runs CLI and prints summary", async () => {
   process.argv = orig;
   expect(log).toHaveBeenCalledWith("Imported 2 workers");
   expect(warn).toHaveBeenCalledTimes(2);
+  const { invoke } = await import("@tauri-apps/api/tauri");
+  expect(invoke).toHaveBeenCalledWith("validate_worker_token");
   fs.unlinkSync(file);
 });
