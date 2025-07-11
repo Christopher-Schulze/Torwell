@@ -228,7 +228,12 @@ Beim Start liest `SecureHttpClient` das Feld `update_interval` aus
 `cert_config.json`. Ist der Wert größer als 0, startet eine Hintergrundaufgabe,
 die in diesem Abstand `update_certificates_from` aufruft. Ein Wert von `0`
 deaktiviert die automatische Aktualisierung. Das Intervall kann alternativ über
-die Umgebungsvariable `TORWELL_UPDATE_INTERVAL` angepasst werden. Bei drei
+die Umgebungsvariable `TORWELL_UPDATE_INTERVAL` angepasst werden, z. B.:
+
+```bash
+export TORWELL_UPDATE_INTERVAL=86400
+```
+Bei drei
 aufeinanderfolgenden Fehlern legt der Client eine einstündige Pause ein und gibt
 eine Warnung aus. So bleiben die Zertifikate automatisch aktuell.
 \nSee `GeoIPDatabase.md` for configuring an external GeoIP database.

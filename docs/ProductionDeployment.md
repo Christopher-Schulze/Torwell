@@ -107,10 +107,13 @@ export TORWELL_HSM_LIB=/usr/local/lib/libyubihsm_pkcs11.so
 ## Automatischer Update-Dienst
 
 The application reads `update_interval` from the configuration file at startup.
-If the value is greater than zero a background task periodically calls
+If the value is greater than zero, a background task periodically calls
 `update_certificates_from` to refresh the pinned certificate. You can override
-the interval at runtime using the `TORWELL_UPDATE_INTERVAL` environment
-variable.
+the interval at runtime using the `TORWELL_UPDATE_INTERVAL` environment variable. Set it to `0` to disable the update service entirely or use a custom number of seconds for testing:
+
+```bash
+export TORWELL_UPDATE_INTERVAL=86400
+```
 
 ## Updater Configuration
 
