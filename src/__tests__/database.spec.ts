@@ -41,6 +41,21 @@ function openRaw() {
       '++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset',
     meta: '&id',
   });
+  raw.version(5).stores({
+    settings:
+      '++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot',
+    meta: '&id',
+  });
+  raw.version(6).stores({
+    settings:
+      '++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval',
+    meta: '&id',
+  });
+  raw.version(7).stores({
+    settings:
+      '++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath',
+    meta: '&id',
+  });
   return raw.open().then(() => raw);
 }
 
