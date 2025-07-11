@@ -150,14 +150,14 @@
           <!-- Animated ripples during ping -->
           <div class="relative w-full h-full flex items-center justify-center">
             <div
-              class="absolute w-2 h-2 bg-blue-400/60 rounded-full animate-ping"
+              class="absolute w-2 h-2 bg-blue-400/60 rounded-full animate-[ping_2s_linear_infinite]"
             ></div>
             <div
-              class="absolute w-3 h-3 bg-blue-400/40 rounded-full animate-ping"
+              class="absolute w-3 h-3 bg-blue-400/40 rounded-full animate-[ping_2s_linear_infinite]"
               style="animation-delay: 0.2s;"
             ></div>
             <div
-              class="absolute w-4 h-4 bg-blue-400/20 rounded-full animate-ping"
+              class="absolute w-4 h-4 bg-blue-400/20 rounded-full animate-[ping_2s_linear_infinite]"
               style="animation-delay: 0.4s;"
             ></div>
             <div class="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>

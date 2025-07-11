@@ -134,7 +134,7 @@
                on:keydown={trapFocus}
        >
                <div
-                       class="glass-lg rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden"
+                       class="glass-md rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden"
                        role="dialog"
                        aria-modal="true"
                        aria-labelledby="logs-modal-title"
@@ -183,7 +183,7 @@
                         <div class="p-6 max-h-96 overflow-y-auto" role="log" aria-live="polite">
                                 {#if isLoading}
                                         <div class="text-center text-gray-100 py-8">
-						<div class="animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-2"></div>
+						<div class="animate-[spin_2s_linear_infinite] w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-2"></div>
 						Loading logs...
 					</div>
                                 {:else if filteredLogs.length === 0}

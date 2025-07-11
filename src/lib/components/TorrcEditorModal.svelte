@@ -62,7 +62,7 @@
     on:keydown={trapFocus}
   >
     <section
-      class="glass-lg rounded-2xl w-[90%] max-w-2xl p-6 flex flex-col"
+      class="glass-md rounded-2xl w-[90%] max-w-2xl p-6 flex flex-col"
       on:pointerdown|stopPropagation
       bind:this={modalEl}
       role="dialog"
