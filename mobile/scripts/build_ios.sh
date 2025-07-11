@@ -8,13 +8,19 @@
 # iOS SDK 17 or newer is recommended.
 set -euo pipefail
 
-trap 'echo "[ERROR] Build failed at line $LINENO" >&2' ERR
+# Provide the failing line to make troubleshooting easier
+trap 'echo "[ERROR] Build aborted at line $LINENO. See output above for details." >&2' ERR
 
 check_dep() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "[ERROR] '$1' is required but not installed." >&2
     missing=1
   fi
+}
+
+# Convenience helper for prominent error messages
+error() {
+  echo "[ERROR] $*" >&2
 }
 
 
@@ -31,19 +37,19 @@ for cmd in bun cargo npx xcodebuild pod; do
 done
 
 if ! npx cap --version >/dev/null 2>&1; then
-  echo "[ERROR] Capacitor CLI not found. Run 'bun install' first." >&2
+  error "Capacitor CLI not found. Run 'bun install' first."
   missing=1
 fi
 
 IOS_SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo 0)
 IOS_MAJOR=${IOS_SDK_VERSION%%.*}
 if [ "$IOS_MAJOR" -lt "$REQUIRED_IOS_SDK" ]; then
-  echo "[ERROR] iOS SDK $REQUIRED_IOS_SDK or newer required (found $IOS_SDK_VERSION)" >&2
+  error "iOS SDK $REQUIRED_IOS_SDK or newer required (found $IOS_SDK_VERSION)"
   missing=1
 fi
 
 if [ "$missing" -eq 1 ]; then
-  echo "[ERROR] Missing dependencies detected. Aborting." >&2
+  error "Missing dependencies detected. Aborting build."
   exit 1
 fi
 
@@ -70,7 +76,10 @@ npx cap sync ios
 msg "Copying assets"
 npx cap copy ios
 msg "Building iOS project"
-npx cap build ios
+if ! npx cap build ios; then
+  error "Capacitor build failed. Ensure Xcode and CocoaPods are correctly installed."
+  exit 1
+fi
 
 IPA_PATH=$(find ios -name '*.ipa' | head -n 1 || true)
 if [ -n "$IPA_PATH" ] && [ -f "$IPA_PATH" ]; then
@@ -79,6 +88,6 @@ if [ -n "$IPA_PATH" ] && [ -f "$IPA_PATH" ]; then
   cp "$IPA_PATH" "$DEST_DIR/"
   msg "IPA copied to $DEST_DIR/$(basename "$IPA_PATH")"
 else
-  echo "[ERROR] No IPA produced" >&2
+  error "No IPA produced. Check the build log for details."
   exit 1
 fi

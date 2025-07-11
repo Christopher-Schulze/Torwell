@@ -5,6 +5,15 @@ The Svelte frontend is reused by pointing `webDir` to the compiled web assets.
 
 ## Build Steps
 
+### Supported Platforms
+
+The mobile build targets the following OS versions:
+
+- **Android:** API level 34 (Android 14) or newer
+- **iOS:** iOS 17 or newer
+
+Older versions may work but are not officially tested.
+
 1. Run `task setup` once to install all dependencies.
 2. Use the `Taskfile` targets to build the apps:
 

@@ -224,3 +224,29 @@ jobs:
         with:
           name: macos-dmg
           path: src-tauri/target/release/bundle/dmg/*.dmg
+
+  mobile:
+    needs: [backend, frontend]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: android
+          - os: macos-latest
+            platform: ios
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: task mobile:${{ matrix.platform }}
+      - name: Validate artifact
+        run: ./mobile/scripts/test_artifacts.sh ${{ matrix.platform }}
