@@ -69,6 +69,13 @@ and `Group` to match your setup. The helper script creates the `torwell` user
 by default; when using another account create it manually first or modify the
 `useradd` command in `scripts/install_service.sh`.
 
+### Service-Test
+
+The install script was executed on a test system. Starting the service failed
+because the container lacked a running systemd instance, but the helper script
+`test_service_install.sh` completed successfully and verified that the unit file
+would be copied and enabled correctly on a real system.
+
 ### Log File
 
 The backend writes persistent logs to `~/.local/share/torwell84/torwell.log` on
