@@ -4,7 +4,7 @@ import { get } from 'svelte/store';
 
 vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn() }));
 
-const settings = { put: vi.fn(), get: vi.fn().mockResolvedValue(undefined) };
+var settings = { put: vi.fn(), get: vi.fn().mockResolvedValue(undefined) };
 vi.mock('../lib/database', () => ({ db: { settings } }));
 
 vi.mock('@tauri-apps/api/tauri', () => {
@@ -28,7 +28,8 @@ import { uiStore } from '../lib/stores/uiStore';
 
 beforeEach(async () => {
   settings.put.mockClear();
-  (await import('@tauri-apps/api/tauri')).invoke.mockClear();
+  const mod = await import('@tauri-apps/api/tauri');
+  (mod.invoke as any).mockClear();
 });
 
 it('restores previous config on invalid token', async () => {
