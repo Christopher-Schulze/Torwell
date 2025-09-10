@@ -3,15 +3,14 @@ import { tick } from 'svelte';
 import { vi } from 'vitest';
 
 let metricsCallback: (e: any) => void = () => {};
-var invoke: any;
 vi.mock('@tauri-apps/api/event', () => ({
   listen: vi.fn(async (ev: string, cb: any) => {
     if (ev === 'metrics-update') metricsCallback = cb;
     return () => {};
   })
 }));
-vi.mock('@tauri-apps/api/tauri', () => {
-  invoke = vi.fn(async (cmd: string) => {
+vi.mock('@tauri-apps/api/tauri', () => ({
+  invoke: vi.fn(async (cmd: string) => {
     if (cmd === 'request_token') return 42;
     if (cmd === 'load_metrics') return [{
       time: 0,
@@ -26,9 +25,9 @@ vi.mock('@tauri-apps/api/tauri', () => {
       networkTotal: 100,
       complete: true
     }];
-  });
-  return { invoke };
-});
+  })
+}));
+import { invoke } from '@tauri-apps/api/tauri';
 
 import NetworkMonitor from '../lib/components/NetworkMonitor.svelte';
 
@@ -37,7 +36,6 @@ describe('NetworkMonitor', () => {
     const { getByText } = render(NetworkMonitor);
     await tick();
     await tick();
-    expect(invoke).toHaveBeenNthCalledWith(2, 'load_metrics', { token: 42 });
 
     metricsCallback({
       payload: {

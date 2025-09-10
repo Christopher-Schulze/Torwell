@@ -35,6 +35,8 @@ pub const DEFAULT_MAX_METRIC_LINES: usize = 10_000;
 pub const DEFAULT_MAX_METRIC_MB: usize = 5;
 /// Default interval for metric collection in seconds
 pub const DEFAULT_METRIC_INTERVAL_SECS: u64 = 30;
+/// Default number of metric entries returned when no limit is specified
+pub const DEFAULT_METRIC_FETCH_LIMIT: usize = 100;
 
 #[derive(Deserialize, Default)]
 struct AppConfig {
@@ -544,16 +546,18 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Load stored metric points from the metrics file
-    pub async fn load_metrics(&self) -> Result<Vec<MetricPoint>> {
+    pub async fn load_metrics(&self, limit: Option<usize>) -> Result<Vec<MetricPoint>> {
+        let limit = limit.unwrap_or(DEFAULT_METRIC_FETCH_LIMIT);
         if let Some(path) = &self.metrics_file {
             let _guard = self.metrics_lock.lock().await;
             let contents = fs::read_to_string(path).await.unwrap_or_default();
             let mut entries = Vec::new();
-            for line in contents.lines() {
+            for line in contents.lines().rev().take(limit) {
                 if let Ok(entry) = serde_json::from_str::<MetricPoint>(line) {
                     entries.push(entry);
                 }
             }
+            entries.reverse();
             Ok(entries)
         } else {
             Ok(Vec::new())
