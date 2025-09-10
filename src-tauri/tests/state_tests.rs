@@ -260,7 +260,10 @@ async fn metrics_rotation_creates_archive() {
     }
     assert!(has_file);
 
-    let metrics = state.load_metrics().await.unwrap();
+    let metrics = state
+        .load_metrics(Some(torwell84::state::DEFAULT_MAX_METRIC_LINES))
+        .await
+        .unwrap();
     assert_eq!(metrics.len(), torwell84::state::DEFAULT_MAX_METRIC_LINES);
 }
 
@@ -326,7 +329,7 @@ async fn metrics_limit_from_env_shows_warning() {
 
     state.append_metric(&point).await.unwrap();
 
-    let metrics = state.load_metrics().await.unwrap();
+    let metrics = state.load_metrics(None).await.unwrap();
     assert_eq!(metrics.len(), 5);
     assert!(state
         .tray_warning

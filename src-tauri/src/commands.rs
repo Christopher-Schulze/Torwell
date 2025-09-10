@@ -567,10 +567,13 @@ pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<(
 }
 
 #[tauri::command]
-pub async fn load_metrics(state: State<'_, AppState>) -> Result<Vec<MetricPoint>> {
+pub async fn load_metrics(
+    state: State<'_, AppState>,
+    limit: Option<usize>,
+) -> Result<Vec<MetricPoint>> {
     track_call("load_metrics").await;
     check_api_rate()?;
-    state.load_metrics().await
+    state.load_metrics(limit).await
 }
 
 #[tauri::command]

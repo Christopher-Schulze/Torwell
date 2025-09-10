@@ -66,6 +66,12 @@ Running `task mobile:android` or `task mobile:ios` builds a Capacitor-based
 mobile shell. The backend runs a small HTTP bridge on port 1421 when compiled
 with the `mobile` feature so that the web app can control the Tor client.
 
+### 3.7 Metrics Retrieval Limit
+The `load_metrics` command now accepts an optional `limit` parameter to
+restrict the number of entries returned. If no limit is provided, the backend
+returns the most recent 100 metric points. Frontend components pass their
+desired limit to fetch only the data required for their charts.
+
 ## 4. Build Process
 
 The application is built as a standard Tauri project:

@@ -47,7 +47,7 @@
     let unlisten: (() => void) | undefined;
     (async () => {
       try {
-        const data = await invoke<MetricPoint[]>('load_metrics');
+        const data = await invoke<MetricPoint[]>('load_metrics', { limit: MAX_POINTS });
         metrics = data.slice(-MAX_POINTS);
       } catch (e) {
         console.error('Failed to load metrics', e);
