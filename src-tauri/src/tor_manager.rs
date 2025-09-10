@@ -15,11 +15,11 @@ use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::num::NonZeroU32;
 use std::path::Path;
-use toml;
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use toml;
 use tor_circmgr::isolation::{IsolationToken, StreamIsolation};
 use tor_dirmgr::Timeliness;
 use tor_geoip::{CountryCode, GeoipDb};
@@ -208,7 +208,7 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
 }
 pub struct TorManager<C = TorClient<PreferredRuntime>> {
     client: Arc<Mutex<Option<C>>>,
-    isolation_tokens: Arc<Mutex<HashMap<String, Vec<(IsolationToken, std::time::Instant)>>>>,
+    isolation_tokens: Arc<Mutex<HashMap<String, (IsolationToken, std::time::Instant)>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
     bridges: Arc<Mutex<Vec<String>>>,
     torrc_config: Arc<Mutex<String>>,
@@ -277,10 +277,7 @@ impl<C: TorClientBehavior> TorManager<C> {
     pub async fn cleanup_isolation_tokens(&self, max_age: std::time::Duration) {
         let now = std::time::Instant::now();
         let mut tokens = self.isolation_tokens.lock().await;
-        tokens.retain(|_, list| {
-            list.retain(|(_, ts)| now.duration_since(*ts) <= max_age);
-            !list.is_empty()
-        });
+        tokens.retain(|_, (_, ts)| now.duration_since(*ts) <= max_age);
     }
 
     async fn build_config(&self) -> Result<TorClientConfig> {
@@ -691,9 +688,11 @@ impl TorManager {
         })?;
 
         let mut tokens = self.isolation_tokens.lock().await;
-        let entry = tokens.entry(domain).or_default();
-        let token = IsolationToken::new();
-        entry.push((token, std::time::Instant::now()));
+        let entry = tokens
+            .entry(domain.clone())
+            .or_insert((IsolationToken::new(), std::time::Instant::now()));
+        entry.1 = std::time::Instant::now();
+        let token = entry.0;
 
         let netdir = client
             .dirmgr()
@@ -835,7 +834,7 @@ impl TorManager {
         #[cfg(not(feature = "experimental-api"))]
         {
             let tokens = self.isolation_tokens.lock().await;
-            let count: usize = tokens.values().map(|v| v.len()).sum();
+            let count: usize = tokens.len();
 
             Ok(CircuitMetrics {
                 count,
