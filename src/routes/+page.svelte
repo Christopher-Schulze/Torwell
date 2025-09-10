@@ -10,7 +10,7 @@
   let SettingsModalComponent: any = null;
   import { uiStore } from "$lib/stores/uiStore";
   import { torStore } from "$lib/stores/torStore";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "$lib/api";
 
   import { onMount } from "svelte";
 
@@ -24,7 +24,7 @@
   async function fetchCircuit() {
     if ($torStore.status === "CONNECTED") {
       try {
-        activeCircuit = await invoke("get_active_circuit");
+        activeCircuit = (await invoke("get_active_circuit")) as any[];
       } catch (e) {
         console.error("Failed to get active circuit:", e);
         activeCircuit = [];
@@ -37,7 +37,7 @@
   async function fetchIsolatedCircuit() {
     if ($torStore.status === "CONNECTED") {
       try {
-        const nodes = await invoke<any>("get_isolated_circuit", { domain: isolatedDomain });
+        const nodes = (await invoke("get_isolated_circuit", { domain: isolatedDomain })) as any;
         isolatedCircuits = [{ domain: isolatedDomain, nodes }];
       } catch (e) {
         console.error("Failed to get isolated circuit:", e);
@@ -51,7 +51,7 @@
   async function fetchTraffic() {
     if ($torStore.status === "CONNECTED") {
       try {
-        const stats = await invoke<any>("get_traffic_stats");
+        const stats = (await invoke("get_traffic_stats")) as any;
         const bytes = stats.bytes_sent + stats.bytes_received;
         totalTrafficMB = Math.round(bytes / 1_000_000);
       } catch (e) {
