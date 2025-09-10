@@ -11,21 +11,24 @@ vi.mock('@tauri-apps/api/event', () => ({
   })
 }));
 vi.mock('@tauri-apps/api/tauri', () => {
-  invoke = vi.fn(async (cmd: string) => {
+  invoke = vi.fn(async (cmd: string, args?: any) => {
     if (cmd === 'request_token') return 42;
-    if (cmd === 'load_metrics') return [{
-      time: 0,
-      memoryMB: 0,
-      circuitCount: 0,
-      latencyMs: 0,
-      oldestAge: 0,
-      avgCreateMs: 0,
-      failedAttempts: 0,
-      cpuPercent: 1,
-      networkBytes: 0,
-      networkTotal: 100,
-      complete: true
-    }];
+    if (cmd === 'load_metrics')
+      return [
+        {
+          time: 0,
+          memoryMB: 0,
+          circuitCount: 0,
+          latencyMs: 0,
+          oldestAge: 0,
+          avgCreateMs: 0,
+          failedAttempts: 0,
+          cpuPercent: 1,
+          networkBytes: 0,
+          networkTotal: 100,
+          complete: true
+        }
+      ];
   });
   return { invoke };
 });

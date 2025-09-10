@@ -33,5 +33,5 @@ Farbwahl und Kontrast müssen dabei den WCAG&nbsp;2.1 AA Richtlinien entsprechen
 
 ## Netzwerk-Metriken
 
-`NetworkMonitor.svelte` und `NetworkTools.svelte` visualisieren die im Backend ermittelten Nutzungsdaten. CPU- und Netzwerkverbrauch werden über das Kommando `load_metrics` geladen. Für Host-Informationen nutzen die Tools die Befehle `dns_lookup` und `traceroute_host`. Die gemessenen Werte werden direkt in der Oberfläche dargestellt.
+`NetworkMonitor.svelte` und `NetworkTools.svelte` visualisieren die im Backend ermittelten Nutzungsdaten. CPU- und Netzwerkverbrauch werden über das Kommando `load_metrics` geladen, das ein gültiges Session-Token benötigt. Dieses Token wird im Frontend über den API-Wrapper automatisch übermittelt. Für Host-Informationen nutzen die Tools die Befehle `dns_lookup` und `traceroute_host`. Die gemessenen Werte werden direkt in der Oberfläche dargestellt.
 Ohne laufenden Backend-Prozess stehen keine Metriken zur Verfügung.

@@ -567,9 +567,16 @@ pub async fn set_log_limit(state: State<'_, AppState>, limit: usize) -> Result<(
 }
 
 #[tauri::command]
-pub async fn load_metrics(state: State<'_, AppState>) -> Result<Vec<MetricPoint>> {
+pub async fn load_metrics(
+    state: State<'_, AppState>,
+    token: String,
+) -> Result<Vec<MetricPoint>> {
     track_call("load_metrics").await;
     check_api_rate()?;
+    if !state.validate_session(&token).await {
+        log::error!("load_metrics: invalid token");
+        return Err(Error::InvalidToken);
+    }
     state.load_metrics().await
 }
 
