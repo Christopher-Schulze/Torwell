@@ -70,7 +70,9 @@ with the `mobile` feature so that the web app can control the Tor client.
 The `load_metrics` command now accepts an optional `limit` parameter to
 restrict the number of entries returned. If no limit is provided, the backend
 returns the most recent 100 metric points. Frontend components pass their
-desired limit to fetch only the data required for their charts.
+desired limit to fetch only the data required for their charts. A valid
+session token is required for this command, aligning it with the
+authentication model used by other API endpoints.
 
 ## 4. Build Process
 

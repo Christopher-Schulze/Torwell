@@ -10,7 +10,7 @@
   let SettingsModalComponent: any = null;
   import { uiStore } from "$lib/stores/uiStore";
   import { torStore } from "$lib/stores/torStore";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "$lib/api";
 
   import { onMount } from "svelte";
 

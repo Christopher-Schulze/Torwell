@@ -1,7 +1,7 @@
 import { writable, get } from "svelte/store";
 import { db } from "$lib/database";
 import type { Settings } from "$lib/database";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "$lib/api";
 
 type AppSettings = {
   workerList: string[];

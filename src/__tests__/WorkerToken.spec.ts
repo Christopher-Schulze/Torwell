@@ -11,6 +11,7 @@ vi.mock('@tauri-apps/api/tauri', () => {
   const store = { workers: [] as string[], token: '' };
   return {
     invoke: vi.fn(async (cmd: string, args?: any) => {
+      if (cmd === 'request_token') return 42;
       if (cmd === 'set_worker_config') {
         store.workers = args.workers;
         store.token = args.token;
@@ -40,11 +41,13 @@ it('restores previous config on invalid token', async () => {
   expect(s.workerList).toEqual(initial);
   expect(s.workerToken).toBe('');
   const { invoke } = await import('@tauri-apps/api/tauri');
-  expect(invoke).toHaveBeenNthCalledWith(1, 'set_worker_config', {
+  expect(invoke).toHaveBeenNthCalledWith(1, 'request_token');
+  expect(invoke).toHaveBeenNthCalledWith(2, 'set_worker_config', {
     workers: ['https://new'],
     token: 'invalid',
   });
-  expect(invoke).toHaveBeenNthCalledWith(2, 'set_worker_config', {
+  expect(invoke).toHaveBeenNthCalledWith(3, 'validate_worker_token', { token: 42 });
+  expect(invoke).toHaveBeenNthCalledWith(4, 'set_worker_config', {
     workers: initial,
     token: '',
   });

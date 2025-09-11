@@ -1,6 +1,5 @@
 import { writable } from "svelte/store";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/tauri";
 
 export type TorStatus =
   | "DISCONNECTED"

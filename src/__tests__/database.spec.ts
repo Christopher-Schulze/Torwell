@@ -7,6 +7,9 @@ vi.mock('@tauri-apps/api/tauri', () => {
   const store = new Map<string, string | null>();
   return {
     invoke: vi.fn((cmd: string, args?: any) => {
+      if (cmd === 'request_token') {
+        return Promise.resolve(42);
+      }
       if (cmd === 'get_secure_key') {
         return Promise.resolve(store.get('aes-key') ?? null);
       }
