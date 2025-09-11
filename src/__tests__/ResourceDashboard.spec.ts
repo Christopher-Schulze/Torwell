@@ -9,6 +9,12 @@ vi.mock("@tauri-apps/api/event", () => ({
     return Promise.resolve(() => {});
   }),
 }));
+vi.mock('@tauri-apps/api/tauri', () => ({
+  invoke: vi.fn(async (cmd: string) => {
+    if (cmd === 'request_token') return 42;
+    if (cmd === 'load_metrics') return [];
+  }),
+}));
 
 import ResourceDashboard from "../lib/components/ResourceDashboard.svelte";
 

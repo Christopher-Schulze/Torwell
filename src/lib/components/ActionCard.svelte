@@ -11,7 +11,7 @@
   import { createEventDispatcher } from "svelte";
 
   import { torStore } from "$lib/stores/torStore";
-  import { invoke } from "@tauri-apps/api";
+  import { invoke } from "$lib/api";
 
   let connectError = null;
 

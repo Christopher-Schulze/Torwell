@@ -1,7 +1,13 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { vi } from 'vitest';
 
-vi.mock('@tauri-apps/api/tauri', () => ({ invoke: vi.fn(async () => [42]) }));
+vi.mock('@tauri-apps/api/tauri', () => ({
+  invoke: vi.fn(async (cmd: string) => {
+    if (cmd === 'request_token') return 42;
+    if (cmd === 'ping_host_series') return [42];
+    return [42];
+  }),
+}));
 
 import StatusCard from '../lib/components/StatusCard.svelte';
 import { invoke } from '@tauri-apps/api/tauri';

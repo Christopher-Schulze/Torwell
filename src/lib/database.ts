@@ -1,6 +1,6 @@
 // lib/database.ts
 import Dexie, { type Table } from "dexie";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "$lib/api";
 
 interface MetaEntry {
   id: string;

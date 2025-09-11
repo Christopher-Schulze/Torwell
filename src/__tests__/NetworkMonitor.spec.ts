@@ -27,7 +27,6 @@ vi.mock('@tauri-apps/api/tauri', () => ({
     }];
   })
 }));
-import { invoke } from '@tauri-apps/api/tauri';
 
 import NetworkMonitor from '../lib/components/NetworkMonitor.svelte';
 

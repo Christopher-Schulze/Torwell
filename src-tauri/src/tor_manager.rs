@@ -59,6 +59,7 @@ const INITIAL_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
 const MAX_BACKOFF: std::time::Duration = std::time::Duration::from_secs(30);
 const CONNECT_RATE_LIMIT: u32 = 5;
 const CIRCUIT_RATE_LIMIT: u32 = 10;
+const MAX_ISOLATION_TOKENS: usize = 100;
 
 /// Simple traffic statistics returned from [`TorManager::traffic_stats`].
 #[derive(Debug, Clone)]
@@ -692,6 +693,17 @@ impl TorManager {
             .entry(domain.clone())
             .or_insert((IsolationToken::new(), std::time::Instant::now()));
         entry.1 = std::time::Instant::now();
+
+        if tokens.len() > MAX_ISOLATION_TOKENS {
+            if let Some(oldest_key) = tokens
+                .iter()
+                .min_by_key(|(_, (_, ts))| *ts)
+                .map(|(k, _)| k.clone())
+            {
+                tokens.remove(&oldest_key);
+            }
+        }
+
         let token = entry.0;
 
         let netdir = client

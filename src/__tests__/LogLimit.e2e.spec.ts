@@ -15,6 +15,7 @@ vi.mock('@tauri-apps/api/tauri', () => {
   let limit = 1000;
   return {
     invoke: vi.fn(async (cmd: string, args: any) => {
+      if (cmd === 'request_token') return 42;
       if (cmd === 'set_log_limit') {
         limit = args.limit;
         const lines = fs

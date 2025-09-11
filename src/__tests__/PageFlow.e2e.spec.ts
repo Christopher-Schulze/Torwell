@@ -4,6 +4,7 @@ import { vi } from 'vitest';
 vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn() }));
 vi.mock('@tauri-apps/api/tauri', () => ({
   invoke: vi.fn(async (cmd: string) => {
+    if (cmd === 'request_token') return 42;
     if (cmd === 'get_active_circuit') return [];
     if (cmd === 'get_traffic_stats') return { bytes_sent: 0, bytes_received: 0 };
     return null;
