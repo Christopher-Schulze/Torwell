@@ -100,6 +100,12 @@ async function encryptFields(
   if (obj.exitCountry != null) {
     obj.exitCountry = await encryptString(db, obj.exitCountry);
   }
+  if (obj.entryCountry != null) {
+    obj.entryCountry = await encryptString(db, obj.entryCountry);
+  }
+  if (obj.middleCountry != null) {
+    obj.middleCountry = await encryptString(db, obj.middleCountry);
+  }
 }
 
 async function decryptFields(
@@ -115,6 +121,12 @@ async function decryptFields(
   if (obj.exitCountry != null) {
     obj.exitCountry = await decryptString(db, obj.exitCountry);
   }
+  if (obj.entryCountry != null) {
+    obj.entryCountry = await decryptString(db, obj.entryCountry);
+  }
+  if (obj.middleCountry != null) {
+    obj.middleCountry = await decryptString(db, obj.middleCountry);
+  }
   return obj;
 }
 
@@ -124,6 +136,8 @@ export interface Settings {
   torrcConfig: string;
   workerToken?: string;
   exitCountry?: string | null;
+  entryCountry?: string | null;
+  middleCountry?: string | null;
   bridges?: string[];
   bridgePreset?: string | null;
   maxLogLines?: number;
@@ -168,6 +182,11 @@ export class AppDatabase extends Dexie {
     this.version(7).stores({
       settings:
         "++id, workerList, torrcConfig, workerToken, exitCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath",
+      meta: "&id",
+    });
+    this.version(8).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, entryCountry, middleCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath",
       meta: "&id",
     });
 
