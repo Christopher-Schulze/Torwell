@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import {
     Activity,
     Settings,
@@ -12,42 +12,72 @@
 
   import { torStore } from "$lib/stores/torStore";
   import { invoke } from "$lib/api";
-
-  let connectError = null;
+  import { addToast, addErrorToast } from "$lib/stores/toastStore";
 
   const dispatch = createEventDispatcher();
 
-  let isCreatingCircuit = false;
+  let actionError: string | null = null;
+  let isBuildingCircuit = false;
   let isCreatingIdentity = false;
 
+  const parseError = (error: unknown) =>
+    error instanceof Error ? error.message : String(error ?? "Unknown error");
+
   async function handleConnect() {
-    await invoke("connect");
+    actionError = null;
+    try {
+      await invoke("connect");
+      addToast("Connecting to the Tor network…");
+    } catch (error) {
+      const message = parseError(error);
+      actionError = message;
+      addErrorToast("connection", message);
+      console.error("Failed to connect:", error);
+    }
   }
 
   async function handleDisconnect() {
-    await invoke("disconnect");
+    actionError = null;
+    try {
+      await invoke("disconnect");
+      addToast("Disconnecting from Tor…");
+    } catch (error) {
+      const message = parseError(error);
+      actionError = message;
+      addErrorToast("connection", message);
+      console.error("Failed to disconnect:", error);
+    }
   }
 
   async function handleNewCircuit() {
-    if (!isConnected || isCreatingCircuit) return;
-
-    isCreatingCircuit = true;
+    if (!isConnected || isBuildingCircuit) return;
+    isBuildingCircuit = true;
+    actionError = null;
     try {
-      await invoke("new_identity");
+      await invoke("build_circuit");
+      addToast("Requested a fresh Tor circuit.");
     } catch (error) {
-      
+      const message = parseError(error);
+      actionError = message;
+      addErrorToast("connection", message);
+      console.error("Failed to build circuit:", error);
     } finally {
-      isCreatingCircuit = false;
+      isBuildingCircuit = false;
     }
   }
 
   async function handleNewIdentity() {
     if (isCreatingIdentity) return;
     isCreatingIdentity = true;
+    actionError = null;
     try {
       await invoke("new_identity");
+      addToast("Requested a new Tor identity.");
     } catch (error) {
-      
+      const message = parseError(error);
+      actionError = message;
+      addErrorToast("connection", message);
+      console.error("Failed to request new identity:", error);
     } finally {
       isCreatingIdentity = false;
     }
@@ -62,11 +92,7 @@
   $: hasError = $torStore.status === "ERROR";
 </script>
 
-<div
-  class="glass-md rounded-xl p-6"
-  role="region"
-  aria-label="Tor controls"
->
+<div class="glass-md rounded-xl p-6" role="region" aria-label="Tor controls">
   <!-- Error Message -->
   {#if $torStore.errorMessage}
     <div
@@ -92,7 +118,7 @@
     <!-- Connect/Disconnect Button -->
     {#if isStopped || hasError}
       <button
-        class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-green-600/20 text-green-200 hover:bg-green-600/30 border border-green-500/30 transform hover:scale-105"
+        class="tw-button tw-button--success"
         on:click={handleConnect}
         aria-label={hasError ? "Retry connection" : "Connect to Tor"}
       >
@@ -101,10 +127,11 @@
       </button>
     {:else if isConnecting}
       <button
-        class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
+        class="tw-button tw-button--pending"
         disabled={true}
+        aria-live="polite"
       >
-        <div class="animate-[spin_2s_linear_infinite]"><RefreshCw size={16} /></div>
+        <span class="tw-spinner" aria-hidden="true"></span>
         {#if isRetrying}
           Retrying in {$torStore.retryDelay}s (attempt {$torStore.retryCount})
         {:else}
@@ -113,7 +140,7 @@
       </button>
     {:else if isConnected}
       <button
-        class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 ease-in-out text-sm bg-red-600/20 text-red-200 hover:bg-red-600/30 border border-red-500/30 transform hover:scale-105"
+        class="tw-button tw-button--danger"
         on:click={handleDisconnect}
         aria-label="Disconnect from Tor"
       >
@@ -121,26 +148,26 @@
       </button>
     {:else if isDisconnecting}
       <button
-        class="glass py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 opacity-75 cursor-not-allowed"
+        class="tw-button tw-button--pending"
         disabled={true}
       >
-        <div class="animate-[spin_2s_linear_infinite]"><RefreshCw size={16} /></div>
+        <span class="tw-spinner" aria-hidden="true"></span>
         Disconnecting...
       </button>
     {/if}
 
     <!-- New Circuit Button -->
     <button
-      class="glass-sm py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-in-out text-sm {isConnected &&
-      !isCreatingCircuit
-        ? 'bg-black/50 text-white hover:bg-black/60 cursor-pointer transform hover:scale-105'
-        : 'bg-black/30 text-gray-400 cursor-not-allowed opacity-50'}"
+      class={`tw-button tw-button--accent ${
+        isConnected && !isBuildingCircuit ? "" : "tw-button--disabled"
+      }`}
       on:click={handleNewCircuit}
-      disabled={!isConnected || isCreatingCircuit}
+      disabled={!isConnected || isBuildingCircuit}
       aria-label="Request new circuit"
+      aria-busy={isBuildingCircuit}
     >
-      {#if isCreatingCircuit}
-        <div class="animate-[spin_2s_linear_infinite]"><RefreshCw size={16} /></div>
+      {#if isBuildingCircuit}
+        <span class="tw-spinner" aria-hidden="true"></span>
         Creating...
       {:else}
         <RotateCcw size={16} /> New Circuit
@@ -149,7 +176,7 @@
 
     <!-- Logs Button -->
     <button
-      class="glass-sm py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
+      class="tw-button tw-button--neutral"
       on:click={() => dispatch("openLogs")}
       aria-label="Open logs"
     >
@@ -158,11 +185,15 @@
 
     <!-- Settings Button -->
     <button
-      class="glass-sm py-3 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all text-sm bg-black/50 text-white hover:bg-black/60"
+      class="tw-button tw-button--neutral"
       on:click={() => dispatch("openSettings")}
       aria-label="Open settings"
     >
       <Settings size={16} /> Settings
     </button>
   </div>
+
+  {#if actionError}
+    <p class="mt-3 text-sm text-rose-200/90" role="status">{actionError}</p>
+  {/if}
 </div>

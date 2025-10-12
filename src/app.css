@@ -1,3 +1,160 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --tw-surface-border: rgba(255, 255, 255, 0.12);
+    --tw-surface-highlight: rgba(255, 255, 255, 0.18);
+    --tw-surface-shadow: rgba(8, 15, 52, 0.35);
+  }
+
+  *,
+  *::before,
+  *::after {
+    @apply antialiased;
+  }
+
+  body {
+    @apply min-h-screen text-slate-50 bg-transparent;
+    font-feature-settings: "liga" 1, "kern" 1;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -30%;
+    background: radial-gradient(40% 60% at 20% 20%, rgba(120, 200, 255, 0.18), transparent),
+      radial-gradient(35% 55% at 80% 10%, rgba(255, 140, 184, 0.16), transparent),
+      radial-gradient(45% 60% at 50% 80%, rgba(124, 58, 237, 0.2), transparent);
+    filter: blur(80px);
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: -2;
+    animation: aurora-pan 18s ease-in-out infinite alternate;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, opacity;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(12, 12, 30, 0.75), rgba(8, 10, 26, 0.85));
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  @keyframes aurora-pan {
+    0% {
+      transform: translate3d(-2%, -2%, 0) scale(1.05);
+    }
+    100% {
+      transform: translate3d(2%, 3%, 0) scale(1.12);
+    }
+  }
+
+  ::selection {
+    background: rgba(124, 58, 237, 0.6);
+    color: white;
+  }
+}
+
+@layer components {
+  .tw-surface {
+    @apply glass-2xl rounded-[32px] border border-white/10 p-6 shadow-[0_45px_120px_var(--tw-surface-shadow)] transition-transform duration-300 ease-out;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(12, 18, 46, 0.35));
+    backdrop-filter: blur(26px) saturate(140%);
+    transform: translateZ(0);
+    will-change: transform, box-shadow, backdrop-filter;
+  }
+
+  .tw-surface:hover {
+    border-color: var(--tw-surface-highlight);
+    box-shadow: 0 50px 140px rgba(12, 18, 46, 0.5);
+    transform: translate3d(0, -4px, 0);
+  }
+
+  .tw-button {
+    @apply glass-sm px-4 py-3 rounded-xl text-sm font-semibold uppercase tracking-wide flex items-center justify-center gap-2 border border-transparent transition-all duration-200 ease-out;
+    letter-spacing: 0.08em;
+    transform: translateZ(0);
+    will-change: transform, box-shadow;
+  }
+
+  .tw-button:focus-visible {
+    @apply outline-none ring-2 ring-violet-300/60 ring-offset-2 ring-offset-slate-900;
+  }
+
+  .tw-button:hover {
+    transform: translate3d(0, -2px, 0) scale(1.01);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+  }
+
+  .tw-button--success {
+    @apply bg-emerald-500/25 text-emerald-100 border-emerald-400/40;
+  }
+
+  .tw-button--success:hover {
+    @apply bg-emerald-500/35;
+  }
+
+  .tw-button--danger {
+    @apply bg-rose-500/25 text-rose-100 border-rose-400/40;
+  }
+
+  .tw-button--danger:hover {
+    @apply bg-rose-500/35;
+  }
+
+  .tw-button--accent {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(147, 51, 234, 0.45));
+    border-color: rgba(147, 197, 253, 0.45);
+    color: rgba(241, 245, 255, 0.95);
+  }
+
+  .tw-button--accent:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.55), rgba(147, 51, 234, 0.6));
+  }
+
+  .tw-button--neutral {
+    @apply bg-slate-900/60 text-slate-100 border-white/10;
+  }
+
+  .tw-button--neutral:hover {
+    @apply bg-slate-900/70;
+  }
+
+  .tw-button--pending {
+    @apply bg-amber-500/25 text-amber-100 border-amber-400/40 cursor-wait;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .tw-button--disabled,
+  .tw-button[disabled] {
+    @apply cursor-not-allowed opacity-60;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .tw-spinner {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-top-color: rgba(255, 255, 255, 0.85);
+    animation: tw-spin 0.9s linear infinite;
+    will-change: transform;
+  }
+}
+
+@layer utilities {
+  @keyframes tw-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}

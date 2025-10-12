@@ -226,6 +226,82 @@ async fn command_new_identity_error_event_contains_details() {
 }
 
 #[tokio::test]
+async fn command_build_circuit_success() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: true,
+    }));
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    state.tor_manager.connect().await.unwrap();
+    app.manage(state);
+    let received = Arc::new(StdMutex::new(Vec::new()));
+    let recv_clone = received.clone();
+    let _handler = app.listen_global("tor-status-update", move |event| {
+        if let Some(p) = event.payload() {
+            recv_clone.lock().unwrap().push(p.to_string());
+        }
+    });
+    let state = app.state::<AppState<MockTorClient>>();
+    commands::build_circuit(app.handle(), state).await.unwrap();
+    let events = received.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    let payload: serde_json::Value = serde_json::from_str(&events[0]).unwrap();
+    assert_eq!(payload["status"], "NEW_CIRCUIT");
+}
+
+#[tokio::test]
+async fn command_build_circuit_not_connected() {
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let received = Arc::new(StdMutex::new(Vec::new()));
+    let recv_clone = received.clone();
+    let _handler = app.listen_global("tor-status-update", move |event| {
+        if let Some(p) = event.payload() {
+            recv_clone.lock().unwrap().push(p.to_string());
+        }
+    });
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::build_circuit(app.handle(), state).await;
+    assert!(matches!(res, Err(Error::NotConnected)));
+    assert!(received.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn command_build_circuit_error_event_contains_details() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: false,
+    }));
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    state.tor_manager.connect().await.unwrap();
+    app.manage(state);
+    let received = Arc::new(StdMutex::new(Vec::new()));
+    let recv_clone = received.clone();
+    let _handler = app.listen_global("tor-status-update", move |event| {
+        if let Some(p) = event.payload() {
+            recv_clone.lock().unwrap().push(p.to_string());
+        }
+    });
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::build_circuit(app.handle(), state).await;
+    match res {
+        Err(Error::NetworkFailure { step, source, .. }) => {
+            assert_eq!(step, "build_circuit");
+            assert!(source.contains("build"));
+        }
+        _ => panic!("expected build_circuit error"),
+    }
+    let events = received.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    let payload: serde_json::Value = serde_json::from_str(&events[0]).unwrap();
+    assert_eq!(payload["status"], "ERROR");
+    assert_eq!(payload["errorStep"], "build_circuit");
+    assert!(payload["errorSource"].as_str().unwrap().contains("build"));
+}
+
+#[tokio::test]
 async fn command_log_retrieval() {
     let mut app = tauri::test::mock_app();
     let state = mock_state();
@@ -301,6 +377,44 @@ async fn command_set_exit_country() {
 }
 
 #[tokio::test]
+async fn command_set_entry_country() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_entry_country(state, Some("se".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        state.tor_manager.get_entry_country().await.as_deref(),
+        Some("SE")
+    );
+
+    commands::set_entry_country(state, None).await.unwrap();
+    assert!(state.tor_manager.get_entry_country().await.is_none());
+}
+
+#[tokio::test]
+async fn command_set_middle_country() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_middle_country(state, Some("nl".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        state.tor_manager.get_middle_country().await.as_deref(),
+        Some("NL")
+    );
+
+    commands::set_middle_country(state, None).await.unwrap();
+    assert!(state.tor_manager.get_middle_country().await.is_none());
+}
+
+#[tokio::test]
 async fn command_set_exit_country_invalid() {
     let mut app = tauri::test::mock_app();
     app.manage(mock_state());
@@ -308,6 +422,30 @@ async fn command_set_exit_country_invalid() {
     let res = commands::set_exit_country(state, Some("zzz".into())).await;
     match res {
         Err(Error::ConfigError { step, .. }) => assert_eq!(step, "set_exit_country"),
+        _ => panic!("expected config error"),
+    }
+}
+
+#[tokio::test]
+async fn command_set_entry_country_invalid() {
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::set_entry_country(state, Some("zzz".into())).await;
+    match res {
+        Err(Error::ConfigError { step, .. }) => assert_eq!(step, "set_entry_country"),
+        _ => panic!("expected config error"),
+    }
+}
+
+#[tokio::test]
+async fn command_set_middle_country_invalid() {
+    let mut app = tauri::test::mock_app();
+    app.manage(mock_state());
+    let state = app.state::<AppState<MockTorClient>>();
+    let res = commands::set_middle_country(state, Some("??".into())).await;
+    match res {
+        Err(Error::ConfigError { step, .. }) => assert_eq!(step, "set_middle_country"),
         _ => panic!("expected config error"),
     }
 }
@@ -528,8 +666,5 @@ async fn command_set_torrc_config_used_in_build() {
 
     let cfgs = CAPTURED_CONFIGS.lock().unwrap();
     let cfg = cfgs.last().expect("no config captured");
-    assert_eq!(
-        cfg.override_net_params.get("wombats-per-quokka"),
-        Some(&99)
-    );
+    assert_eq!(cfg.override_net_params.get("wombats-per-quokka"), Some(&99));
 }

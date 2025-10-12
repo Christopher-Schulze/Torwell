@@ -118,9 +118,7 @@
 </script>
 
 <div class="p-6 max-w-6xl mx-auto">
-  <div
-    class="bg-white/20 backdrop-blur-xl rounded-[32px] border border-white/20 p-6 flex flex-col gap-2"
-  >
+  <div class="tw-surface flex flex-col gap-4">
     <SecurityBanner />
     <StatusCard
       status={$torStore.status}

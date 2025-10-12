@@ -387,6 +387,26 @@ pub async fn set_exit_country(state: State<'_, AppState>, country: Option<String
 }
 
 #[tauri::command]
+pub async fn set_entry_country(state: State<'_, AppState>, country: Option<String>) -> Result<()> {
+    track_call("set_entry_country").await;
+    check_api_rate()?;
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.set_entry_country(country).await
+    }
+}
+
+#[tauri::command]
+pub async fn set_middle_country(state: State<'_, AppState>, country: Option<String>) -> Result<()> {
+    track_call("set_middle_country").await;
+    check_api_rate()?;
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.set_middle_country(country).await
+    }
+}
+
+#[tauri::command]
 pub async fn set_bridges(state: State<'_, AppState>, bridges: Vec<String>) -> Result<()> {
     track_call("set_bridges").await;
     check_api_rate()?;
@@ -546,6 +566,52 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
                 "tor-status-update",
                 serde_json::json!({
                     "status": "NEW_IDENTITY",
+                    "errorStep": null,
+                    "errorSource": null,
+                    "errorMessage": null
+                }),
+            )?;
+            Ok(())
+        }
+        Err(e) => {
+            let (step, source) = match &e {
+                Error::Identity { step, source, .. }
+                | Error::ConnectionFailed { step, source, .. }
+                | Error::NetworkFailure { step, source, .. }
+                | Error::ConfigError { step, source, .. } => (step.to_string(), source.clone()),
+                _ => (String::new(), String::new()),
+            };
+            if let Err(em) = app_handle.emit_all(
+                "tor-status-update",
+                serde_json::json!({
+                    "status": "ERROR",
+                    "errorMessage": e.to_string(),
+                    "errorStep": step,
+                    "errorSource": source
+                }),
+            ) {
+                log::error!("Failed to emit error status update: {}", em);
+            }
+            Err(e)
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn build_circuit(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("build_circuit").await;
+    check_api_rate()?;
+    let result = {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.build_circuit().await
+    };
+
+    match result {
+        Ok(_) => {
+            app_handle.emit_all(
+                "tor-status-update",
+                serde_json::json!({
+                    "status": "NEW_CIRCUIT",
                     "errorStep": null,
                     "errorSource": null,
                     "errorMessage": null

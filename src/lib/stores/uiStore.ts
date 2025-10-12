@@ -71,6 +71,12 @@ function createUIStore() {
     };
 
     try {
+      if (countries.entry !== undefined) {
+        await invoke("set_entry_country", { country: next.entryCountry ?? null });
+      }
+      if (countries.middle !== undefined) {
+        await invoke("set_middle_country", { country: next.middleCountry ?? null });
+      }
       if (countries.exit !== undefined) {
         await invoke("set_exit_country", { country: next.exitCountry ?? null });
       }
@@ -135,6 +141,12 @@ function createUIStore() {
           await invoke("set_bridges", {
             bridges: storedSettings.bridges ?? [],
           });
+          await invoke("set_entry_country", {
+            country: storedSettings.entryCountry ?? null,
+          });
+          await invoke("set_middle_country", {
+            country: storedSettings.middleCountry ?? null,
+          });
           await invoke("set_exit_country", {
             country: storedSettings.exitCountry ?? null,
           });
@@ -177,6 +189,10 @@ function createUIStore() {
     },
 
     setCircuitCountries: persistCircuitCountries,
+    setEntryCountry: async (country: string | null) =>
+      persistCircuitCountries({ entry: country }),
+    setMiddleCountry: async (country: string | null) =>
+      persistCircuitCountries({ middle: country }),
 
     setBridges: async (bridges: string[]) => {
       try {
