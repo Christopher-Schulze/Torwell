@@ -8,6 +8,8 @@ type AppSettings = {
   torrcConfig: string;
   workerToken: string;
   exitCountry: string | null;
+  entryCountry: string | null;
+  middleCountry: string | null;
   bridges: string[];
   bridgePreset: string | null;
   maxLogLines: number;
@@ -36,6 +38,8 @@ function createUIStore() {
       torrcConfig: "# Default torrc config\n",
       workerToken: "",
       exitCountry: null,
+      entryCountry: null,
+      middleCountry: null,
       bridges: [],
       bridgePreset: null,
       maxLogLines: 1000,
@@ -47,6 +51,39 @@ function createUIStore() {
     error: null,
     importProgress: null,
   });
+
+  const persistCircuitCountries = async (
+    countries: {
+      entry?: string | null;
+      middle?: string | null;
+      exit?: string | null;
+    },
+  ) => {
+    const current = get({ subscribe });
+    const next: AppSettings = {
+      ...current.settings,
+      entryCountry:
+        countries.entry !== undefined ? countries.entry : current.settings.entryCountry,
+      middleCountry:
+        countries.middle !== undefined ? countries.middle : current.settings.middleCountry,
+      exitCountry:
+        countries.exit !== undefined ? countries.exit : current.settings.exitCountry,
+    };
+
+    try {
+      if (countries.exit !== undefined) {
+        await invoke("set_exit_country", { country: next.exitCountry ?? null });
+      }
+      await db.settings.put({ id: 1, ...next });
+      update((state) => ({ ...state, settings: next, error: null }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      update((state) => ({
+        ...state,
+        error: `Failed to set circuit countries: ${message}`,
+      }));
+    }
+  };
 
   const actions = {
     toggleLogsModal: () =>
@@ -82,6 +119,8 @@ function createUIStore() {
               torrcConfig: storedSettings.torrcConfig,
               workerToken: storedSettings.workerToken ?? "",
               exitCountry: storedSettings.exitCountry ?? null,
+              entryCountry: storedSettings.entryCountry ?? null,
+              middleCountry: storedSettings.middleCountry ?? null,
               bridges: storedSettings.bridges ?? [],
               bridgePreset: storedSettings.bridgePreset ?? null,
               maxLogLines: storedSettings.maxLogLines ?? 1000,
@@ -137,6 +176,8 @@ function createUIStore() {
       }
     },
 
+    setCircuitCountries: persistCircuitCountries,
+
     setBridges: async (bridges: string[]) => {
       try {
         await invoke("set_bridges", { bridges });
@@ -177,24 +218,7 @@ function createUIStore() {
       }
     },
 
-    setExitCountry: async (country: string | null) => {
-      try {
-        await invoke("set_exit_country", { country });
-        const current = get({ subscribe });
-        const newSettings: AppSettings = {
-          ...current.settings,
-          exitCountry: country,
-        };
-        await db.settings.put({ id: 1, ...newSettings });
-        update((state) => ({ ...state, settings: newSettings, error: null }));
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        update((state) => ({
-          ...state,
-          error: `Failed to set exit country: ${message}`,
-        }));
-      }
-    },
+    setExitCountry: async (country: string | null) => persistCircuitCountries({ exit: country }),
 
     loadTorrcConfig: async () => {
       try {
