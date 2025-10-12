@@ -23,6 +23,7 @@ export interface TorState {
   circuitCount: number;
   pingMs: number | undefined;
   metrics: MetricPoint[];
+  lastTransition: string | null;
 }
 
 export interface MetricPoint {
@@ -54,6 +55,7 @@ function createTorStore() {
     circuitCount: 0,
     pingMs: undefined,
     metrics: [],
+    lastTransition: null,
   };
 
   const { subscribe, update, set } = writable<TorState>(initialState);
@@ -91,58 +93,61 @@ function createTorStore() {
   });
 
   // Listen for status updates from the Rust backend
-  listen<TorState>("tor-status-update", (event) => {
+  listen<Record<string, any>>("tor-status-update", (event) => {
     update((state) => {
-      const statusStr = event.payload.status as string;
+      const rawStatus = (event.payload?.status as string) ?? initialState.status;
+      const isEphemeral = ["NEW_IDENTITY", "NEW_CIRCUIT"].includes(rawStatus);
+      const statusStr = (isEphemeral ? "CONNECTED" : rawStatus) as TorStatus;
       const clearError = !["RETRYING", "ERROR"].includes(statusStr);
       return {
         ...state,
         ...event.payload,
+        status: statusStr,
+        lastTransition: rawStatus,
         retryCount:
-          event.payload.retryCount ??
+          event.payload?.retryCount ??
           (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
             ? 0
             : state.retryCount),
         retryDelay:
-          event.payload.retryDelay ??
+          event.payload?.retryDelay ??
           (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
             ? 0
             : state.retryDelay),
         bootstrapMessage:
-          event.payload.bootstrapMessage ??
+          event.payload?.bootstrapMessage ??
           (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
             ? ""
             : state.bootstrapMessage),
         errorMessage:
-          event.payload.errorMessage ??
+          event.payload?.errorMessage ??
           (["CONNECTED", "DISCONNECTED"].includes(statusStr)
             ? null
             : state.errorMessage),
-        errorStep: event.payload.errorStep ?? (clearError ? null : state.errorStep),
+        errorStep: event.payload?.errorStep ?? (clearError ? null : state.errorStep),
         errorSource:
-          event.payload.errorSource ?? (clearError ? null : state.errorSource),
+          event.payload?.errorSource ?? (clearError ? null : state.errorSource),
       };
     });
 
-    const newStatus =
-      (event.payload.status as TorStatus) ?? initialState.status;
-    if (newStatus === "CONNECTED") {
-      update((state) => ({
-        ...state,
-        securityWarning: null,
-        errorMessage: null,
-        errorStep: null,
-        errorSource: null,
-      }));
-    } else {
-      update((state) => ({
+    update((state) => {
+      if (state.status === "CONNECTED") {
+        return {
+          ...state,
+          securityWarning: null,
+          errorMessage: null,
+          errorStep: null,
+          errorSource: null,
+        };
+      }
+      return {
         ...state,
         memoryUsageMB: 0,
         circuitCount: 0,
         pingMs: undefined,
         metrics: [],
-      }));
-    }
+      };
+    });
   });
 
   return {

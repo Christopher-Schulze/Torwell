@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 use torwell84::error::Error;
 use torwell84::tor_manager::{TorClientBehavior, TorClientConfig, TorManager};
@@ -13,10 +14,19 @@ struct MockTorClient {
 static CONNECT_RESULTS: Lazy<Mutex<VecDeque<Result<MockTorClient, String>>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));
 static CAPTURED_CONFIGS: Lazy<Mutex<Vec<TorClientConfig>>> = Lazy::new(|| Mutex::new(Vec::new()));
+static BUILD_CALLS: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 
 impl MockTorClient {
     fn push_result(res: Result<MockTorClient, String>) {
         CONNECT_RESULTS.lock().unwrap().push_back(res);
+    }
+
+    fn reset_build_calls() {
+        BUILD_CALLS.store(0, Ordering::SeqCst);
+    }
+
+    fn build_call_count() -> usize {
+        BUILD_CALLS.load(Ordering::SeqCst)
     }
 }
 
@@ -56,6 +66,7 @@ impl TorClientBehavior for MockTorClient {
     fn retire_all_circs(&self) {}
 
     async fn build_new_circuit(&self) -> std::result::Result<(), String> {
+        BUILD_CALLS.fetch_add(1, Ordering::SeqCst);
         if self.build_ok {
             Ok(())
         } else {
@@ -137,6 +148,19 @@ async fn bridge_parse_error() {
         }
         _ => panic!("expected connection failure"),
     }
+}
+
+#[tokio::test]
+async fn connect_triggers_circuit_prewarm() {
+    MockTorClient::reset_build_calls();
+    MockTorClient::push_result(Ok(MockTorClient {
+        build_ok: true,
+        ..Default::default()
+    }));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    assert!(MockTorClient::build_call_count() >= 1);
 }
 
 #[tokio::test]
@@ -254,6 +278,59 @@ async fn new_identity_rate_limited() {
     }
 
     let res = manager.new_identity().await;
+    assert!(matches!(res, Err(Error::RateLimitExceeded(_))));
+}
+
+#[tokio::test]
+async fn build_circuit_success() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: true,
+    }));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+    assert!(manager.build_circuit().await.is_ok());
+}
+
+#[tokio::test]
+async fn build_circuit_not_connected() {
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    let res = manager.build_circuit().await;
+    assert!(matches!(res, Err(Error::NotConnected)));
+}
+
+#[tokio::test]
+async fn build_circuit_error() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: false,
+    }));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+    let res = manager.build_circuit().await;
+    match res {
+        Err(Error::NetworkFailure { step, source, .. }) => {
+            assert_eq!(step, "build_circuit");
+            assert!(source.contains("build"));
+        }
+        _ => panic!("expected circuit build error"),
+    }
+}
+
+#[tokio::test]
+async fn build_circuit_rate_limited() {
+    MockTorClient::push_result(Ok(MockTorClient {
+        reconfigure_ok: true,
+        build_ok: true,
+    }));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+
+    for _ in 0..10 {
+        manager.build_circuit().await.unwrap();
+    }
+
+    let res = manager.build_circuit().await;
     assert!(matches!(res, Err(Error::RateLimitExceeded(_))));
 }
 

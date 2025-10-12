@@ -60,6 +60,9 @@ const MAX_BACKOFF: std::time::Duration = std::time::Duration::from_secs(30);
 const CONNECT_RATE_LIMIT: u32 = 5;
 const CIRCUIT_RATE_LIMIT: u32 = 10;
 const MAX_ISOLATION_TOKENS: usize = 100;
+const PREWARM_CIRCUIT_COUNT: usize = 3;
+const MAX_COUNTRY_MATCH_ATTEMPTS: usize = 5;
+const COUNTRY_POLICY_RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(250);
 
 /// Simple traffic statistics returned from [`TorManager::traffic_stats`].
 #[derive(Debug, Clone)]
@@ -117,6 +120,63 @@ pub struct RetryInfo {
     pub attempt: u32,
     pub delay: std::time::Duration,
     pub error: Error,
+}
+
+#[derive(Debug, Clone, Default)]
+struct CircuitCountryPrefs {
+    entry: Option<String>,
+    middle: Option<String>,
+    exit: Option<String>,
+}
+
+impl CircuitCountryPrefs {
+    fn is_restricted(&self) -> bool {
+        self.entry.is_some() || self.middle.is_some() || self.exit.is_some()
+    }
+
+    fn matches(&self, relays: &[RelayInfo]) -> bool {
+        if relays.is_empty() {
+            return false;
+        }
+
+        if let Some(entry) = &self.entry {
+            if !relays
+                .first()
+                .map(|info| info.country.eq_ignore_ascii_case(entry))
+                .unwrap_or(false)
+            {
+                return false;
+            }
+        }
+
+        if let Some(exit) = &self.exit {
+            if !relays
+                .last()
+                .map(|info| info.country.eq_ignore_ascii_case(exit))
+                .unwrap_or(false)
+            {
+                return false;
+            }
+        }
+
+        if let Some(middle) = &self.middle {
+            if relays.len() < 3 {
+                return false;
+            }
+            let middle_slice = &relays[1..relays.len() - 1];
+            if middle_slice.is_empty() {
+                return false;
+            }
+            if !middle_slice
+                .iter()
+                .all(|info| info.country.eq_ignore_ascii_case(middle))
+            {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 #[async_trait]
@@ -211,6 +271,8 @@ pub struct TorManager<C = TorClient<PreferredRuntime>> {
     client: Arc<Mutex<Option<C>>>,
     isolation_tokens: Arc<Mutex<HashMap<String, (IsolationToken, std::time::Instant)>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
+    entry_country: Arc<Mutex<Option<CountryCode>>>,
+    middle_country: Arc<Mutex<Option<CountryCode>>>,
     bridges: Arc<Mutex<Vec<String>>>,
     torrc_config: Arc<Mutex<String>>,
     country_cache: Arc<Mutex<HashMap<String, String>>>,
@@ -225,6 +287,8 @@ impl<C> Clone for TorManager<C> {
             client: Arc::clone(&self.client),
             isolation_tokens: Arc::clone(&self.isolation_tokens),
             exit_country: Arc::clone(&self.exit_country),
+            entry_country: Arc::clone(&self.entry_country),
+            middle_country: Arc::clone(&self.middle_country),
             bridges: Arc::clone(&self.bridges),
             torrc_config: Arc::clone(&self.torrc_config),
             country_cache: Arc::clone(&self.country_cache),
@@ -250,6 +314,8 @@ impl<C: TorClientBehavior> TorManager<C> {
             client: Arc::new(Mutex::new(None)),
             isolation_tokens: Arc::new(Mutex::new(HashMap::new())),
             exit_country: Arc::new(Mutex::new(None)),
+            entry_country: Arc::new(Mutex::new(None)),
+            middle_country: Arc::new(Mutex::new(None)),
             bridges: Arc::new(Mutex::new(Vec::new())),
             torrc_config: Arc::new(Mutex::new(String::new())),
             country_cache: Arc::new(Mutex::new(HashMap::new())),
@@ -279,6 +345,28 @@ impl<C: TorClientBehavior> TorManager<C> {
         let now = std::time::Instant::now();
         let mut tokens = self.isolation_tokens.lock().await;
         tokens.retain(|_, (_, ts)| now.duration_since(*ts) <= max_age);
+    }
+
+    async fn set_country(
+        target: &Arc<Mutex<Option<CountryCode>>>,
+        step: &str,
+        country: Option<String>,
+    ) -> Result<()> {
+        let mut guard = target.lock().await;
+        if let Some(cc) = country {
+            let code = CountryCode::new(&cc).map_err(|e| {
+                log::error!("{step}: invalid code {cc} - {e}");
+                Error::ConfigError {
+                    step: step.into(),
+                    source: e.to_string(),
+                    backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
+                }
+            })?;
+            *guard = Some(code);
+        } else {
+            *guard = None;
+        }
+        Ok(())
     }
 
     async fn build_config(&self) -> Result<TorClientConfig> {
@@ -327,6 +415,86 @@ impl<C: TorClientBehavior> TorManager<C> {
         })
     }
 
+    async fn current_country_prefs(&self) -> CircuitCountryPrefs {
+        CircuitCountryPrefs {
+            entry: self
+                .entry_country
+                .lock()
+                .await
+                .clone()
+                .map(|cc| cc.to_string()),
+            middle: self
+                .middle_country
+                .lock()
+                .await
+                .clone()
+                .map(|cc| cc.to_string()),
+            exit: self
+                .exit_country
+                .lock()
+                .await
+                .clone()
+                .map(|cc| cc.to_string()),
+        }
+    }
+
+    fn log_policy_miss(policy: &CircuitCountryPrefs, relays: &[RelayInfo], attempt: usize) {
+        if !policy.is_restricted() {
+            return;
+        }
+
+        let path: Vec<String> = relays
+            .iter()
+            .map(|hop| format!("{} ({})", hop.nickname, hop.country))
+            .collect();
+        log::warn!(
+            "circuit attempt {} did not match country policy entry={:?} middle={:?} exit={:?}; got {}",
+            attempt + 1,
+            policy.entry,
+            policy.middle,
+            policy.exit,
+            path.join(" -> ")
+        );
+    }
+
+    fn matches_policy(relays: &[RelayInfo], policy: &CircuitCountryPrefs) -> bool {
+        if !policy.is_restricted() {
+            return true;
+        }
+        policy.matches(relays)
+    }
+
+    async fn prewarm_circuits(&self, count: usize) {
+        for attempt in 0..count {
+            let result = {
+                let guard = self.client.lock().await;
+                if let Some(client) = guard.as_ref() {
+                    match client.build_new_circuit().await {
+                        Ok(_) => Ok(()),
+                        Err(err) => Err(err),
+                    }
+                } else {
+                    return;
+                }
+            };
+
+            match result {
+                Ok(_) => log::debug!("prewarmed circuit attempt {}", attempt + 1),
+                Err(err) => {
+                    log::warn!("circuit prewarm attempt {} failed: {}", attempt + 1, err);
+                    break;
+                }
+            }
+        }
+    }
+
+    fn spawn_circuit_prewarm(&self) {
+        let manager = self.clone();
+        tokio::spawn(async move {
+            manager.prewarm_circuits(PREWARM_CIRCUIT_COUNT).await;
+        });
+    }
+
     async fn connect_once<P>(&self, progress: &mut P) -> Result<()>
     where
         P: FnMut(u8, String) + Send,
@@ -344,6 +512,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             .await
             .map_err(|e| log_and_convert_error(ConnectionStep::Bootstrap, e))?;
         *self.client.lock().await = Some(tor_client);
+        self.spawn_circuit_prewarm();
         Ok(())
     }
 
@@ -472,21 +641,15 @@ impl<C: TorClientBehavior> TorManager<C> {
     }
 
     pub async fn set_exit_country(&self, country: Option<String>) -> Result<()> {
-        let mut guard = self.exit_country.lock().await;
-        if let Some(cc) = country {
-            let code = CountryCode::new(&cc).map_err(|e| {
-                log::error!("set_exit_country: invalid code {cc} - {e}");
-                Error::ConfigError {
-                    step: "set_exit_country".into(),
-                    source: e.to_string(),
-                    backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
-                }
-            })?;
-            *guard = Some(code);
-        } else {
-            *guard = None;
-        }
-        Ok(())
+        Self::set_country(&self.exit_country, "set_exit_country", country).await
+    }
+
+    pub async fn set_entry_country(&self, country: Option<String>) -> Result<()> {
+        Self::set_country(&self.entry_country, "set_entry_country", country).await
+    }
+
+    pub async fn set_middle_country(&self, country: Option<String>) -> Result<()> {
+        Self::set_country(&self.middle_country, "set_middle_country", country).await
     }
 
     pub async fn set_bridges(&self, bridges: Vec<String>) -> Result<()> {
@@ -509,6 +672,24 @@ impl<C: TorClientBehavior> TorManager<C> {
             .map(|cc| cc.to_string())
     }
 
+    /// Get the currently configured entry country as an ISO 3166-1 alpha-2 code.
+    pub async fn get_entry_country(&self) -> Option<String> {
+        self.entry_country
+            .lock()
+            .await
+            .clone()
+            .map(|cc| cc.to_string())
+    }
+
+    /// Get the currently configured middle-country preference as an ISO code.
+    pub async fn get_middle_country(&self) -> Option<String> {
+        self.middle_country
+            .lock()
+            .await
+            .clone()
+            .map(|cc| cc.to_string())
+    }
+
     /// Retrieve the list of configured bridges.
     pub async fn get_bridges(&self) -> Vec<String> {
         self.bridges.lock().await.clone()
@@ -525,10 +706,7 @@ impl<C: TorClientBehavior> TorManager<C> {
             Error::NotConnected
         })?;
 
-        if self.circuit_limiter.check().is_err() {
-            log::error!("new_identity: rate limit exceeded");
-            return Err(Error::RateLimitExceeded("new_identity".into()));
-        }
+        self.check_circuit_quota("new_identity")?;
 
         // Force new configuration and circuits
         let config = self
@@ -541,6 +719,32 @@ impl<C: TorClientBehavior> TorManager<C> {
         client.retire_all_circs();
 
         // Build fresh circuit
+        self.finish_build_circuit(client).await?;
+
+        Ok(())
+    }
+
+    /// Build a fresh circuit without retiring the existing identity.
+    pub async fn build_circuit(&self) -> Result<()> {
+        let client_guard = self.client.lock().await;
+        let client = client_guard.as_ref().ok_or_else(|| {
+            log::error!("build_circuit: not connected");
+            Error::NotConnected
+        })?;
+
+        self.check_circuit_quota("build_circuit")?;
+        self.finish_build_circuit(client).await
+    }
+
+    fn check_circuit_quota(&self, op: &'static str) -> Result<()> {
+        if self.circuit_limiter.check().is_err() {
+            log::error!("{}: rate limit exceeded", op);
+            return Err(Error::RateLimitExceeded(op.into()));
+        }
+        Ok(())
+    }
+
+    async fn finish_build_circuit(&self, client: &C) -> Result<()> {
         client
             .build_new_circuit()
             .await
@@ -625,60 +829,79 @@ impl TorManager {
             .dirmgr()
             .netdir(Timeliness::Timely)
             .map_err(|e| Error::NetDir(e.to_string()))?;
-        let exit_pref = self.exit_country.lock().await.clone();
-        log::info!(
-            "building active circuit with exit {:?}",
-            exit_pref.as_ref().map(|c| c.to_string())
-        );
-        let circuit = client
-            .circmgr()
-            .get_or_launch_exit(
-                (&*netdir).into(),
-                &[],
-                StreamIsolation::no_isolation(),
-                None,
-            )
-            .await
-            .map_err(|e| report_error("build_circuit", e))?;
+        let prefs = self.current_country_prefs().await;
+        for attempt in 0..MAX_COUNTRY_MATCH_ATTEMPTS {
+            log::info!(
+                "building active circuit attempt {} with policy entry={:?} middle={:?} exit={:?}",
+                attempt + 1,
+                prefs.entry,
+                prefs.middle,
+                prefs.exit
+            );
+            let circuit = client
+                .circmgr()
+                .get_or_launch_exit(
+                    (&*netdir).into(),
+                    &[],
+                    StreamIsolation::no_isolation(),
+                    None,
+                )
+                .await
+                .map_err(|e| report_error("build_circuit", e))?;
 
-        let hops: Vec<_> = circuit
-            .path_ref()
-            .map_err(|e| report_error("path", e))?
-            .hops()
-            .iter()
-            .cloned()
-            .collect();
+            let hops: Vec<_> = circuit
+                .path_ref()
+                .map_err(|e| report_error("path", e))?
+                .hops()
+                .iter()
+                .cloned()
+                .collect();
 
-        let mut relays = Vec::new();
-        for hop in hops {
-            if let Some(relay) = hop.as_chan_target() {
-                let nickname = relay
-                    .rsa_identity()
-                    .map(|id| format!("${}", id.to_string().chars().take(8).collect::<String>()))
-                    .unwrap_or_else(|| "$unknown".to_string());
-                let ip_address = relay
-                    .addrs()
-                    .get(0)
-                    .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
-                let country = self
-                    .lookup_country_code(&ip_address)
-                    .await
-                    .unwrap_or_else(|_| "??".to_string());
-                relays.push(RelayInfo {
-                    nickname,
-                    ip_address,
-                    country,
-                });
-            } else {
-                relays.push(RelayInfo {
-                    nickname: "<virtual>".to_string(),
-                    ip_address: "?.?.?.?".to_string(),
-                    country: "??".to_string(),
-                });
+            let mut relays = Vec::new();
+            for hop in hops {
+                if let Some(relay) = hop.as_chan_target() {
+                    let nickname = relay
+                        .rsa_identity()
+                        .map(|id| {
+                            format!("${}", id.to_string().chars().take(8).collect::<String>())
+                        })
+                        .unwrap_or_else(|| "$unknown".to_string());
+                    let ip_address = relay
+                        .addrs()
+                        .get(0)
+                        .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
+                    let country = self
+                        .lookup_country_code(&ip_address)
+                        .await
+                        .unwrap_or_else(|_| "??".to_string());
+                    relays.push(RelayInfo {
+                        nickname,
+                        ip_address,
+                        country,
+                    });
+                } else {
+                    relays.push(RelayInfo {
+                        nickname: "<virtual>".to_string(),
+                        ip_address: "?.?.?.?".to_string(),
+                        country: "??".to_string(),
+                    });
+                }
             }
+
+            if Self::matches_policy(&relays, &prefs) {
+                return Ok(relays);
+            }
+
+            Self::log_policy_miss(&prefs, &relays, attempt);
+            drop(relays);
+            drop(circuit);
+            client.retire_all_circs();
+            tokio::time::sleep(COUNTRY_POLICY_RETRY_DELAY).await;
         }
 
-        Ok(relays)
+        Err(Error::Circuit(
+            "unable to satisfy circuit country preferences".into(),
+        ))
     }
 
     pub async fn get_isolated_circuit(&self, domain: String) -> Result<Vec<RelayInfo>> {
@@ -716,65 +939,82 @@ impl TorManager {
             .build()
             .map_err(|e| Error::Circuit(e.to_string()))?;
 
-        let prefs = {
-            let guard = self.exit_country.lock().await;
-            guard.map(|cc| {
+        let exit_country = self.exit_country.lock().await.clone();
+        let policy = self.current_country_prefs().await;
+        for attempt in 0..MAX_COUNTRY_MATCH_ATTEMPTS {
+            let exit_pref = exit_country.as_ref().map(|cc| cc.to_string());
+            let prefs = exit_country.as_ref().map(|cc| {
                 let mut p = StreamPrefs::new();
-                p.exit_country(cc);
+                p.exit_country(cc.clone());
                 p
-            })
-        };
+            });
+            log::info!(
+                "building isolated circuit for domain {} attempt {} with policy entry={:?} middle={:?} exit={:?} (stream exit={exit_pref:?})",
+                domain,
+                attempt + 1,
+                policy.entry,
+                policy.middle,
+                policy.exit
+            );
+            let circuit = client
+                .circmgr()
+                .get_or_launch_exit((&*netdir).into(), &[], isolation, prefs)
+                .await
+                .map_err(|e| report_error("build_circuit", e))?;
 
-        let exit_pref = prefs.as_ref().and_then(|p| p.exit_country());
-        log::info!(
-            "building isolated circuit for domain {} with exit {:?}",
-            domain,
-            exit_pref
-        );
-        let circuit = client
-            .circmgr()
-            .get_or_launch_exit((&*netdir).into(), &[], isolation, prefs)
-            .await
-            .map_err(|e| report_error("build_circuit", e))?;
+            let hops: Vec<_> = circuit
+                .path_ref()
+                .map_err(|e| report_error("path", e))?
+                .hops()
+                .iter()
+                .cloned()
+                .collect();
 
-        let hops: Vec<_> = circuit
-            .path_ref()
-            .map_err(|e| report_error("path", e))?
-            .hops()
-            .iter()
-            .cloned()
-            .collect();
-
-        let mut relays = Vec::new();
-        for hop in hops {
-            if let Some(relay) = hop.as_chan_target() {
-                let nickname = relay
-                    .rsa_identity()
-                    .map(|id| format!("${}", id.to_string().chars().take(8).collect::<String>()))
-                    .unwrap_or_else(|| "$unknown".to_string());
-                let ip_address = relay
-                    .addrs()
-                    .get(0)
-                    .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
-                let country = self
-                    .lookup_country_code(&ip_address)
-                    .await
-                    .unwrap_or_else(|_| "??".to_string());
-                relays.push(RelayInfo {
-                    nickname,
-                    ip_address,
-                    country,
-                });
-            } else {
-                relays.push(RelayInfo {
-                    nickname: "<virtual>".to_string(),
-                    ip_address: "?.?.?.?".to_string(),
-                    country: "??".to_string(),
-                });
+            let mut relays = Vec::new();
+            for hop in hops {
+                if let Some(relay) = hop.as_chan_target() {
+                    let nickname = relay
+                        .rsa_identity()
+                        .map(|id| {
+                            format!("${}", id.to_string().chars().take(8).collect::<String>())
+                        })
+                        .unwrap_or_else(|| "$unknown".to_string());
+                    let ip_address = relay
+                        .addrs()
+                        .get(0)
+                        .map_or_else(|| "?.?.?.?".to_string(), |addr| addr.to_string());
+                    let country = self
+                        .lookup_country_code(&ip_address)
+                        .await
+                        .unwrap_or_else(|_| "??".to_string());
+                    relays.push(RelayInfo {
+                        nickname,
+                        ip_address,
+                        country,
+                    });
+                } else {
+                    relays.push(RelayInfo {
+                        nickname: "<virtual>".to_string(),
+                        ip_address: "?.?.?.?".to_string(),
+                        country: "??".to_string(),
+                    });
+                }
             }
+
+            if Self::matches_policy(&relays, &policy) {
+                return Ok(relays);
+            }
+
+            Self::log_policy_miss(&policy, &relays, attempt);
+            drop(relays);
+            drop(circuit);
+            client.retire_all_circs();
+            tokio::time::sleep(COUNTRY_POLICY_RETRY_DELAY).await;
         }
 
-        Ok(relays)
+        Err(Error::Circuit(
+            "unable to satisfy circuit country preferences".into(),
+        ))
     }
 
     /// Return the total number of bytes sent and received through the Tor client.
