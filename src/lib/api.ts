@@ -9,21 +9,21 @@ export async function ensureToken(force = false): Promise<string> {
   return token;
 }
 
-export async function invoke(
+export async function invoke<T = any>(
   cmd: string,
   args: Record<string, any> = {},
   retried = false
-) {
+): Promise<T> {
   const t = await ensureToken();
   try {
-    return await tauriInvoke(cmd, { token: t, ...args });
+    return await tauriInvoke<T>(cmd, { token: t, ...args });
   } catch (err: any) {
     if (err && err.toString().includes('Invalid session token')) {
       if (retried) {
         errorStore.set(new Error('Session expired. Please retry.'));
       } else {
         await ensureToken(true);
-        return invoke(cmd, args, true);
+        return invoke<T>(cmd, args, true);
       }
     }
     throw err;

@@ -11,6 +11,7 @@
   import { uiStore } from "$lib/stores/uiStore";
   import { torStore } from "$lib/stores/torStore";
   import { invoke } from "$lib/api";
+  import type { StatusSummary } from "$lib/types";
 
   import { onMount } from "svelte";
 
@@ -18,8 +19,9 @@
   let isolatedCircuits: { domain: string; nodes: any[] }[] = [];
   const isolatedDomain = "example.com";
   let circuitInterval: any = null;
-  let trafficInterval: any = null;
+  let summaryInterval: any = null;
   let totalTrafficMB = 0;
+  let statusSummary: StatusSummary | null = null;
 
   async function fetchCircuit() {
     if ($torStore.status === "CONNECTED") {
@@ -48,17 +50,19 @@
     }
   }
 
-  async function fetchTraffic() {
+  async function fetchStatusSummary() {
     if ($torStore.status === "CONNECTED") {
       try {
-        const stats = await invoke<any>("get_traffic_stats");
-        const bytes = stats.bytes_sent + stats.bytes_received;
-        totalTrafficMB = Math.round(bytes / 1_000_000);
+        const summary = await invoke<StatusSummary>("get_status_summary");
+        statusSummary = summary;
+        totalTrafficMB = summary.total_traffic_bytes / 1_000_000;
       } catch (e) {
-        console.error("Failed to get traffic stats:", e);
+        console.error("Failed to load status summary:", e);
+        statusSummary = null;
         totalTrafficMB = 0;
       }
     } else {
+      statusSummary = null;
       totalTrafficMB = 0;
     }
   }
@@ -78,12 +82,13 @@
     isolatedCircuits = [];
   }
 
-  $: if ($torStore.status === "CONNECTED" && !trafficInterval) {
-    fetchTraffic();
-    trafficInterval = setInterval(fetchTraffic, 5000);
-  } else if ($torStore.status !== "CONNECTED" && trafficInterval) {
-    clearInterval(trafficInterval);
-    trafficInterval = null;
+  $: if ($torStore.status === "CONNECTED" && !summaryInterval) {
+    fetchStatusSummary();
+    summaryInterval = setInterval(fetchStatusSummary, 5000);
+  } else if ($torStore.status !== "CONNECTED" && summaryInterval) {
+    clearInterval(summaryInterval);
+    summaryInterval = null;
+    statusSummary = null;
     totalTrafficMB = 0;
   }
 
@@ -92,8 +97,8 @@
       if (circuitInterval) {
         clearInterval(circuitInterval);
       }
-      if (trafficInterval) {
-        clearInterval(trafficInterval);
+      if (summaryInterval) {
+        clearInterval(summaryInterval);
       }
       isolatedCircuits = [];
     };
@@ -121,6 +126,7 @@
       status={$torStore.status}
       {totalTrafficMB}
       pingMs={$torStore.pingMs}
+      summary={statusSummary}
     />
 
     <TorChain
