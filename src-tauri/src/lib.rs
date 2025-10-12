@@ -175,6 +175,7 @@ pub fn run() {
             commands::connect,
             commands::disconnect,
             commands::get_status,
+            commands::get_status_summary,
             commands::get_active_circuit,
             commands::get_isolated_circuit,
             commands::set_exit_country,

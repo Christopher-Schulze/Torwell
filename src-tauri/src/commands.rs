@@ -49,6 +49,24 @@ pub struct Metrics {
     pub complete: bool,
 }
 
+/// Aggregated status information used by the frontend dashboard.
+#[derive(Serialize, Clone)]
+pub struct StatusSummary {
+    pub status: String,
+    pub connected_since: Option<String>,
+    pub uptime_seconds: Option<u64>,
+    pub total_traffic_bytes: u64,
+    pub network_bytes_per_sec: u64,
+    pub total_network_bytes: u64,
+    pub latency_ms: u64,
+    pub memory_bytes: u64,
+    pub circuit_count: usize,
+    pub oldest_circuit_age: u64,
+    pub cpu_percent: f32,
+    pub tray_warning: Option<String>,
+    pub retry_count: u32,
+}
+
 const INVOCATION_WINDOW: Duration = Duration::from_secs(60);
 static INVOCATIONS: Lazy<Mutex<HashMap<&'static str, Vec<Instant>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
@@ -188,6 +206,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 ) {
                     log::error!("Failed to emit status update: {}", e);
                 }
+                state_clone.mark_connected_now().await;
                 state_clone.update_tray_menu().await;
             }
             Err(e) => {
@@ -213,6 +232,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 ) {
                     log::error!("Failed to emit error status update: {}", e_emit);
                 }
+                state_clone.mark_disconnected().await;
                 state_clone.update_tray_menu().await;
             }
         }
@@ -244,6 +264,8 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
         let mgr = state.tor_manager.read().await.clone();
         mgr.disconnect().await?;
     }
+
+    state.mark_disconnected().await;
 
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
@@ -278,6 +300,57 @@ pub async fn get_status(state: State<'_, AppState>) -> Result<String> {
     } else {
         Ok("DISCONNECTED".to_string())
     }
+}
+
+#[tauri::command]
+pub async fn get_status_summary(state: State<'_, AppState>) -> Result<StatusSummary> {
+    track_call("get_status_summary").await;
+    check_api_rate()?;
+
+    let mgr = state.tor_manager.read().await.clone();
+    let is_connected = mgr.is_connected().await;
+    let total_traffic_bytes = if is_connected {
+        mgr.traffic_stats()
+            .await
+            .map(|stats| stats.bytes_sent + stats.bytes_received)
+            .unwrap_or(0)
+    } else {
+        0
+    };
+
+    let (
+        memory_bytes,
+        circuit_count,
+        oldest_circuit_age,
+        cpu_percent,
+        network_bytes_per_sec,
+        total_network_bytes,
+    ) = state.metrics().await;
+    let latency_ms = state.latency().await;
+    let connected_since = state.connected_since().await.map(|ts| ts.to_rfc3339());
+    let uptime_seconds = state.connection_uptime().await;
+    let tray_warning = state.tray_warning_message().await;
+    let retry_count = state.retry_counter_value().await;
+
+    Ok(StatusSummary {
+        status: if is_connected {
+            "CONNECTED".into()
+        } else {
+            "DISCONNECTED".into()
+        },
+        connected_since,
+        uptime_seconds,
+        total_traffic_bytes,
+        network_bytes_per_sec,
+        total_network_bytes,
+        latency_ms,
+        memory_bytes,
+        circuit_count,
+        oldest_circuit_age,
+        cpu_percent,
+        tray_warning,
+        retry_count,
+    })
 }
 
 #[tauri::command]

@@ -4,7 +4,7 @@ use crate::secure_http::SecureHttpClient;
 use crate::session::SessionManager;
 use crate::tor_manager::{TorClientBehavior, TorManager};
 use arti_client::TorClient;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use directories::ProjectDirs;
 use log::Level;
 use regex::Regex;
@@ -160,6 +160,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub tray_warning: Arc<Mutex<Option<String>>>,
     /// Flag to avoid concurrent auto reconnect attempts
     pub reconnect_in_progress: Arc<Mutex<bool>>,
+    /// Timestamp when the client last entered the connected state
+    pub connected_since: Arc<Mutex<Option<DateTime<Utc>>>>,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -270,6 +272,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             app_handle: Arc::new(Mutex::new(None)),
             tray_warning: Arc::new(Mutex::new(None)),
             reconnect_in_progress: Arc::new(Mutex::new(false)),
+            connected_since: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -392,6 +395,45 @@ impl<C: TorClientBehavior> AppState<C> {
     pub async fn reset_retry_counter(&self) {
         let mut guard = self.retry_counter.lock().await;
         *guard = 0;
+    }
+
+    /// Retrieve the current retry counter value
+    pub async fn retry_counter_value(&self) -> u32 {
+        *self.retry_counter.lock().await
+    }
+
+    /// Mark the Tor client as connected at the provided timestamp
+    pub async fn mark_connected_at(&self, timestamp: DateTime<Utc>) {
+        *self.connected_since.lock().await = Some(timestamp);
+    }
+
+    /// Mark the Tor client as connected using the current time
+    pub async fn mark_connected_now(&self) {
+        self.mark_connected_at(Utc::now()).await;
+    }
+
+    /// Mark the Tor client as disconnected
+    pub async fn mark_disconnected(&self) {
+        *self.connected_since.lock().await = None;
+    }
+
+    /// Return the timestamp when the client last connected, if available
+    pub async fn connected_since(&self) -> Option<DateTime<Utc>> {
+        self.connected_since.lock().await.clone()
+    }
+
+    /// Return the connection uptime in seconds if currently connected
+    pub async fn connection_uptime(&self) -> Option<u64> {
+        let guard = self.connected_since.lock().await;
+        guard.map(|ts| {
+            let diff = Utc::now() - ts;
+            diff.num_seconds().max(0) as u64
+        })
+    }
+
+    /// Retrieve the current tray warning message, if set
+    pub async fn tray_warning_message(&self) -> Option<String> {
+        self.tray_warning.lock().await.clone()
     }
 
     /// Create and return a new session token
@@ -783,6 +825,11 @@ impl<C: TorClientBehavior> AppState<C> {
                 };
                 if current_connected != last_connected {
                     last_connected = current_connected;
+                    if current_connected {
+                        self.mark_connected_now().await;
+                    } else {
+                        self.mark_disconnected().await;
+                    }
                     self.update_tray_menu().await;
                 }
 
@@ -1064,6 +1111,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     ) {
                         log::error!("Failed to emit status update: {}", e);
                     }
+                    state_clone.mark_connected_now().await;
                     state_clone.update_tray_menu().await;
                 }
                 Err(e) => {
@@ -1090,6 +1138,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     ) {
                         log::error!("Failed to emit error status update: {}", em);
                     }
+                    state_clone.mark_disconnected().await;
                 }
             }
 
