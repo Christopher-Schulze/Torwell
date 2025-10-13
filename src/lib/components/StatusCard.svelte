@@ -3,14 +3,23 @@
   import { invoke } from "$lib/api";
   import MetricsChart from "./MetricsChart.svelte";
   import CircuitList from "./CircuitList.svelte";
-  import type { StatusSummary } from "$lib/types";
+  import type { CircuitPolicyReport, StatusSummary } from "$lib/types";
 
   export let status;
   export let totalTrafficMB = 0;
   export let pingMs: number | undefined = undefined;
   export let summary: StatusSummary | null = null;
+  export let policyReport: CircuitPolicyReport | null = null;
 
   import { torStore } from "$lib/stores/torStore";
+  import { uiStore } from "$lib/stores/uiStore";
+  import {
+    ensureUniqueRoute,
+    getCountryFlag,
+    getCountryLabel,
+    isFastCountry,
+    normaliseCountryCode,
+  } from "$lib/utils/countries";
   let memoryMB: number;
   let circuitCount: number;
   let metrics = [];
@@ -38,6 +47,79 @@
   $: metrics = $torStore.metrics;
 
   let isPinging = false;
+
+  const ROUTE_ROLES = ["Entry Node", "Middle Node", "Exit Node"] as const;
+
+  $: configuredRoute = [
+    $uiStore.settings.entryCountry,
+    $uiStore.settings.middleCountry,
+    $uiStore.settings.exitCountry,
+  ];
+
+  $: normalisedConfiguredRoute = configuredRoute.map((value) =>
+    normaliseCountryCode(value),
+  ) as Array<string | null>;
+
+  $: requestedRoute = policyReport
+    ? [
+        normaliseCountryCode(policyReport.requested_entry),
+        normaliseCountryCode(policyReport.requested_middle),
+        normaliseCountryCode(policyReport.requested_exit),
+      ]
+    : normalisedConfiguredRoute;
+
+  $: fallbackRoute = ensureUniqueRoute(requestedRoute);
+
+  $: effectiveCandidate = policyReport
+    ? [
+        normaliseCountryCode(policyReport.effective_entry),
+        normaliseCountryCode(policyReport.effective_middle),
+        normaliseCountryCode(policyReport.effective_exit),
+      ]
+    : [null, null, null];
+
+  $: hasEffectiveCandidate = effectiveCandidate.some((code) => !!code);
+
+  $: effectiveRoute = hasEffectiveCandidate
+    ? effectiveCandidate.map((code, index) => code ?? fallbackRoute[index])
+    : fallbackRoute;
+
+  $: routeDisplay = effectiveRoute.map((code, index) => {
+    const requested = requestedRoute[index];
+    let statusLabel: "locked" | "fallback" | "auto";
+    if (requested) {
+      statusLabel = requested === code ? "locked" : "fallback";
+    } else if (policyReport && hasEffectiveCandidate && !policyReport.matches_policy) {
+      statusLabel = "fallback";
+    } else {
+      statusLabel = "auto";
+    }
+    return {
+      role: ROUTE_ROLES[index],
+      code,
+      flag: getCountryFlag(code),
+      label: getCountryLabel(code),
+      status: statusLabel,
+      requestedLabel: requested ? getCountryLabel(requested) : null,
+      isFast: isFastCountry(code),
+    };
+  });
+
+  $: routePolicyState = policyReport
+    ? hasEffectiveCandidate
+      ? policyReport.matches_policy
+        ? "All pinned countries satisfied."
+        : "Pinned route not fully available – using fallback countries."
+      : "Awaiting live circuit details…"
+    : null;
+
+  $: routePolicyTone = policyReport
+    ? hasEffectiveCandidate
+      ? policyReport.matches_policy
+        ? "text-emerald-300"
+        : "text-amber-300"
+      : "text-slate-300"
+    : "text-slate-400";
 
   // Format traffic display with automatic MB/GB conversion
   function formatTraffic(mb: number): string {
@@ -243,6 +325,38 @@
       <span class="text-[11px] uppercase tracking-wide text-gray-300">Oldest Circuit</span>
       <span class="text-sm text-white font-medium">{oldestCircuitLabel}</span>
     </div>
+  </div>
+  <div class="mt-3 bg-black/30 border border-white/10 rounded-lg p-3">
+    <h4 class="text-[11px] uppercase tracking-wide text-gray-300">Circuit Route</h4>
+    <div class="mt-2 grid gap-3 sm:grid-cols-3">
+      {#each routeDisplay as detail (detail.role)}
+        <div
+          class="bg-black/40 border border-white/10 rounded-lg px-3 py-2"
+          title={`Effective ${detail.role.toLowerCase()}: ${detail.label}`}
+        >
+          <div class="flex items-center justify-between text-xs text-gray-300">
+            <span>{detail.role}</span>
+            <span aria-hidden="true">{detail.flag}</span>
+          </div>
+          <p class="text-sm text-white font-medium mt-1">{detail.label}</p>
+          {#if detail.status === 'locked'}
+            <p class="text-[11px] text-emerald-300 mt-1">Pinned</p>
+          {:else if detail.status === 'fallback'}
+            <p class="text-[11px] text-amber-300 mt-1">
+              Fallback{#if detail.requestedLabel} from {detail.requestedLabel}{/if}
+            </p>
+          {:else}
+            <p class="text-[11px] text-slate-300 mt-1">Automatic</p>
+          {/if}
+          {#if detail.isFast}
+            <p class="text-[10px] text-sky-300 mt-1">Fast-tier relay</p>
+          {/if}
+        </div>
+      {/each}
+    </div>
+    {#if routePolicyState}
+      <p class={`text-[11px] mt-3 ${routePolicyTone}`}>{routePolicyState}</p>
+    {/if}
   </div>
   <div class="mt-2">
     <MetricsChart {metrics} />

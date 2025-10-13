@@ -8,7 +8,11 @@ fn setup_softhsm(key: &str, cert: &str) -> (tempfile::TempDir, u64) {
     let conf = dir.path().join("softhsm2.conf");
     let tokens = dir.path().join("tokens");
     fs::create_dir_all(&tokens).unwrap();
-    fs::write(&conf, format!("directories.tokendir = {}\n", tokens.display())).unwrap();
+    fs::write(
+        &conf,
+        format!("directories.tokendir = {}\n", tokens.display()),
+    )
+    .unwrap();
     std::env::set_var("SOFTHSM2_CONF", &conf);
 
     Command::new("softhsm2-util")
@@ -27,15 +31,7 @@ fn setup_softhsm(key: &str, cert: &str) -> (tempfile::TempDir, u64) {
         .unwrap();
     Command::new("softhsm2-util")
         .args([
-            "--import",
-            key,
-            "--token",
-            "torwell",
-            "--label",
-            "tls-key",
-            "--id",
-            "01",
-            "--pin",
+            "--import", key, "--token", "torwell", "--label", "tls-key", "--id", "01", "--pin",
             "1234",
         ])
         .status()

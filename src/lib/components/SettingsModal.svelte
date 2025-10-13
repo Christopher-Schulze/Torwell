@@ -1,16 +1,64 @@
 <script lang="ts">
   import { createEventDispatcher, tick } from "svelte";
+  import { get } from "svelte/store";
   import { X, Edit3, Plus } from "lucide-svelte";
   import { uiStore } from "$lib/stores/uiStore";
-  import TorrcEditorModal from './TorrcEditorModal.svelte';
-  import WorkerSetupModal from './WorkerSetupModal.svelte';
-  import { parseWorkerList } from '../../../scripts/import_workers';
+  import { invoke } from "$lib/api";
+  import TorrcEditorModal from "./TorrcEditorModal.svelte";
+  import WorkerSetupModal from "./WorkerSetupModal.svelte";
+  import { parseWorkerList } from "../../../scripts/import_workers";
+  import type { TorrcProfile } from "$lib/types";
+  import {
+    COUNTRY_OPTIONS,
+    DEFAULT_ROUTE_CODES,
+    createFastCountrySet,
+    ensureUniqueRoute,
+    getCountryFlag,
+    getCountryLabel,
+    isFastCountry,
+    normaliseCountryCode,
+  } from "$lib/utils/countries";
 
-  const presetURL = new URL('../bridge_presets.json', import.meta.url).href;
+  type CountryOption = { code: string; name: string };
+
+  const presetURL = new URL("../bridge_presets.json", import.meta.url).href;
+
+  const cloneCountryOptions = (): CountryOption[] =>
+    COUNTRY_OPTIONS.map((option) => ({ ...option }));
 
   let availableBridges: string[] = [];
   let bridgePresets: { name: string; bridges: string[] }[] = [];
-  let exitCountries: { code: string; name: string }[] = [];
+
+  let entryOptions: CountryOption[] = cloneCountryOptions();
+  let middleOptions: CountryOption[] = cloneCountryOptions();
+  let exitOptions: CountryOption[] = cloneCountryOptions();
+  let baseFastCountryCodes = createFastCountrySet();
+  let fastCountryCodes = createFastCountrySet();
+  let showFastOnly = false;
+  let customFastSelection: string[] = [];
+  let fastOverrideCandidate = "";
+  let fastOverrideOptions: CountryOption[] = [...COUNTRY_OPTIONS];
+  let includeBridgesInTorrc = false;
+  let torrcPreview: TorrcProfile | null = null;
+  let torrcPreviewLoading = false;
+  let torrcPreviewError: string | null = null;
+
+  const normaliseOptionList = (
+    options?: Array<{ code?: string; name?: string }>,
+    fallback: CountryOption[] = cloneCountryOptions(),
+  ): CountryOption[] => {
+    if (!options || options.length === 0) {
+      return fallback;
+    }
+    const list: CountryOption[] = [];
+    for (const option of options) {
+      const code = normaliseCountryCode(option?.code ?? null);
+      if (!code) continue;
+      const name = option?.name ?? getCountryLabel(code) ?? code;
+      list.push({ code, name });
+    }
+    return list.length > 0 ? list : fallback;
+  };
 
   async function loadPresets() {
     try {
@@ -18,9 +66,27 @@
       const data = await res.json();
       availableBridges = data.bridges ?? [];
       bridgePresets = data.presets ?? [];
-      exitCountries = data.exitCountries ?? [];
+      const baseOptions = normaliseOptionList(data.countries ?? data.exitCountries);
+      entryOptions = data.entryCountries
+        ? normaliseOptionList(data.entryCountries, baseOptions)
+        : baseOptions;
+      middleOptions = data.middleCountries
+        ? normaliseOptionList(data.middleCountries, baseOptions)
+        : baseOptions;
+      exitOptions = data.exitCountries
+        ? normaliseOptionList(data.exitCountries, baseOptions)
+        : baseOptions;
+      if (Array.isArray(data.fastCountries)) {
+        const additional = data.fastCountries
+          .map((entry: any) =>
+            typeof entry === "string" ? entry : entry?.code ?? null,
+          )
+          .filter(Boolean) as Array<string | null | undefined>;
+        baseFastCountryCodes = createFastCountrySet(additional);
+      }
+      void refreshTorrcPreview();
     } catch (e) {
-      console.error('Failed to load presets', e);
+      console.error("Failed to load presets", e);
     }
   }
 
@@ -31,12 +97,23 @@
   let workerToken = "";
   let maxLogLines = 1000;
   let updateInterval = 86400;
-  let exitCountry: string | null = null;
+  let entrySelection = "";
+  let middleSelection = "";
+  let exitSelection = "";
   let hsmLib: string | null = null;
   let hsmSlot: number | null = null;
   let geoipPath: string | null = null;
   let filePicker: HTMLInputElement | null = null;
   $: importProgress = $uiStore.importProgress;
+
+  $: fastCountryCodes = createFastCountrySet([
+    ...baseFastCountryCodes,
+    ...customFastSelection,
+  ]);
+
+  $: fastOverrideOptions = COUNTRY_OPTIONS.filter(
+    (option) => !customFastSelection.includes(option.code),
+  );
 
   export let show: boolean;
 
@@ -47,6 +124,8 @@
   let modalEl: HTMLElement | null = null;
   let previouslyFocused: HTMLElement | null = null;
 
+  const ROUTE_ROLES = ["Entry Node", "Middle Node", "Exit Node"] as const;
+
   $: if (show) {
     previouslyFocused = document.activeElement as HTMLElement;
     selectedBridges = [...$uiStore.settings.bridges];
@@ -56,13 +135,23 @@
     workerToken = $uiStore.settings.workerToken;
     maxLogLines = $uiStore.settings.maxLogLines;
     updateInterval = $uiStore.settings.updateInterval;
-    exitCountry = $uiStore.settings.exitCountry ?? null;
+    entrySelection = $uiStore.settings.entryCountry ?? "";
+    middleSelection = $uiStore.settings.middleCountry ?? "";
+    exitSelection = $uiStore.settings.exitCountry ?? "";
     hsmLib = $uiStore.settings.hsm_lib;
     hsmSlot = $uiStore.settings.hsm_slot;
     geoipPath = $uiStore.settings.geoipPath;
-    uiStore.actions.setExitCountry(exitCountry);
+    showFastOnly = $uiStore.settings.fastRoutingOnly;
+    customFastSelection = [...$uiStore.settings.preferredFastCountries];
+    includeBridgesInTorrc = ($uiStore.settings.bridges?.length ?? 0) > 0;
+    torrcPreview = null;
+    torrcPreviewError = null;
+    torrcPreviewLoading = false;
     if (availableBridges.length === 0) loadPresets();
-    tick().then(() => closeButton && closeButton.focus());
+    tick().then(() => {
+      closeButton && closeButton.focus();
+      void refreshTorrcPreview();
+    });
   } else if (previouslyFocused) {
     tick().then(() => previouslyFocused && previouslyFocused.focus());
   }
@@ -77,8 +166,8 @@
     if (event.key !== "Tab" || !modalEl) return;
     const focusable = Array.from(
       modalEl.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
     );
     if (focusable.length === 0) return;
     const first = focusable[0];
@@ -92,6 +181,158 @@
     }
   }
 
+  const optionsForSelect = (base: CountryOption[], selection: string) => {
+    const code = normaliseCountryCode(selection);
+    const filtered = showFastOnly
+      ? base.filter((option) => fastCountryCodes.has(option.code))
+      : base;
+    if (!code) {
+      return filtered;
+    }
+    if (filtered.some((option) => option.code === code)) {
+      return filtered;
+    }
+    const fallback = base.find((option) => option.code === code);
+    return fallback ? [fallback, ...filtered] : filtered;
+  };
+
+  function updateEntrySelection(value: string) {
+    entrySelection = normaliseCountryCode(value) ?? "";
+  }
+
+  function updateMiddleSelection(value: string) {
+    middleSelection = normaliseCountryCode(value) ?? "";
+  }
+
+  function updateExitSelection(value: string) {
+    exitSelection = normaliseCountryCode(value) ?? "";
+  }
+
+  async function applyRoutePreferences() {
+    const entry = normaliseCountryCode(entrySelection);
+    const middle = normaliseCountryCode(middleSelection);
+    const exit = normaliseCountryCode(exitSelection);
+    const current = get(uiStore).settings;
+    const currentEntry = normaliseCountryCode(current.entryCountry);
+    const currentMiddle = normaliseCountryCode(current.middleCountry);
+    const currentExit = normaliseCountryCode(current.exitCountry);
+    const payload: {
+      entry?: string | null;
+      middle?: string | null;
+      exit?: string | null;
+    } = {};
+    if (entry !== currentEntry) payload.entry = entry;
+    if (middle !== currentMiddle) payload.middle = middle;
+    if (exit !== currentExit) payload.exit = exit;
+    if (Object.keys(payload).length === 0) {
+      return;
+    }
+    await uiStore.actions.setCircuitCountries(payload);
+    void refreshTorrcPreview();
+  }
+
+  function clearRoutePreferences() {
+    entrySelection = "";
+    middleSelection = "";
+    exitSelection = "";
+    void applyRoutePreferences();
+  }
+
+  function applyDefaultRoute() {
+    const defaults = ensureUniqueRoute([...DEFAULT_ROUTE_CODES]);
+    entrySelection = defaults[0] ?? "";
+    middleSelection = defaults[1] ?? "";
+    exitSelection = defaults[2] ?? "";
+    void applyRoutePreferences();
+  }
+
+  function onFastOnlyToggle(event: Event) {
+    const target = event.target as HTMLInputElement;
+    showFastOnly = target.checked;
+    void uiStore.actions.setFastRoutingOnly(showFastOnly);
+    void refreshTorrcPreview();
+  }
+
+  function addFastOverride() {
+    const code = normaliseCountryCode(fastOverrideCandidate);
+    if (!code) return;
+    if (!customFastSelection.includes(code)) {
+      customFastSelection = [...customFastSelection, code];
+      void refreshTorrcPreview();
+    }
+    fastOverrideCandidate = "";
+  }
+
+  function removeFastOverride(code: string) {
+    customFastSelection = customFastSelection.filter((entry) => entry !== code);
+    void refreshTorrcPreview();
+  }
+
+  async function saveFastOverrides() {
+    await uiStore.actions.savePreferredFastCountries(customFastSelection);
+    void refreshTorrcPreview();
+  }
+
+  async function refreshTorrcPreview() {
+    if (!show) return;
+    torrcPreviewLoading = true;
+    torrcPreviewError = null;
+    try {
+      torrcPreview = await invoke<TorrcProfile>("generate_torrc_profile", {
+        fastOnly: showFastOnly,
+        preferredFastCountries: customFastSelection,
+        includeBridges: includeBridgesInTorrc,
+      });
+    } catch (err) {
+      torrcPreview = null;
+      torrcPreviewError =
+        err instanceof Error ? err.message : "Failed to generate torrc profile";
+    } finally {
+      torrcPreviewLoading = false;
+    }
+  }
+
+  function applyTorrcPreviewConfig() {
+    if (!torrcPreview) return;
+    void uiStore.actions.saveTorrcConfig(torrcPreview.config);
+  }
+
+  async function copyTorrcPreview() {
+    if (!torrcPreview) return;
+    try {
+      await navigator.clipboard.writeText(torrcPreview.config);
+    } catch (err) {
+      torrcPreviewError =
+        err instanceof Error ? err.message : "Unable to copy torrc to clipboard";
+    }
+  }
+
+  function toggleIncludeBridges(event: Event) {
+    const target = event.target as HTMLInputElement;
+    includeBridgesInTorrc = target.checked;
+    void refreshTorrcPreview();
+  }
+
+  $: normalizedSelections = [
+    normaliseCountryCode(entrySelection),
+    normaliseCountryCode(middleSelection),
+    normaliseCountryCode(exitSelection),
+  ] as Array<string | null>;
+
+  $: previewRoute = ensureUniqueRoute(normalizedSelections);
+
+  $: routeSummary = previewRoute.map((code, index) => {
+    const requested = normalizedSelections[index];
+    return {
+      role: ROUTE_ROLES[index],
+      code,
+      flag: getCountryFlag(code),
+      label: getCountryLabel(code),
+      status: requested ? (requested === code ? "locked" : "fallback") : "auto",
+      requestedLabel: requested ? getCountryLabel(requested) : null,
+      isFast: isFastCountry(code, fastCountryCodes),
+    };
+  });
 
   function saveWorkers() {
     const list = workerList
@@ -123,13 +364,13 @@
 
   function exportFile() {
     const list = uiStore.actions.exportWorkerList();
-    const blob = new Blob([list.join('\n')], {
-      type: 'text/plain',
+    const blob = new Blob([list.join("\n")], {
+      type: "text/plain",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'workers.txt';
+    a.download = "workers.txt";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -152,20 +393,24 @@
     uiStore.actions.saveGeoipPath(geoipPath);
   }
 
-  function saveExitCountry() {
-    uiStore.actions.setExitCountry(exitCountry);
-  }
-
   function saveHsm() {
     const slotNum = hsmSlot === null ? null : Number(hsmSlot);
     uiStore.actions.saveHsmConfig(hsmLib, isNaN(slotNum as number) ? null : slotNum);
   }
 
-  function applyPreset() {
+  async function applyPreset() {
     const preset = bridgePresets.find((p) => p.name === selectedPreset);
     if (preset) {
-      uiStore.actions.setBridgePreset(preset.name, preset.bridges);
+      await uiStore.actions.setBridgePreset(preset.name, preset.bridges);
+      includeBridgesInTorrc = true;
+      void refreshTorrcPreview();
     }
+  }
+
+  async function applyBridgeSelection() {
+    await uiStore.actions.setBridges(selectedBridges);
+    includeBridgesInTorrc = selectedBridges.length > 0;
+    void refreshTorrcPreview();
   }
 </script>
 
@@ -267,7 +512,7 @@
           {/each}
           <button
             class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-            on:click={() => uiStore.actions.setBridges(selectedBridges)}
+            on:click={applyBridgeSelection}
             aria-label="Apply bridge selection"
           >
             Apply
@@ -275,31 +520,271 @@
         </div>
 
         <div class="mb-8">
-          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
-            Preferred Exit Country
-          </h3>
-          <select
-            class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
-            bind:value={exitCountry}
-            aria-label="Exit country"
-          >
-            <option value="">Auto</option>
-            {#each exitCountries as c}
-              <option value={c.code}>{c.name}</option>
+          <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <h3 class="text-lg font-semibold border-b border-white/10 pb-2 md:border-none md:pb-0">
+              Circuit Routing Preferences
+            </h3>
+            <label class="flex items-center gap-2 text-xs text-gray-200">
+              <input
+                type="checkbox"
+                checked={showFastOnly}
+                class="h-4 w-4 rounded border-white/40 bg-black/50 text-blue-400 focus:ring-blue-400/50"
+                aria-label="Show only fast-tier countries"
+                on:change={onFastOnlyToggle}
+              />
+              Show fast-tier countries only
+            </label>
+          </div>
+          <p class="text-sm text-gray-100 mt-2">
+            Pin guard, middle, and exit relays to specific countries. Leave a field on “Auto” to let Tor choose the best option.
+          </p>
+          <div class="mt-4 grid gap-3 md:grid-cols-3">
+            <div>
+              <label class="block text-xs text-gray-300 mb-1" for="entry-country-select">Entry (Guard)</label>
+              <select
+                id="entry-country-select"
+                class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+                bind:value={entrySelection}
+                on:change={(event) => updateEntrySelection((event.target as HTMLSelectElement).value)}
+                aria-label="Preferred entry country"
+              >
+                <option value="">Auto</option>
+                {#each optionsForSelect(entryOptions, entrySelection) as option (option.code)}
+                  <option value={option.code}>
+                    {getCountryFlag(option.code)} {option.name}{isFastCountry(option.code, fastCountryCodes) ? " • Fast" : ""}
+                  </option>
+                {/each}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-300 mb-1" for="middle-country-select">Middle</label>
+              <select
+                id="middle-country-select"
+                class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+                bind:value={middleSelection}
+                on:change={(event) => updateMiddleSelection((event.target as HTMLSelectElement).value)}
+                aria-label="Preferred middle country"
+              >
+                <option value="">Auto</option>
+                {#each optionsForSelect(middleOptions, middleSelection) as option (option.code)}
+                  <option value={option.code}>
+                    {getCountryFlag(option.code)} {option.name}{isFastCountry(option.code, fastCountryCodes) ? " • Fast" : ""}
+                  </option>
+                {/each}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-300 mb-1" for="exit-country-select">Exit</label>
+              <select
+                id="exit-country-select"
+                class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
+                bind:value={exitSelection}
+                on:change={(event) => updateExitSelection((event.target as HTMLSelectElement).value)}
+                aria-label="Preferred exit country"
+              >
+                <option value="">Auto</option>
+                {#each optionsForSelect(exitOptions, exitSelection) as option (option.code)}
+                  <option value={option.code}>
+                    {getCountryFlag(option.code)} {option.name}{isFastCountry(option.code, fastCountryCodes) ? " • Fast" : ""}
+                  </option>
+                {/each}
+              </select>
+            </div>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button
+              class="text-sm py-2 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+              on:click={applyRoutePreferences}
+              aria-label="Save circuit routing preferences"
+            >
+              Save Route
+            </button>
+            <button
+              class="text-sm py-2 px-4 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+              on:click={applyDefaultRoute}
+              aria-label="Apply recommended fast route"
+            >
+              Recommended Fast Route
+            </button>
+            <button
+              class="text-sm py-2 px-4 rounded-xl border border-white/20 font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto text-gray-100 hover:bg-white/10"
+              on:click={clearRoutePreferences}
+              aria-label="Clear pinned countries"
+            >
+              Clear Pins
+            </button>
+          </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-3">
+            {#each routeSummary as detail (detail.role)}
+              <div
+                class="bg-black/40 border border-white/10 rounded-xl p-3"
+                title={`Effective ${detail.role.toLowerCase()}: ${detail.label}`}
+              >
+                <div class="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-300">
+                  <span>{detail.role}</span>
+                  <span aria-hidden="true">{detail.flag}</span>
+                </div>
+                <p class="text-sm text-white font-semibold mt-1">{detail.label}</p>
+                {#if detail.status === 'locked'}
+                  <p class="text-[11px] text-emerald-300 mt-1">Pinned</p>
+                {:else if detail.status === 'fallback'}
+                  <p class="text-[11px] text-amber-300 mt-1">
+                    Fallback{#if detail.requestedLabel} from {detail.requestedLabel}{/if}
+                  </p>
+                {:else}
+                  <p class="text-[11px] text-slate-300 mt-1">Automatic</p>
+                {/if}
+                {#if detail.isFast}
+                  <p class="text-[10px] text-sky-300 mt-1">Fast-tier relay</p>
+                {/if}
+              </div>
             {/each}
-          </select>
-          <button
-            class="text-sm py-2 px-4 mt-2 rounded-xl border-transparent font-medium flex items-center justify-center gap-2 cursor-pointer transition-all w-auto bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-            on:click={saveExitCountry}
-            aria-label="Save exit country"
-          >
-            Save
-          </button>
-          {#if !exitCountry}
-            <p class="text-xs text-yellow-400 mt-2">
-              No exit country selected. A random exit node will be used.
-            </p>
-          {/if}
+          </div>
+          <div class="mt-6 grid gap-4 lg:grid-cols-2">
+            <div class="bg-black/40 border border-white/10 rounded-xl p-4">
+              <h4 class="text-sm font-semibold text-white">Fast-tier overrides</h4>
+              <p class="text-xs text-gray-300 mt-1">
+                Add extra countries to treat as fast-tier when filtering and generating the torrc profile.
+              </p>
+              <div class="mt-3 flex gap-2">
+                <select
+                  class="flex-1 bg-black/50 rounded border border-white/20 p-2 text-sm"
+                  bind:value={fastOverrideCandidate}
+                  aria-label="Add fast-tier country"
+                >
+                  <option value="">Select country</option>
+                  {#each fastOverrideOptions as option (option.code)}
+                    <option value={option.code}>
+                      {getCountryFlag(option.code)} {option.name}
+                    </option>
+                  {/each}
+                </select>
+                <button
+                  type="button"
+                  class="text-xs py-2 px-3 rounded-xl border-transparent font-medium bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-all"
+                  on:click={addFastOverride}
+                  aria-label="Add fast-tier override"
+                  disabled={!fastOverrideCandidate}
+                >
+                  Add
+                </button>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2 min-h-[2rem]">
+                {#if customFastSelection.length === 0}
+                  <p class="text-xs text-gray-400">No overrides saved yet.</p>
+                {:else}
+                  {#each customFastSelection as code (code)}
+                    <span class="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/30 text-blue-200 text-xs px-2 py-1 rounded-full">
+                      <span aria-hidden="true">{getCountryFlag(code)}</span>
+                      <span>{getCountryLabel(code)}</span>
+                      <button
+                        type="button"
+                        class="text-[10px] uppercase tracking-wide hover:text-red-300"
+                        on:click={() => removeFastOverride(code)}
+                        aria-label={`Remove ${getCountryLabel(code)} from fast-tier overrides`}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  {/each}
+                {/if}
+              </div>
+              <div class="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  class="text-xs py-2 px-3 rounded-xl border-transparent font-medium bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 transition-all"
+                  on:click={saveFastOverrides}
+                  aria-label="Save fast-tier overrides"
+                  disabled={torrcPreviewLoading}
+                >
+                  Save overrides
+                </button>
+                <button
+                  type="button"
+                  class="text-xs py-2 px-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 transition-all"
+                  on:click={() => {
+                    customFastSelection = [];
+                    void saveFastOverrides();
+                  }}
+                  aria-label="Reset fast-tier overrides"
+                  disabled={customFastSelection.length === 0 || torrcPreviewLoading}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+            <div class="bg-black/40 border border-white/10 rounded-xl p-4">
+              <h4 class="text-sm font-semibold text-white">Torrc generator</h4>
+              <p class="text-xs text-gray-300 mt-1">
+                Generate a torrc fragment that respects your pinned countries and fast-tier policy. Apply it directly or copy it for manual review.
+              </p>
+              <label class="mt-3 flex items-center gap-2 text-xs text-gray-200">
+                <input
+                  type="checkbox"
+                  checked={includeBridgesInTorrc}
+                  class="h-4 w-4 rounded border-white/40 bg-black/50 text-blue-400 focus:ring-blue-400/50"
+                  on:change={toggleIncludeBridges}
+                  aria-label="Include saved bridges in torrc preview"
+                />
+                Include configured bridges
+              </label>
+              <div class="mt-3">
+                {#if torrcPreviewLoading}
+                  <div class="text-xs text-gray-300 italic">Calculating recommended torrc…</div>
+                {:else}
+                  <textarea
+                    class="w-full bg-black/60 rounded border border-white/20 p-2 text-xs font-mono min-h-[160px]"
+                    readonly
+                    aria-label="Recommended torrc configuration"
+                  >{torrcPreview?.config ?? ""}</textarea>
+                {/if}
+              </div>
+              {#if torrcPreviewError}
+                <p class="text-xs text-amber-300 mt-2">{torrcPreviewError}</p>
+              {/if}
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="text-xs py-2 px-3 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 transition-all"
+                  on:click={refreshTorrcPreview}
+                  aria-label="Refresh torrc preview"
+                >
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  class="text-xs py-2 px-3 rounded-xl border-transparent font-medium bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 transition-all disabled:opacity-40"
+                  on:click={applyTorrcPreviewConfig}
+                  aria-label="Apply torrc preview"
+                  disabled={!torrcPreview}
+                >
+                  Apply to torrc
+                </button>
+                <button
+                  type="button"
+                  class="text-xs py-2 px-3 rounded-xl border-transparent font-medium bg-slate-500/20 text-slate-200 hover:bg-slate-500/30 transition-all disabled:opacity-40"
+                  on:click={copyTorrcPreview}
+                  aria-label="Copy torrc preview"
+                  disabled={!torrcPreview}
+                >
+                  Copy
+                </button>
+              </div>
+              {#if torrcPreview}
+                <p class="text-[11px] text-gray-300 mt-2">
+                  Route {torrcPreview.entry} → {torrcPreview.middle} → {torrcPreview.exit}
+                  {#if torrcPreview.fast_only}
+                    • fast-tier enforced
+                  {/if}
+                </p>
+                {#if torrcPreview.bridges.length > 0}
+                  <p class="text-[11px] text-gray-400 mt-1">
+                    Includes {torrcPreview.bridges.length} bridge{torrcPreview.bridges.length === 1 ? "" : "s"}.
+                  </p>
+                {/if}
+              {/if}
+            </div>
+          </div>
         </div>
 
         <div class="mb-8">

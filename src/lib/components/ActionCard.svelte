@@ -118,18 +118,22 @@
     <!-- Connect/Disconnect Button -->
     {#if isStopped || hasError}
       <button
+        type="button"
         class="tw-button tw-button--success"
         on:click={handleConnect}
         aria-label={hasError ? "Retry connection" : "Connect to Tor"}
+        data-state={isConnecting ? "pending" : "idle"}
       >
         <Play size={16} />
         {hasError ? "Retry" : "Connect"}
       </button>
     {:else if isConnecting}
       <button
+        type="button"
         class="tw-button tw-button--pending"
         disabled={true}
         aria-live="polite"
+        data-state="pending"
       >
         <span class="tw-spinner" aria-hidden="true"></span>
         {#if isRetrying}
@@ -140,16 +144,20 @@
       </button>
     {:else if isConnected}
       <button
+        type="button"
         class="tw-button tw-button--danger"
         on:click={handleDisconnect}
         aria-label="Disconnect from Tor"
+        data-state={isDisconnecting ? "pending" : "idle"}
       >
         <Square size={16} /> Disconnect
       </button>
     {:else if isDisconnecting}
       <button
+        type="button"
         class="tw-button tw-button--pending"
         disabled={true}
+        data-state="pending"
       >
         <span class="tw-spinner" aria-hidden="true"></span>
         Disconnecting...
@@ -158,6 +166,7 @@
 
     <!-- New Circuit Button -->
     <button
+      type="button"
       class={`tw-button tw-button--accent ${
         isConnected && !isBuildingCircuit ? "" : "tw-button--disabled"
       }`}
@@ -165,6 +174,7 @@
       disabled={!isConnected || isBuildingCircuit}
       aria-label="Request new circuit"
       aria-busy={isBuildingCircuit}
+      data-state={isBuildingCircuit ? "pending" : isConnected ? "active" : "idle"}
     >
       {#if isBuildingCircuit}
         <span class="tw-spinner" aria-hidden="true"></span>
@@ -176,18 +186,22 @@
 
     <!-- Logs Button -->
     <button
+      type="button"
       class="tw-button tw-button--neutral"
       on:click={() => dispatch("openLogs")}
       aria-label="Open logs"
+      data-state={$torStore.errorMessage ? "warning" : "idle"}
     >
       <Activity size={16} /> Logs
     </button>
 
     <!-- Settings Button -->
     <button
+      type="button"
       class="tw-button tw-button--neutral"
       on:click={() => dispatch("openSettings")}
       aria-label="Open settings"
+      data-state={$torStore.status === "CONNECTED" ? "active" : "idle"}
     >
       <Settings size={16} /> Settings
     </button>

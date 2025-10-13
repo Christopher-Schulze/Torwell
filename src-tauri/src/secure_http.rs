@@ -165,7 +165,9 @@ pub(crate) fn init_hsm() -> anyhow::Result<(Ctx, Option<HsmKeyPair>)> {
     use pkcs11::errors::Error as Pkcs11Error;
     let session = match ctx.open_session(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION, None, None) {
         Ok(s) => s,
-        Err(Pkcs11Error::Pkcs11(rv)) if rv == CKR_SLOT_ID_INVALID || rv == CKR_TOKEN_NOT_PRESENT => {
+        Err(Pkcs11Error::Pkcs11(rv))
+            if rv == CKR_SLOT_ID_INVALID || rv == CKR_TOKEN_NOT_PRESENT =>
+        {
             return Err(anyhow!("invalid HSM slot: {}", slot));
         }
         Err(e) => return Err(anyhow!(e)),
@@ -174,9 +176,7 @@ pub(crate) fn init_hsm() -> anyhow::Result<(Ctx, Option<HsmKeyPair>)> {
         let _ = ctx.close_session(session);
         return match e {
             Pkcs11Error::Pkcs11(rv)
-                if rv == CKR_PIN_INCORRECT
-                    || rv == CKR_PIN_INVALID
-                    || rv == CKR_PIN_LEN_RANGE =>
+                if rv == CKR_PIN_INCORRECT || rv == CKR_PIN_INVALID || rv == CKR_PIN_LEN_RANGE =>
             {
                 Err(anyhow!("invalid HSM PIN"))
             }

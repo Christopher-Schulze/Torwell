@@ -5,13 +5,14 @@ use arti_client::config::{
 };
 use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
 use async_trait::async_trait;
+use chrono::Utc;
 use governor::{
     clock::DefaultClock,
     state::{InMemoryState, NotKeyed},
     Quota, RateLimiter,
 };
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, SocketAddr};
 use std::num::NonZeroU32;
 use std::path::Path;
@@ -63,6 +64,11 @@ const MAX_ISOLATION_TOKENS: usize = 100;
 const PREWARM_CIRCUIT_COUNT: usize = 3;
 const MAX_COUNTRY_MATCH_ATTEMPTS: usize = 5;
 const COUNTRY_POLICY_RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(250);
+const DEFAULT_ROUTE_CODES: &[&str] = &["DE", "NL", "SE"];
+const DEFAULT_FAST_COUNTRY_CODES: &[&str] = &[
+    "CA", "CH", "DE", "DK", "EE", "FI", "FR", "GB", "IS", "JP", "LT", "LU", "LV", "NL", "NO", "SE",
+    "SG", "US",
+];
 
 /// Simple traffic statistics returned from [`TorManager::traffic_stats`].
 #[derive(Debug, Clone)]
@@ -92,6 +98,33 @@ pub struct CircuitMetrics {
 pub struct BridgePreset {
     pub name: String,
     pub bridges: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CircuitPolicyReport {
+    pub requested_entry: Option<String>,
+    pub requested_middle: Option<String>,
+    pub requested_exit: Option<String>,
+    pub effective_entry: Option<String>,
+    pub effective_middle: Option<String>,
+    pub effective_exit: Option<String>,
+    pub matches_policy: bool,
+    pub relays: Vec<RelayInfo>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TorrcProfile {
+    pub generated_at: String,
+    pub config: String,
+    pub entry: String,
+    pub middle: String,
+    pub exit: String,
+    pub requested_entry: Option<String>,
+    pub requested_middle: Option<String>,
+    pub requested_exit: Option<String>,
+    pub fast_fallback: Vec<String>,
+    pub bridges: Vec<String>,
+    pub fast_only: bool,
 }
 
 #[derive(serde::Deserialize)]
@@ -300,6 +333,62 @@ impl<C> Clone for TorManager<C> {
 }
 
 impl<C: TorClientBehavior> TorManager<C> {
+    fn normalise_country_code_str(code: &str) -> Option<String> {
+        let trimmed = code.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+        let upper = trimmed.to_ascii_uppercase();
+        CountryCode::new(&upper).ok()?;
+        Some(upper)
+    }
+
+    fn ensure_unique_route(requested: &[Option<String>], fallback: &[String]) -> Vec<String> {
+        let mut used: HashSet<String> = HashSet::new();
+        let mut result = Vec::with_capacity(requested.len());
+
+        for (idx, candidate) in requested.iter().enumerate() {
+            let mut assigned: Option<String> = None;
+
+            if let Some(code) = candidate {
+                let upper = code.to_ascii_uppercase();
+                if !used.contains(&upper) {
+                    used.insert(upper.clone());
+                    assigned = Some(upper);
+                }
+            }
+
+            if assigned.is_none() {
+                if let Some(fallback_code) = fallback
+                    .iter()
+                    .find(|code| !used.contains(&code.to_ascii_uppercase()))
+                {
+                    let upper = fallback_code.to_ascii_uppercase();
+                    used.insert(upper.clone());
+                    assigned = Some(upper);
+                }
+            }
+
+            if assigned.is_none() {
+                if let Some(code) = candidate {
+                    let upper = code.to_ascii_uppercase();
+                    assigned = Some(upper);
+                }
+            }
+
+            if assigned.is_none() {
+                let fallback_idx = fallback.get(idx).cloned().unwrap_or_else(|| {
+                    DEFAULT_ROUTE_CODES[idx.min(DEFAULT_ROUTE_CODES.len() - 1)].to_string()
+                });
+                assigned = Some(fallback_idx.to_ascii_uppercase());
+            }
+
+            result.push(assigned.expect("route must resolve"));
+        }
+
+        result
+    }
+
     pub fn new() -> Self {
         Self::new_with_geoip(None)
     }
@@ -412,6 +501,115 @@ impl<C: TorClientBehavior> TorManager<C> {
             step: "config_build".into(),
             source: e.to_string(),
             backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
+        })
+    }
+
+    pub async fn generate_torrc_profile(
+        &self,
+        fast_only: bool,
+        preferred_fast: Option<Vec<String>>,
+        include_bridges: bool,
+    ) -> Result<TorrcProfile> {
+        let prefs = self.current_country_prefs().await;
+        let requested = vec![
+            prefs.entry.clone(),
+            prefs.middle.clone(),
+            prefs.exit.clone(),
+        ];
+
+        let mut fallback: Vec<String> = DEFAULT_ROUTE_CODES
+            .iter()
+            .map(|code| code.to_string())
+            .collect();
+
+        if fast_only {
+            for code in DEFAULT_FAST_COUNTRY_CODES {
+                if !fallback
+                    .iter()
+                    .any(|entry| entry.eq_ignore_ascii_case(code))
+                {
+                    fallback.push((*code).to_string());
+                }
+            }
+        }
+
+        if let Some(extra) = preferred_fast {
+            for code in extra {
+                if let Some(norm) = Self::normalise_country_code_str(&code) {
+                    if !fallback
+                        .iter()
+                        .any(|entry| entry.eq_ignore_ascii_case(&norm))
+                    {
+                        fallback.push(norm);
+                    }
+                }
+            }
+        }
+
+        let route = Self::ensure_unique_route(&requested, &fallback);
+
+        let bridges = if include_bridges {
+            self.get_bridges().await
+        } else {
+            Vec::new()
+        };
+
+        let mut lines = Vec::new();
+        let timestamp = Utc::now().to_rfc3339();
+        lines.push(format!(
+            "# Torwell84 generated torrc fragment - {timestamp}"
+        ));
+        lines.push("ClientUseIPv4 1".into());
+        lines.push("ClientUseIPv6 1".into());
+        lines.push("UseEntryGuardsAsDirGuards 1".into());
+        lines.push("StrictNodes 1".into());
+        if route.len() >= 3 {
+            lines.push(format!(
+                "# Route: {} -> {} -> {}",
+                route[0], route[1], route[2]
+            ));
+        }
+        lines.push(format!(
+            "EntryNodes {{{}}}",
+            route.get(0).cloned().unwrap_or_else(|| "US".into())
+        ));
+        if let Some(middle) = route.get(1) {
+            lines.push(format!("MiddleNodes {{{}}}", middle));
+        }
+        lines.push(format!(
+            "ExitNodes {{{}}}",
+            route.get(2).cloned().unwrap_or_else(|| "DE".into())
+        ));
+
+        if fast_only {
+            lines.push("# Enforce high-quality routes".into());
+            lines.push("ExcludeNodes {=badexit}".into());
+            lines.push("ExcludeExitNodes {=badexit}".into());
+        }
+
+        if !bridges.is_empty() {
+            lines.push(String::new());
+            lines.push("UseBridges 1".into());
+            lines.extend(bridges.iter().cloned());
+        }
+
+        let config = lines.join("\n");
+
+        Ok(TorrcProfile {
+            generated_at: timestamp,
+            config,
+            entry: route.get(0).cloned().unwrap_or_else(|| "US".into()),
+            middle: route
+                .get(1)
+                .cloned()
+                .unwrap_or_else(|| route.get(0).cloned().unwrap_or_else(|| "US".into())),
+            exit: route.get(2).cloned().unwrap_or_else(|| "DE".into()),
+            requested_entry: prefs.entry,
+            requested_middle: prefs.middle,
+            requested_exit: prefs.exit,
+            fast_fallback: fallback,
+            bridges,
+            fast_only,
         })
     }
 
@@ -658,9 +856,32 @@ impl<C: TorClientBehavior> TorManager<C> {
         Ok(())
     }
 
-    pub async fn set_torrc_config(&self, config: String) {
-        let mut guard = self.torrc_config.lock().await;
-        *guard = config;
+    pub async fn set_torrc_config(&self, config: String) -> Result<()> {
+        {
+            let mut guard = self.torrc_config.lock().await;
+            *guard = config;
+        }
+
+        let mut should_prewarm = false;
+        {
+            let guard = self.client.lock().await;
+            if let Some(client) = guard.as_ref() {
+                let cfg = self.build_config().await?;
+                client.reconfigure(&cfg).map_err(|e| Error::ConfigError {
+                    step: "tor_reconfigure".into(),
+                    source: e.to_string(),
+                    backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
+                })?;
+                client.retire_all_circs();
+                should_prewarm = true;
+            }
+        }
+
+        if should_prewarm {
+            self.spawn_circuit_prewarm();
+        }
+
+        Ok(())
     }
 
     /// Get the currently configured exit country as an ISO 3166-1 alpha-2 code.
@@ -818,7 +1039,7 @@ impl<C: TorClientBehavior> TorManager<C> {
 }
 
 impl TorManager {
-    pub async fn get_active_circuit(&self) -> Result<Vec<RelayInfo>> {
+    async fn resolve_circuit_with_policy(&self) -> Result<(Vec<RelayInfo>, bool)> {
         let client_guard = self.client.lock().await;
         let client = client_guard.as_ref().ok_or_else(|| {
             log::error!("traffic_stats: not connected");
@@ -830,6 +1051,7 @@ impl TorManager {
             .netdir(Timeliness::Timely)
             .map_err(|e| Error::NetDir(e.to_string()))?;
         let prefs = self.current_country_prefs().await;
+        let mut last_relays: Vec<RelayInfo> = Vec::new();
         for attempt in 0..MAX_COUNTRY_MATCH_ATTEMPTS {
             log::info!(
                 "building active circuit attempt {} with policy entry={:?} middle={:?} exit={:?}",
@@ -889,19 +1111,69 @@ impl TorManager {
             }
 
             if Self::matches_policy(&relays, &prefs) {
-                return Ok(relays);
+                return Ok((relays, true));
             }
 
             Self::log_policy_miss(&prefs, &relays, attempt);
-            drop(relays);
+            last_relays = relays;
             drop(circuit);
             client.retire_all_circs();
             tokio::time::sleep(COUNTRY_POLICY_RETRY_DELAY).await;
         }
 
-        Err(Error::Circuit(
-            "unable to satisfy circuit country preferences".into(),
-        ))
+        Ok((last_relays, false))
+    }
+
+    pub async fn get_active_circuit(&self) -> Result<Vec<RelayInfo>> {
+        let (relays, matches_policy) = self.resolve_circuit_with_policy().await?;
+        if !matches_policy {
+            return Err(Error::Circuit(
+                "unable to satisfy circuit country preferences".into(),
+            ));
+        }
+        Ok(relays)
+    }
+
+    pub async fn circuit_policy_report(&self) -> Result<CircuitPolicyReport> {
+        let policy = self.current_country_prefs().await;
+        match self.resolve_circuit_with_policy().await {
+            Ok((relays, matches_policy)) => {
+                let effective_entry = relays.first().map(|relay| relay.country.clone());
+                let effective_exit = relays.last().map(|relay| relay.country.clone());
+                let effective_middle = if relays.len() > 2 {
+                    relays
+                        .iter()
+                        .skip(1)
+                        .take(relays.len().saturating_sub(2))
+                        .next()
+                        .map(|relay| relay.country.clone())
+                } else {
+                    None
+                };
+
+                Ok(CircuitPolicyReport {
+                    requested_entry: policy.entry.clone(),
+                    requested_middle: policy.middle.clone(),
+                    requested_exit: policy.exit.clone(),
+                    effective_entry,
+                    effective_middle,
+                    effective_exit,
+                    matches_policy,
+                    relays,
+                })
+            }
+            Err(Error::NotConnected) => Ok(CircuitPolicyReport {
+                requested_entry: policy.entry.clone(),
+                requested_middle: policy.middle.clone(),
+                requested_exit: policy.exit.clone(),
+                effective_entry: None,
+                effective_middle: None,
+                effective_exit: None,
+                matches_policy: false,
+                relays: Vec::new(),
+            }),
+            Err(err) => Err(err),
+        }
     }
 
     pub async fn get_isolated_circuit(&self, domain: String) -> Result<Vec<RelayInfo>> {

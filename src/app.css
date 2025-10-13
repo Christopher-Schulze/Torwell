@@ -8,6 +8,14 @@
     --tw-surface-border: rgba(255, 255, 255, 0.12);
     --tw-surface-highlight: rgba(255, 255, 255, 0.18);
     --tw-surface-shadow: rgba(8, 15, 52, 0.35);
+    --tw-background-primary: radial-gradient(
+        40% 60% at 20% 20%,
+        rgba(120, 200, 255, 0.18),
+        transparent
+      ),
+      radial-gradient(35% 55% at 80% 10%, rgba(255, 140, 184, 0.16), transparent),
+      radial-gradient(45% 60% at 50% 80%, rgba(124, 58, 237, 0.2), transparent);
+    --tw-background-overlay: linear-gradient(180deg, rgba(12, 12, 30, 0.75), rgba(8, 10, 26, 0.85));
   }
 
   *,
@@ -26,9 +34,7 @@
     content: "";
     position: fixed;
     inset: -30%;
-    background: radial-gradient(40% 60% at 20% 20%, rgba(120, 200, 255, 0.18), transparent),
-      radial-gradient(35% 55% at 80% 10%, rgba(255, 140, 184, 0.16), transparent),
-      radial-gradient(45% 60% at 50% 80%, rgba(124, 58, 237, 0.2), transparent);
+    background: var(--tw-background-primary);
     filter: blur(80px);
     opacity: 0.85;
     pointer-events: none;
@@ -42,9 +48,29 @@
     content: "";
     position: fixed;
     inset: 0;
-    background: linear-gradient(180deg, rgba(12, 12, 30, 0.75), rgba(8, 10, 26, 0.85));
+    background: var(--tw-background-overlay);
     pointer-events: none;
     z-index: -1;
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .tw-surface,
+    .tw-button,
+    body::after {
+      backdrop-filter: none;
+      background-color: rgba(12, 18, 46, 0.65);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body::before {
+      animation: none;
+    }
+
+    .tw-button,
+    .tw-surface {
+      transition: none !important;
+    }
   }
 
   @keyframes aurora-pan {
@@ -67,8 +93,9 @@
     @apply glass-2xl rounded-[32px] border border-white/10 p-6 shadow-[0_45px_120px_var(--tw-surface-shadow)] transition-transform duration-300 ease-out;
     background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(12, 18, 46, 0.35));
     backdrop-filter: blur(26px) saturate(140%);
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
     will-change: transform, box-shadow, backdrop-filter;
+    contain: layout paint;
   }
 
   .tw-surface:hover {
@@ -80,8 +107,9 @@
   .tw-button {
     @apply glass-sm px-4 py-3 rounded-xl text-sm font-semibold uppercase tracking-wide flex items-center justify-center gap-2 border border-transparent transition-all duration-200 ease-out;
     letter-spacing: 0.08em;
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
     will-change: transform, box-shadow;
+    contain: layout paint;
   }
 
   .tw-button:focus-visible {
@@ -129,6 +157,19 @@
 
   .tw-button--pending {
     @apply bg-amber-500/25 text-amber-100 border-amber-400/40 cursor-wait;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .tw-button[data-state="active"] {
+    box-shadow: 0 12px 35px rgba(59, 130, 246, 0.35);
+  }
+
+  .tw-button[data-state="warning"] {
+    box-shadow: 0 12px 35px rgba(251, 191, 36, 0.35);
+  }
+
+  .tw-button[data-state="pending"] {
     box-shadow: none;
     transform: none;
   }

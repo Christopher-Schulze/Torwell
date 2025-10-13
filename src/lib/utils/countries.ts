@@ -63,6 +63,47 @@ const COUNTRY_NAME_BY_CODE = new Map(
   COUNTRY_OPTIONS.map((option) => [option.code, option.name]),
 );
 
+const FAST_COUNTRY_CODES: ReadonlyArray<string> = [
+  "CA",
+  "CH",
+  "DE",
+  "DK",
+  "EE",
+  "FI",
+  "FR",
+  "GB",
+  "IS",
+  "JP",
+  "LT",
+  "LU",
+  "LV",
+  "NL",
+  "NO",
+  "SE",
+  "SG",
+  "US",
+];
+
+const FAST_COUNTRY_CODE_SET = new Set(FAST_COUNTRY_CODES);
+
+export const DEFAULT_FAST_COUNTRY_CODES: ReadonlyArray<string> = FAST_COUNTRY_CODES;
+
+export function createFastCountrySet(
+  extra?: Iterable<string | null | undefined>,
+): Set<string> {
+  const set = new Set(FAST_COUNTRY_CODE_SET);
+  if (!extra) {
+    return set;
+  }
+  for (const value of extra) {
+    const code = normaliseCountryCode(value);
+    if (code) {
+      set.add(code);
+    }
+  }
+  return set;
+}
+
 export const DEFAULT_ROUTE_CODES = ["DE", "NL", "SE"] as const;
 
 export function normaliseCountryCode(value: string | null | undefined): string | null {
@@ -116,4 +157,12 @@ export function ensureUniqueRoute(
 export function isKnownCountry(value: string | null | undefined): boolean {
   const code = normaliseCountryCode(value);
   return !!(code && COUNTRY_NAME_BY_CODE.has(code));
+}
+
+export function isFastCountry(
+  value: string | null | undefined,
+  fastSet: ReadonlySet<string> = FAST_COUNTRY_CODE_SET,
+): boolean {
+  const code = normaliseCountryCode(value);
+  return !!(code && fastSet.has(code));
 }

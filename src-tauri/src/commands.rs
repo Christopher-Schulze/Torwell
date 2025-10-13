@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
 use crate::icmp;
 use crate::state::{AppState, LogEntry, MetricPoint};
-use crate::tor_manager::{BridgePreset, RetryInfo};
+use crate::tor_manager::{BridgePreset, CircuitPolicyReport, RetryInfo, TorrcProfile};
 use governor::{
     clock::DefaultClock,
     state::{InMemoryState, NotKeyed},
@@ -364,6 +364,16 @@ pub async fn get_active_circuit(state: State<'_, AppState>) -> Result<Vec<RelayI
 }
 
 #[tauri::command]
+pub async fn get_circuit_policy_report(state: State<'_, AppState>) -> Result<CircuitPolicyReport> {
+    track_call("get_circuit_policy_report").await;
+    check_api_rate()?;
+    {
+        let mgr = state.tor_manager.read().await.clone();
+        mgr.circuit_policy_report().await
+    }
+}
+
+#[tauri::command]
 pub async fn get_isolated_circuit(
     state: State<'_, AppState>,
     domain: String,
@@ -421,9 +431,23 @@ pub async fn set_torrc_config(state: State<'_, AppState>, config: String) -> Res
     check_api_rate()?;
     {
         let mgr = state.tor_manager.read().await.clone();
-        mgr.set_torrc_config(config).await;
+        mgr.set_torrc_config(config).await?;
     }
     Ok(())
+}
+
+#[tauri::command]
+pub async fn generate_torrc_profile(
+    state: State<'_, AppState>,
+    fast_only: bool,
+    preferred_fast_countries: Option<Vec<String>>,
+    include_bridges: bool,
+) -> Result<TorrcProfile> {
+    track_call("generate_torrc_profile").await;
+    check_api_rate()?;
+    let mgr = state.tor_manager.read().await.clone();
+    mgr.generate_torrc_profile(fast_only, preferred_fast_countries, include_bridges)
+        .await
 }
 
 #[tauri::command]

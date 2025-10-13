@@ -668,3 +668,42 @@ async fn command_set_torrc_config_used_in_build() {
     let cfg = cfgs.last().expect("no config captured");
     assert_eq!(cfg.override_net_params.get("wombats-per-quokka"), Some(&99));
 }
+
+#[tokio::test]
+async fn command_generate_torrc_profile_includes_preferences() {
+    let mut app = tauri::test::mock_app();
+    let state = mock_state();
+    app.manage(state);
+    let state = app.state::<AppState<MockTorClient>>();
+
+    commands::set_entry_country(state, Some("NL".into()))
+        .await
+        .unwrap();
+    commands::set_middle_country(state, Some("SE".into()))
+        .await
+        .unwrap();
+    commands::set_exit_country(state, Some("US".into()))
+        .await
+        .unwrap();
+    commands::set_bridges(
+        state,
+        vec!["Bridge obfs4 192.0.2.55:443 FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF cert=DDDD iat-mode=0".into()],
+    )
+    .await
+    .unwrap();
+
+    let profile =
+        commands::generate_torrc_profile(state, true, Some(vec!["FR".into(), "NL".into()]), true)
+            .await
+            .unwrap();
+
+    assert_eq!(profile.entry, "NL");
+    assert_eq!(profile.middle, "SE");
+    assert_eq!(profile.exit, "US");
+    assert!(profile.fast_only);
+    assert!(profile.config.contains("UseBridges 1"));
+    assert!(profile.config.contains("Bridge obfs4 192.0.2.55:443"));
+    assert!(profile.config.contains("ExcludeNodes {=badexit}"));
+    assert!(profile.config.contains("# Route: NL -> SE -> US"));
+    assert!(profile.fast_fallback.iter().any(|code| code == "FR"));
+}

@@ -38,9 +38,7 @@ async fn set_workers(
     StatusCode::NO_CONTENT
 }
 
-async fn validate_worker(
-    Extension(state): Extension<Arc<AppState>>,
-) -> Json<bool> {
+async fn validate_worker(Extension(state): Extension<Arc<AppState>>) -> Json<bool> {
     let res = state
         .http_client
         .get_text("https://example.com")
