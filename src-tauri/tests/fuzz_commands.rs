@@ -68,7 +68,7 @@ async fn fuzz_network_commands() {
     let mut rate_limited = false;
 
     for _ in 0..100 {
-        match rng.gen_range(0..4) {
+        match rng.gen_range(0..6) {
             // ping_host with random host and count
             0 => {
                 let len = rng.gen_range(1..16);
@@ -98,6 +98,39 @@ async fn fuzz_network_commands() {
             // get_active_circuit
             2 => {
                 let res = commands::get_active_circuit(state).await;
+                if matches!(res, Err(Error::RateLimitExceeded(_))) {
+                    rate_limited = true;
+                }
+            }
+            // get_circuit_policy_report
+            3 => {
+                let res = commands::get_circuit_policy_report(state).await;
+                if matches!(res, Err(Error::RateLimitExceeded(_))) {
+                    rate_limited = true;
+                }
+            }
+            4 => {
+                let include_bridges = rng.gen_bool(0.5);
+                let fast_only = rng.gen_bool(0.5);
+                let extra: Option<Vec<String>> = if rng.gen_bool(0.5) {
+                    Some(
+                        (0..rng.gen_range(0..3))
+                            .map(|_| {
+                                let len = rng.gen_range(1..4);
+                                (&mut rng)
+                                    .sample_iter(&Alphanumeric)
+                                    .take(len)
+                                    .map(char::from)
+                                    .collect::<String>()
+                            })
+                            .collect(),
+                    )
+                } else {
+                    None
+                };
+                let res =
+                    commands::generate_torrc_profile(state, fast_only, extra, include_bridges)
+                        .await;
                 if matches!(res, Err(Error::RateLimitExceeded(_))) {
                     rate_limited = true;
                 }

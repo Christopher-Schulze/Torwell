@@ -2,6 +2,7 @@ import { writable, get } from "svelte/store";
 import { db } from "$lib/database";
 import type { Settings } from "$lib/database";
 import { invoke } from "$lib/api";
+import { normaliseCountryCode } from "$lib/utils/countries";
 
 type AppSettings = {
   workerList: string[];
@@ -17,6 +18,8 @@ type AppSettings = {
   hsm_slot: number | null;
   updateInterval: number;
   geoipPath: string | null;
+  fastRoutingOnly: boolean;
+  preferredFastCountries: string[];
 };
 
 type UIState = {
@@ -47,6 +50,8 @@ function createUIStore() {
       hsm_slot: null,
       updateInterval: 86400,
       geoipPath: null,
+      fastRoutingOnly: false,
+      preferredFastCountries: [],
     },
     error: null,
     importProgress: null,
@@ -134,6 +139,8 @@ function createUIStore() {
               hsm_slot: storedSettings.hsm_slot ?? null,
               updateInterval: storedSettings.updateInterval ?? 86400,
               geoipPath: storedSettings.geoipPath ?? null,
+              fastRoutingOnly: storedSettings.fastRoutingOnly ?? false,
+              preferredFastCountries: storedSettings.preferredFastCountries ?? [],
             },
           }));
 
@@ -210,6 +217,49 @@ function createUIStore() {
         update((state) => ({
           ...state,
           error: `Failed to set bridges: ${message}`,
+        }));
+      }
+    },
+
+    setFastRoutingOnly: async (fastOnly: boolean) => {
+      try {
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          fastRoutingOnly: fastOnly,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to save fast routing preference: ${message}`,
+        }));
+      }
+    },
+
+    savePreferredFastCountries: async (countries: string[]) => {
+      try {
+        const normalised = Array.from(
+          new Set(
+            countries
+              .map((code) => normaliseCountryCode(code))
+              .filter((code): code is string => Boolean(code)),
+          ),
+        );
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          preferredFastCountries: normalised,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to save fast-tier overrides: ${message}`,
         }));
       }
     },

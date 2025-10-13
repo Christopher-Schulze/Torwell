@@ -145,6 +145,8 @@ export interface Settings {
   hsm_slot?: number | null;
   updateInterval?: number;
   geoipPath?: string | null;
+  fastRoutingOnly?: boolean;
+  preferredFastCountries?: string[];
 }
 
 export class AppDatabase extends Dexie {
@@ -187,6 +189,11 @@ export class AppDatabase extends Dexie {
     this.version(8).stores({
       settings:
         "++id, workerList, torrcConfig, workerToken, exitCountry, entryCountry, middleCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath",
+      meta: "&id",
+    });
+    this.version(9).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, entryCountry, middleCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath, fastRoutingOnly, preferredFastCountries",
       meta: "&id",
     });
 

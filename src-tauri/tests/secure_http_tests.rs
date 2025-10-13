@@ -523,12 +523,11 @@ async fn local_update_and_warning_on_failures() {
 
     // now simulate repeated failures from another local server
     let fail = MockServer::start_async().await;
-    fail
-        .mock_async(|when, then| {
-            when.method(GET).path("/cert.pem");
-            then.status(500);
-        })
-        .await;
+    fail.mock_async(|when, then| {
+        when.method(GET).path("/cert.pem");
+        then.status(500);
+    })
+    .await;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     client

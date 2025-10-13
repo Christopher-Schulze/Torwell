@@ -11,27 +11,32 @@
   import { uiStore } from "$lib/stores/uiStore";
   import { torStore } from "$lib/stores/torStore";
   import { invoke } from "$lib/api";
-  import type { StatusSummary } from "$lib/types";
+  import type { CircuitPolicyReport, RelayInfo, StatusSummary } from "$lib/types";
 
   import { onMount } from "svelte";
 
-  let activeCircuit: any[] = [];
+  let activeCircuit: RelayInfo[] = [];
+  let policyReport: CircuitPolicyReport | null = null;
   let isolatedCircuits: { domain: string; nodes: any[] }[] = [];
   const isolatedDomain = "example.com";
-  let circuitInterval: any = null;
+  let routeInterval: any = null;
   let summaryInterval: any = null;
   let totalTrafficMB = 0;
   let statusSummary: StatusSummary | null = null;
 
-  async function fetchCircuit() {
+  async function fetchPolicyReport() {
     if ($torStore.status === "CONNECTED") {
       try {
-        activeCircuit = await invoke("get_active_circuit");
+        const report = await invoke<CircuitPolicyReport>("get_circuit_policy_report");
+        policyReport = report;
+        activeCircuit = report.relays ?? [];
       } catch (e) {
-        console.error("Failed to get active circuit:", e);
+        console.error("Failed to load circuit policy report:", e);
+        policyReport = null;
         activeCircuit = [];
       }
     } else {
+      policyReport = null;
       activeCircuit = [];
     }
   }
@@ -68,17 +73,18 @@
   }
 
   // Fetch circuit info periodically when connected
-  $: if ($torStore.status === "CONNECTED" && !circuitInterval) {
-    fetchCircuit();
+  $: if ($torStore.status === "CONNECTED" && !routeInterval) {
+    fetchPolicyReport();
     fetchIsolatedCircuit();
-    circuitInterval = setInterval(() => {
-      fetchCircuit();
+    routeInterval = setInterval(() => {
+      fetchPolicyReport();
       fetchIsolatedCircuit();
     }, 5000);
-  } else if ($torStore.status !== "CONNECTED" && circuitInterval) {
-    clearInterval(circuitInterval);
-    circuitInterval = null;
+  } else if ($torStore.status !== "CONNECTED" && routeInterval) {
+    clearInterval(routeInterval);
+    routeInterval = null;
     activeCircuit = [];
+    policyReport = null;
     isolatedCircuits = [];
   }
 
@@ -94,12 +100,13 @@
 
   onMount(() => {
     return () => {
-      if (circuitInterval) {
-        clearInterval(circuitInterval);
+      if (routeInterval) {
+        clearInterval(routeInterval);
       }
       if (summaryInterval) {
         clearInterval(summaryInterval);
       }
+      policyReport = null;
       isolatedCircuits = [];
     };
   });
@@ -125,6 +132,7 @@
       {totalTrafficMB}
       pingMs={$torStore.pingMs}
       summary={statusSummary}
+      policyReport={policyReport}
     />
 
     <TorChain
