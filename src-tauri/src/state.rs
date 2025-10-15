@@ -4,7 +4,7 @@ use crate::secure_http::SecureHttpClient;
 use crate::session::SessionManager;
 use crate::tor_manager::{TorClientBehavior, TorManager};
 use arti_client::TorClient;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use directories::ProjectDirs;
 use log::Level;
 use regex::Regex;
@@ -37,6 +37,8 @@ pub const DEFAULT_MAX_METRIC_MB: usize = 5;
 pub const DEFAULT_METRIC_INTERVAL_SECS: u64 = 30;
 /// Default number of metric entries returned when no limit is specified
 pub const DEFAULT_METRIC_FETCH_LIMIT: usize = 100;
+/// Default number of connection timeline events to retain
+pub const DEFAULT_MAX_CONNECTION_EVENTS: usize = 720;
 
 #[derive(Deserialize, Default)]
 struct AppConfig {
@@ -110,6 +112,62 @@ pub struct MetricPoint {
     pub complete: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct ConnectionEvent {
+    pub timestamp: DateTime<Utc>,
+    pub status: String,
+    pub message: Option<String>,
+    pub detail: Option<String>,
+    pub retry_count: Option<u32>,
+    pub latency_ms: Option<u64>,
+    pub memory_bytes: Option<u64>,
+    pub circuit_count: Option<usize>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionEventSnapshot {
+    pub timestamp: String,
+    pub status: String,
+    pub message: Option<String>,
+    pub detail: Option<String>,
+    pub retry_count: Option<u32>,
+    pub latency_ms: Option<u64>,
+    pub memory_bytes: Option<u64>,
+    pub circuit_count: Option<usize>,
+}
+
+impl From<&ConnectionEvent> for ConnectionEventSnapshot {
+    fn from(event: &ConnectionEvent) -> Self {
+        Self {
+            timestamp: event.timestamp.to_rfc3339(),
+            status: event.status.clone(),
+            message: event.message.clone(),
+            detail: event.detail.clone(),
+            retry_count: event.retry_count,
+            latency_ms: event.latency_ms,
+            memory_bytes: event.memory_bytes,
+            circuit_count: event.circuit_count,
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionHealthSummary {
+    pub total_events: usize,
+    pub connected_events: usize,
+    pub error_events: usize,
+    pub disconnect_events: usize,
+    pub last_event: Option<ConnectionEventSnapshot>,
+    pub last_connected_at: Option<String>,
+    pub last_error_at: Option<String>,
+    pub current_uptime_seconds: Option<u64>,
+    pub longest_uptime_seconds: Option<u64>,
+    pub availability_percent: f32,
+    pub retry_attempts_last_hour: u32,
+}
+
 #[derive(Clone)]
 pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub tor_manager: Arc<RwLock<Arc<TorManager<C>>>>,
@@ -152,6 +210,10 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub max_circuits: usize,
     /// Interval for metrics collection in seconds
     pub metric_interval_secs: u64,
+    /// Rolling buffer of connection state changes
+    pub connection_events: Arc<Mutex<Vec<ConnectionEvent>>>,
+    /// Maximum number of connection events to retain
+    pub max_connection_events: usize,
     /// Session manager for authentication tokens
     pub session: Arc<SessionManager>,
     /// Handle used to emit frontend events
@@ -187,6 +249,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
         let mut max_metric_lines = cfg.max_metric_lines;
         let mut max_metric_mb = cfg.max_metric_mb;
         let mut geoip_path = cfg.geoip_path.clone();
+        let mut max_connection_events = DEFAULT_MAX_CONNECTION_EVENTS;
         let metric_interval_secs = std::env::var("TORWELL_METRIC_INTERVAL")
             .ok()
             .and_then(|v| v.parse::<u64>().ok())
@@ -204,6 +267,11 @@ impl<C: TorClientBehavior> Default for AppState<C> {
         if let Ok(val) = std::env::var("TORWELL_MAX_METRIC_MB") {
             if let Ok(n) = val.parse::<usize>() {
                 max_metric_mb = n;
+            }
+        }
+        if let Ok(val) = std::env::var("TORWELL_MAX_CONNECTION_EVENTS") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_connection_events = n.max(10);
             }
         }
         if let Ok(p) = std::env::var("TORWELL_GEOIP_PATH") {
@@ -263,6 +331,8 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
             metric_interval_secs,
+            connection_events: Arc::new(Mutex::new(Vec::new())),
+            max_connection_events,
             session: SessionManager::new(Duration::from_secs(
                 std::env::var("TORWELL_SESSION_TTL")
                     .ok()
@@ -300,6 +370,7 @@ impl<C: TorClientBehavior> AppState<C> {
         let mut max_metric_lines = cfg.max_metric_lines;
         let mut max_metric_mb = cfg.max_metric_mb;
         let mut geoip_path = cfg.geoip_path.clone();
+        let mut max_connection_events = DEFAULT_MAX_CONNECTION_EVENTS;
         let metric_interval_secs = std::env::var("TORWELL_METRIC_INTERVAL")
             .ok()
             .and_then(|v| v.parse::<u64>().ok())
@@ -317,6 +388,11 @@ impl<C: TorClientBehavior> AppState<C> {
         if let Ok(val) = std::env::var("TORWELL_MAX_METRIC_MB") {
             if let Ok(n) = val.parse::<usize>() {
                 max_metric_mb = n;
+            }
+        }
+        if let Ok(val) = std::env::var("TORWELL_MAX_CONNECTION_EVENTS") {
+            if let Ok(n) = val.parse::<usize>() {
+                max_connection_events = n.max(10);
             }
         }
         if let Ok(p) = std::env::var("TORWELL_GEOIP_PATH") {
@@ -374,6 +450,8 @@ impl<C: TorClientBehavior> AppState<C> {
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or(20),
             metric_interval_secs,
+            connection_events: Arc::new(Mutex::new(Vec::new())),
+            max_connection_events,
             session: SessionManager::new(Duration::from_secs(
                 std::env::var("TORWELL_SESSION_TTL")
                     .ok()
@@ -744,6 +822,163 @@ impl<C: TorClientBehavior> AppState<C> {
         let net = *self.network_throughput.lock().await;
         let total = *self.network_total.lock().await;
         (mem, circ, age, cpu, net, total)
+    }
+
+    /// Append a connection state change to the diagnostics buffer
+    pub async fn record_connection_event<S: Into<String>>(
+        &self,
+        status: S,
+        message: Option<String>,
+        detail: Option<String>,
+        retry_count: Option<u32>,
+    ) {
+        let status = status.into();
+        let timestamp = Utc::now();
+        let (memory_bytes, circuit_count, _, _, _, _) = self.metrics().await;
+        let latency = self.latency().await;
+
+        let event = ConnectionEvent {
+            timestamp,
+            status,
+            message,
+            detail,
+            retry_count,
+            latency_ms: Some(latency),
+            memory_bytes: Some(memory_bytes),
+            circuit_count: Some(circuit_count),
+        };
+
+        let mut events = self.connection_events.lock().await;
+        events.push(event);
+        if events.len() > self.max_connection_events {
+            let excess = events.len() - self.max_connection_events;
+            events.drain(0..excess);
+        }
+    }
+
+    /// Return the most recent connection events as snapshots suitable for the UI
+    pub async fn connection_events_snapshot(
+        &self,
+        limit: Option<usize>,
+    ) -> Vec<ConnectionEventSnapshot> {
+        let events = self.connection_events.lock().await;
+        if events.is_empty() {
+            return Vec::new();
+        }
+        let take = limit.unwrap_or(events.len()).min(events.len());
+        let start = events.len().saturating_sub(take);
+        events[start..]
+            .iter()
+            .map(ConnectionEventSnapshot::from)
+            .collect()
+    }
+
+    /// Compute aggregated diagnostics about recent connection stability
+    pub async fn connection_health_summary(&self) -> ConnectionHealthSummary {
+        let events = {
+            let guard = self.connection_events.lock().await;
+            guard.clone()
+        };
+        let mut summary = ConnectionHealthSummary::default();
+
+        if events.is_empty() {
+            summary.current_uptime_seconds = self.connection_uptime().await;
+            return summary;
+        }
+
+        let now = Utc::now();
+        summary.total_events = events.len();
+
+        let mut connected_since: Option<DateTime<Utc>> = None;
+        let mut last_timestamp: Option<DateTime<Utc>> = None;
+        let mut total_connected = ChronoDuration::seconds(0);
+        let mut longest_uptime = ChronoDuration::seconds(0);
+        let mut last_connected_at: Option<DateTime<Utc>> = None;
+        let mut last_error_at: Option<DateTime<Utc>> = None;
+
+        for event in &events {
+            if let Some(prev) = last_timestamp {
+                if connected_since.is_some() {
+                    total_connected += event.timestamp - prev;
+                }
+            }
+
+            match event.status.as_str() {
+                "CONNECTED" => {
+                    summary.connected_events += 1;
+                    connected_since = Some(event.timestamp);
+                    last_connected_at = Some(event.timestamp);
+                }
+                "DISCONNECTED" => {
+                    summary.disconnect_events += 1;
+                    if let Some(start) = connected_since.take() {
+                        let span = event.timestamp - start;
+                        if span > longest_uptime {
+                            longest_uptime = span;
+                        }
+                    }
+                }
+                "DISCONNECTING" => {
+                    summary.disconnect_events += 1;
+                }
+                "ERROR" => {
+                    summary.error_events += 1;
+                    last_error_at = Some(event.timestamp);
+                    if let Some(start) = connected_since.take() {
+                        let span = event.timestamp - start;
+                        if span > longest_uptime {
+                            longest_uptime = span;
+                        }
+                    }
+                }
+                "RETRYING" => {
+                    summary.error_events += 1;
+                    last_error_at = Some(event.timestamp);
+                    connected_since = None;
+                }
+                _ => {}
+            }
+
+            last_timestamp = Some(event.timestamp);
+        }
+
+        if let Some(prev) = last_timestamp {
+            if let Some(start) = connected_since {
+                let span_to_now = now - start;
+                total_connected += now - prev;
+                if span_to_now > longest_uptime {
+                    longest_uptime = span_to_now;
+                }
+            }
+        }
+
+        let first_timestamp = events.first().map(|event| event.timestamp);
+        let observation_window = first_timestamp
+            .map(|ts| now - ts)
+            .unwrap_or_else(|| ChronoDuration::seconds(0));
+        if observation_window.num_seconds() > 0 {
+            let ratio = total_connected.num_seconds().max(0) as f64
+                / observation_window.num_seconds().max(1) as f64;
+            summary.availability_percent = (ratio * 100.0).min(100.0) as f32;
+        }
+
+        summary.last_event = events.last().map(ConnectionEventSnapshot::from);
+        summary.last_connected_at = last_connected_at.map(|ts| ts.to_rfc3339());
+        summary.last_error_at = last_error_at.map(|ts| ts.to_rfc3339());
+        summary.current_uptime_seconds = self.connection_uptime().await;
+        summary.longest_uptime_seconds = if longest_uptime.num_seconds() > 0 {
+            Some(longest_uptime.num_seconds() as u64)
+        } else {
+            None
+        };
+
+        let hour_ago = now - ChronoDuration::hours(1);
+        summary.retry_attempts_last_hour = events
+            .iter()
+            .filter(|event| event.status == "RETRYING" && event.timestamp >= hour_ago)
+            .count() as u32;
+
+        summary
     }
 
     /// Retrieve current latency

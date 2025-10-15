@@ -68,6 +68,7 @@ Torwell84 is a privacy-focused Tor client built with modern technologies to prov
  - **Network Metrics**: `NetworkMonitor` and `NetworkTools` visualise CPU usage, traffic and traceroute results obtained from the backend.
    These widgets rely entirely on the metrics measured by the Rust backend.
 - **Fast-tier Overrides**: Persist custom fast relay countries and surface them across the Rust backend and Svelte UI for deterministic route planning
+- **Connection Diagnostics**: Timeline visualisation with availability metrics, retry counters, and historical status changes for rapid troubleshooting
 - **HSM Support**: Optional PKCS#11 integration when built with the `hsm` feature
 - **Mobile Workflow**: Capacitor-based build with HTTP bridge
 - **Circuit Metrics**: Uses arti's experimental APIs when built with the

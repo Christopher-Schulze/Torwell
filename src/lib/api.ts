@@ -1,5 +1,6 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/tauri';
 import { errorStore } from '$lib/stores/errorStore';
+import type { ConnectionEvent, ConnectionHealthSummary } from '$lib/types';
 
 let token: string | null = null;
 
@@ -32,4 +33,13 @@ export async function invoke<T = any>(
 
 export function lookupCountry(ip: string) {
   return invoke('lookup_country', { ip }) as Promise<string>;
+}
+
+export function getConnectionTimeline(limit?: number) {
+  const args = typeof limit === 'number' ? { limit } : {};
+  return invoke<ConnectionEvent[]>('get_connection_timeline', args);
+}
+
+export function getConnectionHealthSummary() {
+  return invoke<ConnectionHealthSummary>('get_connection_health_summary');
 }
