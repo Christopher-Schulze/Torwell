@@ -1,6 +1,8 @@
 use crate::error::{Error, Result};
 use crate::icmp;
-use crate::state::{AppState, LogEntry, MetricPoint};
+use crate::state::{
+    AppState, ConnectionEventSnapshot, ConnectionHealthSummary, LogEntry, MetricPoint,
+};
 use crate::tor_manager::{BridgePreset, CircuitPolicyReport, RetryInfo, TorrcProfile};
 use governor::{
     clock::DefaultClock,
@@ -133,6 +135,15 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
             log::error!("Failed to emit status update: {}", e);
         }
 
+        state_clone
+            .record_connection_event(
+                "CONNECTING",
+                Some("Attempting Tor connection".into()),
+                None,
+                None,
+            )
+            .await;
+
         // Perform the actual connection
         let _ = state_clone.reset_retry_counter().await;
         let mgr = tor_manager.read().await.clone();
@@ -176,6 +187,31 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             "errorSource": source
                         }),
                     );
+                    let mut detail_text = if !step.is_empty() && !source.is_empty() {
+                        format!("{step} ({source}) – {err_str}")
+                    } else if !step.is_empty() {
+                        format!("{step} – {err_str}")
+                    } else if !source.is_empty() {
+                        format!("{source} – {err_str}")
+                    } else {
+                        err_str.clone()
+                    };
+                    let delay_secs = delay.as_secs();
+                    if delay_secs > 0 {
+                        detail_text.push_str(&format!(" – retrying in {delay_secs}s"));
+                    }
+                    let message = format!("Attempt {attempt} failed");
+                    let sc_event = state_clone.clone();
+                    tokio::spawn(async move {
+                        sc_event
+                            .record_connection_event(
+                                "RETRYING",
+                                Some(message),
+                                Some(detail_text),
+                                Some(attempt),
+                            )
+                            .await;
+                    });
                 },
                 |progress, msg| {
                     let _ = app_handle.emit_all(
@@ -207,6 +243,14 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                     log::error!("Failed to emit status update: {}", e);
                 }
                 state_clone.mark_connected_now().await;
+                state_clone
+                    .record_connection_event(
+                        "CONNECTED",
+                        Some("Tor connection established".into()),
+                        None,
+                        None,
+                    )
+                    .await;
                 state_clone.update_tray_menu().await;
             }
             Err(e) => {
@@ -234,6 +278,21 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 }
                 state_clone.mark_disconnected().await;
                 state_clone.update_tray_menu().await;
+                let detail_text = if step.is_empty() && source.is_empty() {
+                    e.to_string()
+                } else if source.is_empty() {
+                    format!("{} – {}", step, e)
+                } else {
+                    format!("{} ({}) – {}", step, source, e)
+                };
+                state_clone
+                    .record_connection_event(
+                        "ERROR",
+                        Some("Tor connection failed".into()),
+                        Some(detail_text),
+                        None,
+                    )
+                    .await;
             }
         }
     });
@@ -260,6 +319,15 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
         log::error!("Failed to emit status update: {}", e);
     }
 
+    state
+        .record_connection_event(
+            "DISCONNECTING",
+            Some("Disconnect requested".into()),
+            None,
+            None,
+        )
+        .await;
+
     {
         let mgr = state.tor_manager.read().await.clone();
         mgr.disconnect().await?;
@@ -282,6 +350,15 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
     ) {
         log::error!("Failed to emit status update: {}", e);
     }
+
+    state
+        .record_connection_event(
+            "DISCONNECTED",
+            Some("Tor connection closed".into()),
+            None,
+            None,
+        )
+        .await;
 
     state.update_tray_menu().await;
 
@@ -351,6 +428,25 @@ pub async fn get_status_summary(state: State<'_, AppState>) -> Result<StatusSumm
         tray_warning,
         retry_count,
     })
+}
+
+#[tauri::command]
+pub async fn get_connection_timeline(
+    state: State<'_, AppState>,
+    limit: Option<usize>,
+) -> Result<Vec<ConnectionEventSnapshot>> {
+    track_call("get_connection_timeline").await;
+    check_api_rate()?;
+    Ok(state.connection_events_snapshot(limit).await)
+}
+
+#[tauri::command]
+pub async fn get_connection_health_summary(
+    state: State<'_, AppState>,
+) -> Result<ConnectionHealthSummary> {
+    track_call("get_connection_health_summary").await;
+    check_api_rate()?;
+    Ok(state.connection_health_summary().await)
 }
 
 #[tauri::command]
@@ -595,6 +691,14 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
                     "errorMessage": null
                 }),
             )?;
+            state
+                .record_connection_event(
+                    "NEW_IDENTITY",
+                    Some("New Tor identity requested".into()),
+                    None,
+                    None,
+                )
+                .await;
             Ok(())
         }
         Err(e) => {
@@ -641,6 +745,14 @@ pub async fn build_circuit(app_handle: tauri::AppHandle, state: State<'_, AppSta
                     "errorMessage": null
                 }),
             )?;
+            state
+                .record_connection_event(
+                    "NEW_CIRCUIT",
+                    Some("Manual circuit build triggered".into()),
+                    None,
+                    None,
+                )
+                .await;
             Ok(())
         }
         Err(e) => {

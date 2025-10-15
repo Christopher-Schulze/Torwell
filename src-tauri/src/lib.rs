@@ -176,6 +176,8 @@ pub fn run() {
             commands::disconnect,
             commands::get_status,
             commands::get_status_summary,
+            commands::get_connection_timeline,
+            commands::get_connection_health_summary,
             commands::get_active_circuit,
             commands::get_circuit_policy_report,
             commands::get_isolated_circuit,

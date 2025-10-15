@@ -44,3 +44,28 @@ export interface TorrcProfile {
   bridges: string[];
   fast_only: boolean;
 }
+
+export interface ConnectionEvent {
+  timestamp: string;
+  status: string;
+  message?: string | null;
+  detail?: string | null;
+  retryCount?: number | null;
+  latencyMs?: number | null;
+  memoryBytes?: number | null;
+  circuitCount?: number | null;
+}
+
+export interface ConnectionHealthSummary {
+  totalEvents: number;
+  connectedEvents: number;
+  errorEvents: number;
+  disconnectEvents: number;
+  lastEvent?: ConnectionEvent | null;
+  lastConnectedAt?: string | null;
+  lastErrorAt?: string | null;
+  currentUptimeSeconds?: number | null;
+  longestUptimeSeconds?: number | null;
+  availabilityPercent: number;
+  retryAttemptsLastHour: number;
+}
