@@ -190,6 +190,140 @@
     animation: tw-spin 0.9s linear infinite;
     will-change: transform;
   }
+
+  .tw-section-title {
+    @apply text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-slate-300/80;
+    letter-spacing: 0.28em;
+  }
+
+  .tw-input {
+    @apply glass-sm w-full rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm text-slate-100 placeholder-slate-400/80 shadow-[0_12px_35px_rgba(8,15,52,0.45)] transition duration-200 ease-out;
+    backdrop-filter: blur(22px) saturate(140%);
+    transform: translateZ(0);
+  }
+
+  .tw-input:focus-visible {
+    @apply outline-none ring-2 ring-sky-300/60 ring-offset-2 ring-offset-slate-900;
+  }
+
+  .tw-chip {
+    @apply inline-flex items-center justify-center rounded-full border border-white/10 bg-slate-900/55 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200/90 transition-all duration-200 ease-out;
+    transform: translateZ(0);
+  }
+
+  .tw-chip:hover {
+    @apply bg-slate-900/75 text-slate-100;
+  }
+
+  .tw-chip--action {
+    @apply bg-slate-900/70 text-slate-100;
+  }
+
+  .tw-chip--code {
+    @apply bg-slate-900/80 px-2 py-0.5 text-[0.65rem] tracking-[0.18em] text-slate-200/90;
+  }
+
+  .tw-chip[disabled] {
+    @apply cursor-not-allowed opacity-60;
+  }
+
+  .tw-badge {
+    @apply inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.38em] text-slate-200/90 shadow-[0_18px_45px_rgba(8,15,52,0.35)];
+    background: linear-gradient(135deg, rgba(30, 64, 175, 0.3), rgba(124, 58, 237, 0.35));
+    transform: translateZ(0);
+  }
+
+  .tw-badge[data-state="connected"] {
+    @apply border-emerald-400/40 text-emerald-100;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(59, 130, 246, 0.3));
+  }
+
+  .tw-badge[data-state="error"] {
+    @apply border-rose-400/50 text-rose-100;
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.35), rgba(251, 191, 36, 0.25));
+  }
+
+  .tw-badge[data-state="pending"] {
+    @apply border-amber-400/50 text-amber-100;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(59, 130, 246, 0.25));
+  }
+
+  .tw-badge[data-state="idle"] {
+    @apply border-white/15 text-slate-200/90;
+    background: linear-gradient(135deg, rgba(30, 64, 175, 0.22), rgba(124, 58, 237, 0.22));
+  }
+
+  .tw-inline-alert {
+    @apply inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200/90;
+    backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  .tw-inline-alert--error {
+    @apply border-rose-400/50 bg-rose-500/20 text-rose-100;
+  }
+
+  .tw-subtle-text {
+    @apply text-sm text-slate-300/80;
+  }
+
+  .tw-empty-state {
+    @apply text-sm italic text-slate-400/80;
+  }
+
+  .tw-results-card {
+    @apply rounded-2xl border border-white/10 bg-slate-900/35 p-4 md:p-6 space-y-4 shadow-[0_35px_90px_rgba(8,15,52,0.45)] transition duration-300 ease-out;
+    backdrop-filter: blur(24px) saturate(150%);
+    transform: translateZ(0);
+  }
+
+  .tw-results-card:hover {
+    @apply border-white/15 shadow-[0_45px_120px_rgba(8,15,52,0.55)];
+  }
+
+  .tw-results-header {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .tw-data-table {
+    @apply w-full text-sm text-slate-100/90;
+    border-collapse: collapse;
+  }
+
+  .tw-data-table th,
+  .tw-data-table td {
+    @apply px-3 py-2 text-left align-middle;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .tw-data-table tbody tr:nth-child(odd) {
+    background-color: rgba(15, 23, 42, 0.35);
+  }
+
+  .tw-data-table tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.08);
+  }
+
+  @media (max-width: 640px) {
+    .tw-data-table thead {
+      display: none;
+    }
+
+    .tw-data-table tr {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 0.5rem 0;
+    }
+
+    .tw-data-table td {
+      border-bottom: none;
+      font-size: 0.85rem;
+    }
+
+    .tw-data-table td::before {
+      content: attr(data-title);
+      @apply block text-xs uppercase tracking-[0.18em] text-slate-400/80;
+    }
+  }
 }
 
 @layer utilities {
