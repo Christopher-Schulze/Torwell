@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::icmp;
 use crate::secure_http::SecureHttpClient;
 use crate::session::SessionManager;
@@ -52,6 +52,8 @@ struct AppConfig {
     max_metric_lines: usize,
     #[serde(default = "default_max_metric_mb")]
     max_metric_mb: usize,
+    #[serde(default = "default_insecure_hosts")]
+    insecure_allowed_hosts: Vec<String>,
 }
 
 fn default_max_log_lines() -> usize {
@@ -64,6 +66,10 @@ fn default_max_metric_lines() -> usize {
 
 fn default_max_metric_mb() -> usize {
     DEFAULT_MAX_METRIC_MB
+}
+
+fn default_insecure_hosts() -> Vec<String> {
+    vec!["127.0.0.1".into(), "localhost".into()]
 }
 
 impl AppConfig {
@@ -278,13 +284,15 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             geoip_path = Some(p);
         }
 
+        let http_client =
+            Arc::new(SecureHttpClient::new_default().expect("failed to create http client"));
+        http_client.set_insecure_hosts(cfg.insecure_allowed_hosts.clone());
+
         Self {
             tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(
                 geoip_path.clone(),
             )))),
-            http_client: Arc::new(
-                SecureHttpClient::new_default().expect("failed to create http client"),
-            ),
+            http_client,
             log_file,
             log_lock: Arc::new(Mutex::new(())),
             metrics_file: cfg
@@ -398,6 +406,8 @@ impl<C: TorClientBehavior> AppState<C> {
         if let Ok(p) = std::env::var("TORWELL_GEOIP_PATH") {
             geoip_path = Some(p);
         }
+
+        http_client.set_insecure_hosts(cfg.insecure_allowed_hosts.clone());
 
         AppState {
             tor_manager: Arc::new(RwLock::new(Arc::new(TorManager::new_with_geoip(
@@ -740,6 +750,37 @@ impl<C: TorClientBehavior> AppState<C> {
         }
         let new_mgr = Arc::new(TorManager::new_with_geoip(path));
         *self.tor_manager.write().await = new_mgr;
+    }
+
+    pub async fn set_insecure_hosts(&self, hosts: Vec<String>) -> Result<()> {
+        self.http_client.set_insecure_hosts(hosts.clone());
+        Self::persist_insecure_hosts(&hosts)?;
+        Ok(())
+    }
+
+    fn persist_insecure_hosts(hosts: &[String]) -> Result<()> {
+        let path = Path::new(DEFAULT_CONFIG_PATH);
+        let contents = std::fs::read_to_string(path).unwrap_or_default();
+        let mut config: serde_json::Value = if contents.trim().is_empty() {
+            serde_json::json!({})
+        } else {
+            serde_json::from_str(&contents).unwrap_or_else(|_| serde_json::json!({}))
+        };
+
+        config["insecure_allowed_hosts"] = serde_json::Value::Array(
+            hosts
+                .iter()
+                .map(|h| serde_json::Value::String(h.clone()))
+                .collect(),
+        );
+
+        let serialized = serde_json::to_string_pretty(&config).map_err(|e| Error::ConfigError {
+            step: "state::persist_insecure_hosts".into(),
+            source: e.to_string(),
+            backtrace: None,
+        })?;
+        std::fs::write(path, serialized)?;
+        Ok(())
     }
 
     /// Return the path to the log file as a string

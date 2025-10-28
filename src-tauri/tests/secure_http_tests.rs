@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tempfile::tempdir;
 use tokio::sync::mpsc;
+use torwell84::error::Error;
 use torwell84::secure_http::{SecureHttpClient, DEFAULT_CONFIG_PATH};
 use urlencoding::encode;
 
@@ -65,6 +66,41 @@ async fn update_certificates_replaces_file() {
 
     let updated = fs::read_to_string(&cert_path).unwrap();
     assert_eq!(updated, NEW_CERT);
+}
+
+#[tokio::test]
+async fn http_blocked_without_allowlist() {
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+    let err = client
+        .get_text("http://example.com")
+        .await
+        .expect_err("expected insecure scheme error");
+    match err {
+        Error::InsecureScheme { host, .. } => assert_eq!(host, "example.com"),
+        other => panic!("unexpected error: {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn http_allowed_when_host_is_allowlisted() {
+    let dir = tempdir().unwrap();
+    let cert_path = dir.path().join("pinned.pem");
+    fs::write(&cert_path, CA_PEM).unwrap();
+
+    let client = SecureHttpClient::new(&cert_path).unwrap();
+    client.set_insecure_hosts(vec!["example.com".into()]);
+    let err = client
+        .get_text("http://example.com")
+        .await
+        .expect_err("expected network failure due to HTTPS enforcement");
+    match err {
+        Error::InsecureScheme { .. } => panic!("allowlisted host should not be blocked"),
+        _ => (),
+    }
 }
 
 #[tokio::test]

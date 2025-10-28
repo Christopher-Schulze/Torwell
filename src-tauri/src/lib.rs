@@ -202,6 +202,7 @@ pub fn run() {
             commands::load_metrics,
             commands::set_update_interval,
             commands::set_geoip_path,
+            commands::set_insecure_hosts,
             commands::build_circuit,
             commands::ping_host,
             commands::ping_host_series,

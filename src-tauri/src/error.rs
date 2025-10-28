@@ -92,6 +92,9 @@ pub enum Error {
         backtrace: Option<String>,
     },
 
+    #[error("insecure HTTP access to {host}")]
+    InsecureScheme { host: String, url: String },
+
     #[error("connection failed after {attempts} retries: {error}")]
     RetriesExceeded {
         attempts: u32,
@@ -144,6 +147,12 @@ impl From<tor_circmgr::Error> for Error {
 
 impl From<tor_proto::Error> for Error {
     fn from(err: tor_proto::Error) -> Self {
+        Error::Network(err.to_string())
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
         Error::Network(err.to_string())
     }
 }

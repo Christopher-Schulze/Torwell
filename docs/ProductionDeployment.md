@@ -134,6 +134,24 @@ hard-code the production endpoint or reference an environment variable:
 Export `TAURI_UPDATE_URL` before running `task release` to inject the desired
 update server.
 
+## HTTP Allowlist Guidance
+
+Torwell84 enforces HTTPS for all outbound traffic. The application only
+permits plain HTTP connections to hosts listed in `src-tauri/app_config.json`
+under `insecure_allowed_hosts`, or values supplied at runtime via the
+`set_insecure_hosts` command exposed through the settings modal. The default
+configuration contains `127.0.0.1` and `localhost` to support local diagnostics.
+
+When deploying to production, keep this allowlist empty unless you operate
+trusted tooling that is only reachable over HTTP on the loopback interface.
+Every addition should be reviewed by security staff and documented. Never add
+public endpoints—HTTP traffic is unencrypted and subject to interception.
+
+Administrators can adjust the allowlist without restarting the service by using
+the “Insecure HTTP Allowlist” section inside the settings dialog or by invoking
+the `set_insecure_hosts` Tauri command. Each change is written back to
+`app_config.json`, ensuring that the configuration persists across restarts.
+
 ## Building Release Packages
 
 Run the release task on the target platform to create the installer packages.

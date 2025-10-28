@@ -596,6 +596,12 @@ pub async fn set_geoip_path(state: State<'_, AppState>, path: Option<String>) ->
 }
 
 #[tauri::command]
+pub async fn set_insecure_hosts(state: State<'_, AppState>, hosts: Vec<String>) -> Result<()> {
+    check_api_rate()?;
+    state.set_insecure_hosts(hosts).await
+}
+
+#[tauri::command]
 pub async fn list_bridge_presets() -> Result<Vec<BridgePreset>> {
     crate::tor_manager::load_default_bridge_presets()
 }

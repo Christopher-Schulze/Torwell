@@ -147,6 +147,7 @@ export interface Settings {
   geoipPath?: string | null;
   fastRoutingOnly?: boolean;
   preferredFastCountries?: string[];
+  insecureAllowedHosts?: string[];
 }
 
 export class AppDatabase extends Dexie {
@@ -194,6 +195,11 @@ export class AppDatabase extends Dexie {
     this.version(9).stores({
       settings:
         "++id, workerList, torrcConfig, workerToken, exitCountry, entryCountry, middleCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath, fastRoutingOnly, preferredFastCountries",
+      meta: "&id",
+    });
+    this.version(10).stores({
+      settings:
+        "++id, workerList, torrcConfig, workerToken, exitCountry, entryCountry, middleCountry, bridges, maxLogLines, bridgePreset, hsm_lib, hsm_slot, updateInterval, geoipPath, fastRoutingOnly, preferredFastCountries, insecureAllowedHosts",
       meta: "&id",
     });
 
