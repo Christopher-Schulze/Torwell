@@ -95,6 +95,10 @@
   let workerList: string[] = [];
   let newWorker = "";
   let workerToken = "";
+  let insecureHosts: string[] = [];
+  let newInsecureHost = "";
+  let pendingInsecureHost: string | null = null;
+  let showInsecureWarning = false;
   let maxLogLines = 1000;
   let updateInterval = 86400;
   let entrySelection = "";
@@ -133,6 +137,10 @@
     workerList = [...$uiStore.settings.workerList];
     newWorker = "";
     workerToken = $uiStore.settings.workerToken;
+    insecureHosts = [...$uiStore.settings.insecureAllowedHosts];
+    newInsecureHost = "";
+    pendingInsecureHost = null;
+    showInsecureWarning = false;
     maxLogLines = $uiStore.settings.maxLogLines;
     updateInterval = $uiStore.settings.updateInterval;
     entrySelection = $uiStore.settings.entryCountry ?? "";
@@ -351,6 +359,39 @@
 
   function removeWorker(index: number) {
     workerList = workerList.filter((_, i) => i !== index);
+  }
+
+  function requestAddInsecureHost() {
+    const host = newInsecureHost.trim();
+    if (!host) return;
+    if (insecureHosts.includes(host.toLowerCase())) {
+      newInsecureHost = "";
+      return;
+    }
+    pendingInsecureHost = host;
+    showInsecureWarning = true;
+  }
+
+  async function confirmInsecureHost() {
+    if (!pendingInsecureHost) {
+      showInsecureWarning = false;
+      return;
+    }
+    await uiStore.actions.addInsecureHost(pendingInsecureHost);
+    insecureHosts = [...$uiStore.settings.insecureAllowedHosts];
+    newInsecureHost = "";
+    pendingInsecureHost = null;
+    showInsecureWarning = false;
+  }
+
+  function cancelInsecureHost() {
+    pendingInsecureHost = null;
+    showInsecureWarning = false;
+  }
+
+  async function removeInsecureHost(host: string) {
+    await uiStore.actions.removeInsecureHost(host);
+    insecureHosts = [...$uiStore.settings.insecureAllowedHosts];
   }
 
   async function importFile(event: Event) {
@@ -886,6 +927,51 @@
 
         <div class="mb-8">
           <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            Insecure HTTP Allowlist
+          </h3>
+          <p class="text-sm text-gray-200 mb-3">
+            Only add diagnostic endpoints that require HTTP. Traffic to these hosts is not encrypted.
+          </p>
+          {#if insecureHosts.length === 0}
+            <p class="text-xs text-gray-300 italic mb-3">No insecure HTTP hosts are currently allowed.</p>
+          {/if}
+          {#each insecureHosts as host}
+            <div class="flex items-center gap-2 mb-2">
+              <span class="flex-grow bg-black/40 border border-white/15 rounded px-3 py-2 text-sm">
+                {host}
+              </span>
+              <button
+                class="p-1 rounded hover:bg-red-600/40"
+                on:click={() => removeInsecureHost(host)}
+                aria-label={`Remove insecure host ${host}`}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          {/each}
+          <div class="flex items-center gap-2 mb-2">
+            <input
+              type="text"
+              class="flex-grow bg-black/50 rounded border border-white/20 p-2 text-sm"
+              placeholder="127.0.0.1"
+              bind:value={newInsecureHost}
+              aria-label="New insecure host"
+            />
+            <button
+              class="p-1 rounded hover:bg-amber-500/40"
+              on:click={requestAddInsecureHost}
+              aria-label="Add insecure host"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+          <p class="text-xs text-amber-200">
+            Use HTTPS whenever possible. HTTP entries should be limited to localhost diagnostics.
+          </p>
+        </div>
+
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
             Max Log Lines
           </h3>
           <input
@@ -989,3 +1075,34 @@
   bind:show={showWorkerSetup}
   on:close={() => (showWorkerSetup = false)}
 />
+
+{#if showInsecureWarning}
+  <div
+    class="fixed inset-0 bg-black/60 flex items-center justify-center z-60"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Confirm insecure host"
+  >
+    <div class="glass-md rounded-2xl max-w-md w-[90%] p-6 space-y-4">
+      <h3 class="text-xl font-semibold text-amber-200">Allow insecure HTTP?</h3>
+      <p class="text-sm text-gray-100">
+        Adding <span class="font-mono">{pendingInsecureHost ?? ""}</span> to the allowlist permits unencrypted HTTP
+        requests. Only continue if this host is a trusted local diagnostic endpoint.
+      </p>
+      <div class="flex justify-end gap-3">
+        <button
+          class="px-4 py-2 rounded-xl border border-white/20 text-gray-100 hover:bg-white/10 transition"
+          on:click={cancelInsecureHost}
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 rounded-xl border-transparent font-semibold bg-amber-500/30 text-amber-100 hover:bg-amber-500/50 transition"
+          on:click={confirmInsecureHost}
+        >
+          Allow HTTP
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

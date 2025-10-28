@@ -4,6 +4,7 @@ export type ImportResult = {
   workers: string[];
   invalid: string[];
   duplicates: string[];
+  migrated: string[];
 };
 
 export function parseWorkerList(content: string): ImportResult {
@@ -11,14 +12,23 @@ export function parseWorkerList(content: string): ImportResult {
   const workers: string[] = [];
   const invalid: string[] = [];
   const duplicates: string[] = [];
+  const migrated: string[] = [];
   for (const line of content.split(/\r?\n/)) {
     const url = line.trim();
     if (!url) continue;
     try {
-      new URL(url);
-      if (!seen.has(url)) {
-        seen.add(url);
-        workers.push(url);
+      const parsed = new URL(url.includes("://") ? url : `https://${url}`);
+      if (parsed.protocol === "http:") {
+        parsed.protocol = "https:";
+        migrated.push(url);
+      } else if (parsed.protocol !== "https:") {
+        invalid.push(url);
+        continue;
+      }
+      const normalized = parsed.toString();
+      if (!seen.has(normalized)) {
+        seen.add(normalized);
+        workers.push(normalized);
       } else {
         duplicates.push(url);
       }
@@ -26,11 +36,11 @@ export function parseWorkerList(content: string): ImportResult {
       invalid.push(url);
     }
   }
-  return { workers, invalid, duplicates };
+  return { workers, invalid, duplicates, migrated };
 }
 
 export async function importWorkers(content: string, token = "") {
-  const { workers, invalid, duplicates } = parseWorkerList(content);
+  const { workers, invalid, duplicates, migrated } = parseWorkerList(content);
   const isMobile = typeof window !== "undefined" && (window as any).Capacitor;
   try {
     if (isMobile) {
@@ -57,7 +67,7 @@ export async function importWorkers(content: string, token = "") {
         throw new Error("Invalid worker token");
       }
     }
-    return { imported: workers.length, invalid, duplicates };
+    return { imported: workers.length, invalid, duplicates, migrated };
   } catch (err) {
     console.error("Failed to import workers:", err);
     throw err;

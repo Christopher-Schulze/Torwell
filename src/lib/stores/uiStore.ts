@@ -20,7 +20,10 @@ type AppSettings = {
   geoipPath: string | null;
   fastRoutingOnly: boolean;
   preferredFastCountries: string[];
+  insecureAllowedHosts: string[];
 };
+
+const DEFAULT_INSECURE_HOSTS = ["127.0.0.1", "localhost"];
 
 type UIState = {
   isLogsModalOpen: boolean;
@@ -52,6 +55,7 @@ function createUIStore() {
       geoipPath: null,
       fastRoutingOnly: false,
       preferredFastCountries: [],
+      insecureAllowedHosts: [...DEFAULT_INSECURE_HOSTS],
     },
     error: null,
     importProgress: null,
@@ -141,6 +145,10 @@ function createUIStore() {
               geoipPath: storedSettings.geoipPath ?? null,
               fastRoutingOnly: storedSettings.fastRoutingOnly ?? false,
               preferredFastCountries: storedSettings.preferredFastCountries ?? [],
+              insecureAllowedHosts:
+                storedSettings.insecureAllowedHosts?.length
+                  ? [...storedSettings.insecureAllowedHosts]
+                  : [...DEFAULT_INSECURE_HOSTS],
             },
           }));
 
@@ -172,6 +180,10 @@ function createUIStore() {
             interval: storedSettings.updateInterval ?? 86400,
           });
           await invoke("set_geoip_path", { path: storedSettings.geoipPath ?? null });
+          await invoke("set_insecure_hosts", {
+            hosts:
+              storedSettings.insecureAllowedHosts ?? [...DEFAULT_INSECURE_HOSTS],
+          });
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -519,6 +531,53 @@ function createUIStore() {
           error: `Failed to set geoip path: ${message}`,
         }));
       }
+    },
+
+    saveInsecureHosts: async (hosts: string[]) => {
+      try {
+        const normalized = Array.from(
+          new Set(
+            hosts
+              .map((host) => host.trim().toLowerCase())
+              .filter((host) => host.length > 0),
+          ),
+        );
+        await invoke("set_insecure_hosts", { hosts: normalized });
+        const current = get({ subscribe });
+        const newSettings: AppSettings = {
+          ...current.settings,
+          insecureAllowedHosts: normalized,
+        };
+        await db.settings.put({ id: 1, ...newSettings });
+        update((state) => ({ ...state, settings: newSettings, error: null }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        update((state) => ({
+          ...state,
+          error: `Failed to update insecure hosts: ${message}`,
+        }));
+      }
+    },
+
+    addInsecureHost: async (host: string) => {
+      const trimmed = host.trim();
+      if (!trimmed) return;
+      const normalized = trimmed.toLowerCase();
+      const current = get({ subscribe });
+      if (current.settings.insecureAllowedHosts.includes(normalized)) {
+        return;
+      }
+      const hosts = [...current.settings.insecureAllowedHosts, normalized];
+      await actions.saveInsecureHosts(hosts);
+    },
+
+    removeInsecureHost: async (host: string) => {
+      const normalized = host.trim().toLowerCase();
+      const current = get({ subscribe });
+      const hosts = current.settings.insecureAllowedHosts.filter(
+        (entry) => entry !== normalized,
+      );
+      await actions.saveInsecureHosts(hosts);
     },
   };
 

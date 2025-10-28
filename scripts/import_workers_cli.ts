@@ -11,7 +11,7 @@ async function main() {
   try {
     const { readFileSync } = await import("fs");
     const content = readFileSync(file, "utf-8");
-    const { invalid, duplicates } = parseWorkerList(content);
+    const { invalid, duplicates, migrated } = parseWorkerList(content);
     const result = await importWorkersFromFile(file, token);
     if (invalid.length > 0) {
       console.warn(
@@ -21,6 +21,11 @@ async function main() {
     if (duplicates.length > 0) {
       console.warn(
         `Ignored ${duplicates.length} duplicate entries: ${duplicates.join(", ")}`,
+      );
+    }
+    if (migrated.length > 0) {
+      console.warn(
+        `Upgraded ${migrated.length} HTTP entries to HTTPS: ${migrated.join(", ")}`,
       );
     }
     console.log(`Imported ${result.imported} workers`);

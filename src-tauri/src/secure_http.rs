@@ -1,4 +1,8 @@
+use crate::error::Error;
 use anyhow::anyhow;
+use governor::clock::DefaultClock;
+use governor::state::{InMemoryState, NotKeyed};
+use governor::{Quota, RateLimiter};
 use reqwest::{Client, ClientBuilder, Url};
 use rustls::crypto::ring::{self, cipher_suite};
 use rustls::crypto::{self, CryptoProvider};
@@ -9,11 +13,12 @@ use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::BufReader;
+use std::num::NonZeroU32;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
@@ -255,6 +260,7 @@ pub struct SecureHttpClient {
     client: Arc<Mutex<Client>>,
     cert_path: String,
     hsts: Arc<Mutex<HashMap<String, Instant>>>,
+    insecure_hosts: Arc<RwLock<HashSet<String>>>,
     min_tls: reqwest::tls::Version,
     warning_cb: Arc<Mutex<Option<Box<dyn Fn(String) + Send + Sync>>>>,
     pending_warnings: Arc<Mutex<Vec<String>>>,
@@ -263,6 +269,7 @@ pub struct SecureHttpClient {
     worker_urls: Arc<Mutex<VecDeque<String>>>,
     worker_token: Arc<Mutex<Option<String>>>,
     update_task: Mutex<Option<JoinHandle<()>>>,
+    security_warning_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -271,6 +278,7 @@ impl Clone for SecureHttpClient {
             client: self.client.clone(),
             cert_path: self.cert_path.clone(),
             hsts: self.hsts.clone(),
+            insecure_hosts: self.insecure_hosts.clone(),
             min_tls: self.min_tls,
             warning_cb: self.warning_cb.clone(),
             pending_warnings: self.pending_warnings.clone(),
@@ -279,6 +287,7 @@ impl Clone for SecureHttpClient {
             worker_urls: self.worker_urls.clone(),
             worker_token: self.worker_token.clone(),
             update_task: Mutex::new(None),
+            security_warning_limiter: self.security_warning_limiter.clone(),
         }
     }
 }
@@ -381,6 +390,7 @@ impl SecureHttpClient {
             client: Arc::new(Mutex::new(client)),
             cert_path: path.to_string_lossy().to_string(),
             hsts: Arc::new(Mutex::new(HashMap::new())),
+            insecure_hosts: Arc::new(RwLock::new(HashSet::new())),
             min_tls,
             warning_cb: Arc::new(Mutex::new(None)),
             pending_warnings: Arc::new(Mutex::new(Vec::new())),
@@ -389,6 +399,9 @@ impl SecureHttpClient {
             worker_urls: Arc::new(Mutex::new(VecDeque::new())),
             worker_token: Arc::new(Mutex::new(None)),
             update_task: Mutex::new(None),
+            security_warning_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
+                NonZeroU32::new(6).unwrap(),
+            ))),
         })
     }
 
@@ -415,6 +428,96 @@ impl SecureHttpClient {
     pub async fn set_worker_config(&self, workers: Vec<String>, token: Option<String>) {
         *self.worker_urls.lock().await = VecDeque::from(workers);
         *self.worker_token.lock().await = token;
+    }
+
+    pub fn set_insecure_hosts(&self, hosts: Vec<String>) {
+        let prepared = Self::prepare_insecure_hosts(hosts);
+        let mut guard = self
+            .insecure_hosts
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        *guard = prepared;
+    }
+
+    pub fn insecure_hosts(&self) -> Vec<String> {
+        let guard = self
+            .insecure_hosts
+            .read()
+            .unwrap_or_else(|poison| poison.into_inner());
+        guard.iter().cloned().collect()
+    }
+
+    fn prepare_insecure_hosts(hosts: Vec<String>) -> HashSet<String> {
+        let mut prepared = HashSet::new();
+        for entry in hosts {
+            for host in Self::normalize_host(&entry) {
+                if !host.is_empty() {
+                    prepared.insert(host);
+                }
+            }
+        }
+        prepared
+    }
+
+    fn normalize_host(entry: &str) -> Vec<String> {
+        let trimmed = entry.trim();
+        if trimmed.is_empty() {
+            return Vec::new();
+        }
+        let candidate = if trimmed.contains("://") {
+            trimmed.to_string()
+        } else {
+            format!("http://{}", trimmed)
+        };
+        if let Ok(url) = Url::parse(&candidate) {
+            if let Some(host) = url.host_str() {
+                let host_lower = host.to_lowercase();
+                let mut result = vec![host_lower.clone()];
+                if let Some(port) = url.port() {
+                    result.push(format!("{}:{}", host_lower, port));
+                }
+                result
+            } else {
+                Vec::new()
+            }
+        } else {
+            vec![trimmed.trim_matches('/').to_lowercase()]
+        }
+    }
+
+    fn is_http_allowed(&self, host: &str, port: Option<u16>) -> bool {
+        let guard = self
+            .insecure_hosts
+            .read()
+            .unwrap_or_else(|poison| poison.into_inner());
+        let host_key = host.to_lowercase();
+        if guard.contains(&host_key) {
+            return true;
+        }
+        if let Some(port) = port {
+            let key = format!("{}:{}", host_key, port);
+            if guard.contains(&key) {
+                return true;
+            }
+        }
+        false
+    }
+
+    async fn notify_http_attempt(&self, host: &str, url: &Url, allowed: bool) {
+        let message = if allowed {
+            format!(
+                "Allowing insecure HTTP request to {} ({}) via allowlist",
+                host, url
+            )
+        } else {
+            format!("Blocked insecure HTTP request to {} ({})", host, url)
+        };
+
+        log::warn!("{}", message);
+
+        if self.security_warning_limiter.check().is_ok() {
+            self.emit_warning(message).await;
+        }
     }
 
     /// Update HSM library path and slot then reload TLS configuration
@@ -460,6 +563,57 @@ impl SecureHttpClient {
             self.emit_warning(format!("HSTS header missing for {}", resp.url()))
                 .await;
         }
+    }
+
+    async fn normalize_request_url(&self, url: &str) -> Result<Url, Error> {
+        let mut parsed = Url::parse(url).map_err(|e| Error::ConfigError {
+            step: "secure_http::get_with_hsts_check".into(),
+            source: format!("invalid url {url}: {e}"),
+            backtrace: None,
+        })?;
+
+        self.enforce_transport_policy(url, &mut parsed).await?;
+
+        Ok(parsed)
+    }
+
+    async fn enforce_transport_policy(
+        &self,
+        original: &str,
+        parsed: &mut Url,
+    ) -> Result<(), Error> {
+        if parsed.scheme() != "http" {
+            return Ok(());
+        }
+
+        let host = parsed.host_str().ok_or_else(|| Error::ConfigError {
+            step: "secure_http::get_with_hsts_check".into(),
+            source: format!("missing host for url {original}"),
+            backtrace: None,
+        })?;
+
+        let port = parsed.port();
+        if !self.is_http_allowed(host, port) {
+            self.notify_http_attempt(host, parsed, false).await;
+            return Err(Error::InsecureScheme {
+                host: host.to_string(),
+                url: parsed.to_string(),
+            });
+        }
+
+        self.notify_http_attempt(host, parsed, true).await;
+
+        let upgrade = {
+            let map = self.hsts.lock().await;
+            map.get(host)
+                .map(|exp| *exp > Instant::now())
+                .unwrap_or(false)
+        };
+        if upgrade {
+            parsed.set_scheme("https").ok();
+        }
+
+        Ok(())
     }
 
     /// Initialize a client using settings from a configuration file and
@@ -532,22 +686,8 @@ impl SecureHttpClient {
         Ok(client)
     }
 
-    async fn get_with_hsts_check(&self, url: &str) -> reqwest::Result<reqwest::Response> {
-        let mut parsed = Url::parse(url)?;
-
-        if parsed.scheme() == "http" {
-            if let Some(host) = parsed.host_str() {
-                let upgrade = {
-                    let map = self.hsts.lock().await;
-                    map.get(host)
-                        .map(|exp| *exp > Instant::now())
-                        .unwrap_or(false)
-                };
-                if upgrade {
-                    parsed.set_scheme("https").ok();
-                }
-            }
-        }
+    async fn get_with_hsts_check(&self, url: &str) -> Result<reqwest::Response, Error> {
+        let parsed = self.normalize_request_url(url).await?;
 
         // clone the client to avoid holding the lock while awaiting network I/O
         let client = {
@@ -590,18 +730,24 @@ impl SecureHttpClient {
                 }
             }
         }
-        let resp = client.get(parsed.clone()).send().await?;
+        let resp = client
+            .get(parsed.clone())
+            .send()
+            .await
+            .map_err(Error::from)?;
         self.handle_hsts_header(&resp).await;
         Ok(resp)
     }
 
-    pub async fn get_text(&self, url: &str) -> reqwest::Result<String> {
+    pub async fn get_text(&self, url: &str) -> Result<String, Error> {
         let resp = self.get_with_hsts_check(url).await?;
-        resp.text().await
+        resp.text().await.map_err(Error::from)
     }
 
     /// Send JSON data to an HTTP endpoint using the pinned TLS configuration.
-    pub async fn post_json(&self, url: &str, body: &Value) -> reqwest::Result<()> {
+    pub async fn post_json(&self, url: &str, body: &Value) -> Result<(), Error> {
+        let normalized = self.normalize_request_url(url).await?;
+        let normalized_str = normalized.as_str().to_string();
         let client = { self.client.lock().await.clone() };
         let token = { self.worker_token.lock().await.clone() };
         let worker_count = { self.worker_urls.lock().await.len() };
@@ -615,7 +761,7 @@ impl SecureHttpClient {
             };
             if let Some(w) = worker {
                 let mut target = w.clone();
-                let encoded = encode(url);
+                let encoded = encode(&normalized_str);
                 if target.contains('?') {
                     target.push('&');
                 } else {
@@ -638,7 +784,12 @@ impl SecureHttpClient {
                 }
             }
         }
-        let resp = client.post(url).json(body).send().await?;
+        let resp = client
+            .post(normalized)
+            .json(body)
+            .send()
+            .await
+            .map_err(Error::from)?;
         self.handle_hsts_header(&resp).await;
         Ok(())
     }
