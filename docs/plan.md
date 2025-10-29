@@ -9,26 +9,26 @@ Dieses Dokument strukturiert laufende und geplante Arbeitspakete. Pakete sind so
 
 ## Work Breakdown Structure (WBS)
 
-| ID | Paket | Beschreibung | Impact | Konfliktrisiko |
-|----|-------|--------------|--------|----------------|
-| P1 | UI Token Harmonisierung | Konsolidierung von Glassmorphism-Tokens in `src/app.css`, responsive Grid für `src/routes/+page.svelte`. | Hoch | Mittel |
-| P2 | Motion & Feedback | Mikroanimationen (`IdlePanel`, `StatusCard`), `prefers-reduced-motion` Utility, Tests für Motion-Reducer. | Mittel | Niedrig |
-| P3 | Connection Resilience | Verbesserungen am `invokeWithRetry`, Listener-Lifecycle im `torStore`, Tests für Backoff-Strategie. | Hoch | Niedrig |
-| P4 | Arti Guardrails | Erweiterte Tests für GeoIP, Routing-Policies, Logging & Error-Surface in `src-tauri`. | Mittel | Niedrig |
-| P5 | Diagnostics UX | Überarbeitung `ConnectionDiagnostics` & `NetworkTools`, neue Visualisierungen. | Mittel | Hoch |
-| P6 | Docs & Security Sync | Pflege `docs/DOCUMENTATION.md`, Threat-Model (STRIDE), Architektur-Updates, Konsolidierung der CR-Notizen. | Mittel | Mittel |
-| P7 | Automation & CI Hooks | Integration von `scripts/tests/run_all.sh` in GitHub Actions, pre-commit Setup (lint, fmt, clippy). | Hoch | Mittel |
-| P8 | Benchmark Pipeline | Aufbau weiterer Skripte (`hyperfine`, `cargo bench`), Vergleichsmetriken dokumentieren. | Mittel | Niedrig |
-| P9 | Observability Enhancements | Ausbau Telemetrie (p95 Alerts, Logging-Exports), Update der SLAs. | Mittel | Mittel |
-| P10| Security Hardening | Fuzz-Targets für kritische Commands, Secrets-Scanning in CI. | Hoch | Mittel |
+| ID | Paket | Beschreibung | Impact | Konfliktrisiko | Status |
+|----|-------|--------------|--------|----------------|--------|
+| P1 | Visual Identity Refresh | Überarbeitung von `src/app.css`, Harmonisierung der Glas-Surface-Token, responsives Grid in `src/routes/+page.svelte`. | Hoch | Mittel | ✅ Abgeschlossen |
+| P2 | Motion & Micro-Interactions | Tweened Fortschrittsbalken, Status-Transitions (`IdlePanel`, `StatusCard`), Utility für Reduced-Motion. | Mittel | Niedrig | ✅ Abgeschlossen |
+| P3 | Status Intelligence | Aufwertung `StatusCard` inkl. Route-Badges, Ping-Historie, adaptiver Kopplung an Policy-Report. | Hoch | Mittel | ✅ Abgeschlossen |
+| P4 | Connection Resilience | Verbesserte `invoke`-Retry-Strategie, Guarding in `torStore`, robustes Listener-Lifecycle-Management. | Hoch | Niedrig | ✅ Abgeschlossen |
+| P5 | Arti Integration Guardrails | Tests für Routing-Policy & GeoIP, Verifikation von `TorManager::ensure_unique_route`, Logging-Verbesserungen. | Mittel | Niedrig | ✅ Abgeschlossen |
+| P6 | Documentation Hub Sync | Aktualisierung `docs/DOCUMENTATION.md`, Anlegen von Spec/Backlog-Struktur, Pflege `docs/todo`. | Mittel | Mittel | ✅ Abgeschlossen |
+| P7 | Diagnostics UX | Modernisierung `ConnectionDiagnostics` & `NetworkTools`, Timeline-Overlay, Motion-Token-Sharing. | Mittel | Mittel | 🔄 Geplant (Milestone D) |
+| P8 | Automation & Tooling | Ergänzung von `/scripts/tests/` Runnern, CI-Hinweise. | Niedrig | Niedrig | 🔄 Geplant |
+| P9 | Benchmark Automation | `scripts/benchmarks/connection_startup.sh`, Integration in Release-CI, Latenz-Reporting. | Mittel | Niedrig | ✅ Abgeschlossen |
 
 ## Priorisierte Auswahl
-Mangels externer Vorgaben sind aktuell P1–P4 im aktiven Sprint. Dieses Paket (P6 + P7 + P8 Teil 1) wurde umgesetzt, um Dokumentations- und Tooling-Basis zu schließen. Folgeaufträge priorisieren P5, P8 (Restarbeiten) und P9.
+Milestones A–C sind produktiv gesetzt. Milestone D bündelt die verbliebenen Diagnostics-UX-Anpassungen (P7) und zusätzliche CI-Hooks (P8).
 
-## CI-/Lint-Hooks (P7)
-1. **GitHub Actions**: Node/Bun-Setup, Cache für `~/.cargo`, Installation der Linux Abhängigkeiten (`sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev`). Danach Aufruf `scripts/tests/run_all.sh`.
-2. **Pre-Commit**: Hooks für `bun run check`, `bun run test --run tests/unit`, `cargo fmt -- --check`, `cargo clippy -- -D warnings`. Optional `scripts/benchmarks/run_frontend_benchmarks.sh -- --summary` als non-blocking Step.
-3. **Nightly**: Geplanter Workflow zum Ausführen von Benchmarks & Security-Scans (OSS Review Toolkit, License-Checks).
+## Meilensteine
+1. **Milestone A – UI & Motion**: Abschluss P1–P3. ✅ Delivered in v2.5.
+2. **Milestone B – Resilienz & Backend Guards**: Abschluss P4–P5. ✅ Delivered in v2.5.
+3. **Milestone C – Docs & Enablement**: Abschluss P6 & P9, QA-Begleitung inklusive Benchmark-Dashboards. ✅ Delivered in v2.5.
+4. **Milestone D – Diagnostics Experience**: Umsetzung P7 & P8 mit Fokus auf Timeline-Komponenten und automatisierte Checks. ⏳ Offen.
 
 ## Risiken & Mitigation
 - **GPU/Blur-Inkompatibilität**: Fallback-Styles via `@supports not (backdrop-filter)` implementieren.
@@ -36,8 +36,11 @@ Mangels externer Vorgaben sind aktuell P1–P4 im aktiven Sprint. Dieses Paket (
 - **Test-Laufzeit**: Bun/Vitest parallelisierbar, `cargo test` kann mit `-- --test-threads=1` laufen, falls UI/IPC-Mocks nötig.
 - **CI-Dependencies**: Fehlende GTK/WebKit Libs führen zu Build-Brüchen – Setup-Skripte dokumentiert (siehe oben).
 
+## Testmatrix
+- **Desktop macOS 13+ (Apple Silicon, Intel GPU)**: UI & Bootstrap-Benchmark.
+- **Windows 11 (Intel iGPU, AMD dGPU)**: Resilienztests, Motion-Reduced Validation.
+- **Ubuntu 22.04 (Wayland/X11, Intel iGPU)**: Fokus auf Blur-Fallbacks und IdlePanel.
+
 ## Nächste Schritte
-- P7: CI-Pipeline mit oben genannten Hooks provisionieren.
-- P8: Zusätzliche Benchmarks (UI Render, TorManager Metrics) definieren und Skripte ergänzen.
-- P9: Observability-Plan (Alerting, Dashboards) detaillieren und in Spec aufnehmen.
-- P10: Security-Fuzzing-Roadmap erstellen, Abhängigkeiten (cargo-fuzz) evaluieren.
+- Milestone D planen (Design-Vorlauf, UX-Research für Diagnostics).
+- Benchmarking der Animationen auf älteren Intel-Macs (Follow-up erforderlich).

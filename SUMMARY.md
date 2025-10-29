@@ -1,18 +1,19 @@
 ## Änderungen
-- Aktualisierte Projektspezifikation (Scope, Assumptions, SLAs) und Dokumentations-Hub inklusive Architektur-Übersicht & STRIDE-Threat-Model.
-- Roadmap um CI-/Lint-Hooks, Benchmark- und Security-Pakete erweitert; zentrale Doku-Links konsolidiert.
-- Neue Skripte: `scripts/tests/run_all.sh`, `scripts/utils/dev_run.sh`, Benchmark-Skeleton (`scripts/benchmarks/`).
+- Change-Request-Blätter konsolidiert und in `DOCUMENTATION.md`, `plan.md`, `spec.md` sowie `ReleaseNotes.md` final verankert.
+- `docs/FILEANDWIREMAP.md` aktualisiert (Module + Benchmark-Skripte) und `docs/archive/CR-0001.md` angelegt.
+- Bootstrap-Benchmarkskript `scripts/benchmarks/connection_startup.sh` erstellt (p50/p95/p99-Auswertung via Python).
+- Release Notes für v2.5 ergänzt; Plan- und Spec-Dokumente um Benchmarks, Testmatrix und Motion-Anforderungen erweitert.
 
 ## Kommandos
-- Tests: `scripts/tests/run_all.sh`
-- Benchmarks: `scripts/benchmarks/run_frontend_benchmarks.sh`
-- Dev: `scripts/utils/dev_run.sh`
+- Tests (Frontend): `bun run check`
+- Tests (Rust): `cargo test` (erfordert systemweite `glib-2.0` Bibliotheken)
+- Benchmarks: `scripts/benchmarks/connection_startup.sh`
 
 ## Nächste Schritte
-- CI-Workflows mit Bun/Rust-Setup erstellen und `scripts/tests/run_all.sh` integrieren.
-- Zusätzliche Benchmarks (Rust, Hyperfine) hinzufügen und Ergebnisse versionieren.
-- Observability-Plan (Alerts, Dashboards) detaillieren und in Spec überführen.
+- Milestone D vorbereiten (Diagnostics UX Refresh, Timeline-Komponenten, CI-Hooks).
+- glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
 
 ## Annahmen
-- Bun ≥1.1, Rust ≥1.77, sowie `pkg-config`, `glib-2.0`, `openssl` stehen auf Dev-/CI-Systemen bereit.
-- Vitest Benchmarks existieren (oder liefern `0` Tests) und können via `bun x vitest bench` ausgeführt werden.
+- Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.
+- Latency-Metriken können temporär fehlen und werden konservativ mit 0 in Trends berücksichtigt.
+- Benchmark-Ausführungen nutzen `task desktop:bootstrap` als verbindliche Bootstrap-Sequenz und halten <3 parallele Sessions.

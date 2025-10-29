@@ -23,8 +23,14 @@ docs/
   DOCUMENTATION.md         # Hub, Überblick
   spec.md                  # Zielzustand & SLAs
   plan.md                  # WBS & Priorisierung
-  todo.md                  # Offene Arbeiten
-  todo/CR-0001.md          # Detailnotizen (UI Diagnostics Follow-up)
+  todo.md                  # Offene Arbeiten & Backlog
+  ReleaseNotes.md          # Versionshinweise v2.5
+  archive/CR-0001.md       # Historisches CR-Blatt (Diagnostics Follow-up)
+
+scripts/
+  benchmarks/
+    connection_startup.sh  # Bootstrap-Benchmark (p50/p95/p99)
+  backup_ui.sh             # Sicherung der UI-Komponenten
 ```
 
 ```mermaid
