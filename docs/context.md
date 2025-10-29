@@ -5,5 +5,6 @@ Torwell84 befindet sich in der Phase „UI/Resilience Refresh“. Die bisherige 
 - Ein modernisiertes UI mit detaillierten Glasflächen, Mikroanimationen und responsiven Layouts.
 - Verbesserte Resilienzschichten im Frontend (`invoke`-Wrapper, Stores) und zusätzliche Tests für den Arti-TorManager.
 - Einen aktualisierten Dokumentations-Hub mit Spezifikation, Roadmap und Backlog (`docs/todo`).
+- Speicher- und Performance-Härtung via konfigurierbarer Cache-Schicht, SoA-Metriken, `mimalloc`-Allocator und reproduzierbaren Profiling-Skripten.
 
 Stakeholder: Privacy Engineering (Lead), Desktop Team, QA Automation.

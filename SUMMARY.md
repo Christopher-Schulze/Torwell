@@ -1,19 +1,21 @@
 ## Änderungen
-- Devcontainer inklusive VSCode/Neovim Defaults, Post-Create Setup und reproduzierbarer Bootstrap.
-- Erweiterter `Taskfile.yml` mit Lint/Test/Bench-Flows plus Helper-Skripte (`run_task.sh`, Benchmarks).
-- `.githooks` Pre-Commit, `.editorconfig`, `.env.example`, Issue/PR-Templates und Onboarding-Skript.
-- Spezifikation, Plan und TODO-Backlog um neue Tooling-Ziele ergänzt; CR-0002 mit Workflow-Doku angelegt.
+- Change-Request-Blätter konsolidiert und in `DOCUMENTATION.md`, `plan.md`, `spec.md` sowie `ReleaseNotes.md` final verankert.
+- `docs/FILEANDWIREMAP.md` aktualisiert (Module + Benchmark-Skripte) und `docs/archive/CR-0001.md` angelegt.
+- Bootstrap-Benchmarkskript `scripts/benchmarks/connection_startup.sh` erstellt (p50/p95/p99-Auswertung via Python).
+- Release Notes für v2.5 ergänzt; Plan- und Spec-Dokumente um Benchmarks, Testmatrix und Motion-Anforderungen erweitert.
 
 ## Kommandos
-- Setup: `task setup`
-- Lint: `task lint`
-- Tests: `task test`
-- Benchmarks: `task bench`
+- Tests (Rust): `cargo test` *(scheitert ohne systemweite glib-2.0 Bibliothek)*
+- Concurrency-Harness: `scripts/tests/run_concurrency.sh`
+- Tests (Frontend): `bun run check`
+- Tests (Rust): `cargo test` (erfordert systemweite `glib-2.0` Bibliotheken)
+- Benchmarks: `scripts/benchmarks/connection_startup.sh`
 
 ## Nächste Schritte
-- CI/Container-Abbilder auf neuen Devcontainer-Stack ausrichten (Follow-up in P7).
-- Inhalte von CR-0002 in `docs/DOCUMENTATION.md` konsolidieren, sobald alle Pakete gemerged sind.
+- Milestone D vorbereiten (Diagnostics UX Refresh, Timeline-Komponenten, CI-Hooks).
+- glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
 
 ## Annahmen
-- Contributors verfügen über Bun, Rust und Node oder verwenden den bereitgestellten Devcontainer.
-- `bunx` verfügbar für Fallback, falls `task` nicht global installiert ist.
+- Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.
+- Latency-Metriken können temporär fehlen und werden konservativ mit 0 in Trends berücksichtigt.
+- Benchmark-Ausführungen nutzen `task desktop:bootstrap` als verbindliche Bootstrap-Sequenz und halten <3 parallele Sessions.

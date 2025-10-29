@@ -47,6 +47,7 @@ surge-ping = "0.8"
 pkcs11 = { version = "0.5", optional = true }
 traceroute = "0.1.1"
 open = "5"
+mimalloc = { version = "0.1", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
 winrt-notification = "0.5"
@@ -59,6 +60,11 @@ serial_test = "2"
 tempfile = "3"
 hyper = { version = "1", features = ["server", "http1"] }
 tokio-rustls = "0.26"
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+[[bench]]
+name = "bootstrap"
+harness = false
 
 [package.metadata.hsm]
 library = "/usr/lib/softhsm/libsofthsm2.so"
