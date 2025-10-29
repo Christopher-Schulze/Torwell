@@ -175,7 +175,8 @@ export function evaluateTorHealth(metrics: MetricPoint[]): HealthAssessment[] {
   });
 
   const latencyTrend = calculateTrend(metrics, "latencyMs");
-  const latencySeverity = resolveSeverity(latest.latencyMs, {
+  const latestLatency = typeof latest.latencyMs === "number" ? latest.latencyMs : 0;
+  const latencySeverity = resolveSeverity(latestLatency, {
     warning: 300,
     critical: 600,
     direction: "higher-is-worse",
@@ -217,7 +218,7 @@ export function evaluateTorHealth(metrics: MetricPoint[]): HealthAssessment[] {
     {
       title: "Latenz",
       severity: latencySeverity,
-      detail: `End-to-End-Latenz: ${latest.latencyMs} ms. ${describeTrend(latencyTrend, " ms")}`,
+      detail: `End-to-End-Latenz: ${latestLatency} ms. ${describeTrend(latencyTrend, " ms")}`,
       hint:
         latencySeverity === "good"
           ? "Verbindung reagiert normal."

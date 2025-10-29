@@ -103,9 +103,12 @@
   $: cpuSummary = toSummary('cpuPercent');
   $: buildSummary = toSummary('avgCreateMs');
 
+  $: latencySeries = recentMetrics
+    .map((point) => point.latencyMs)
+    .filter((value): value is number => typeof value === "number");
   $: rollingLatency = computeRollingAverage(
-    recentMetrics.map((point) => point.latencyMs),
-    Math.min(5, recentMetrics.length || 1)
+    latencySeries,
+    Math.min(5, latencySeries.length || 1)
   );
   $: rollingThroughput = computeRollingAverage(
     recentMetrics.map((point) => point.networkBytes),

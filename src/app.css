@@ -71,6 +71,10 @@
     .tw-surface {
       transition: none !important;
     }
+
+    .tw-orbit {
+      animation: none;
+    }
   }
 
   @keyframes aurora-pan {
@@ -110,6 +114,16 @@
     transform: translate3d(0, 0, 0);
     will-change: transform, box-shadow;
     contain: layout paint;
+  }
+
+  .tw-orbit {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.45;
+    animation: tw-orbit 38s linear infinite;
+    mask-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.9), transparent 70%);
+    backdrop-filter: blur(40px);
+    pointer-events: none;
   }
 
   .tw-button:focus-visible {
@@ -330,6 +344,18 @@
   @keyframes tw-spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  @keyframes tw-orbit {
+    0% {
+      transform: rotate(0deg) scale(1);
+    }
+    50% {
+      transform: rotate(180deg) scale(1.02);
+    }
+    100% {
+      transform: rotate(360deg) scale(1);
     }
   }
 }

@@ -107,13 +107,21 @@ async fn connect_with_backoff_error() {
 #[tokio::test]
 async fn connect_when_already_connected() {
     MockTorClient::push_result(Ok(MockTorClient::default()));
-    MockTorClient::push_result(Ok(MockTorClient::default()));
     let manager: TorManager<MockTorClient> = TorManager::new();
     manager.connect().await.unwrap();
     let res = manager
         .connect_with_backoff(0, std::time::Duration::from_secs(5), |_info| {}, |_| {})
         .await;
-    assert!(matches!(res, Err(Error::AlreadyConnected)));
+    assert!(res.is_ok());
+}
+
+#[tokio::test]
+async fn connect_is_idempotent() {
+    MockTorClient::push_result(Ok(MockTorClient::default()));
+    let manager: TorManager<MockTorClient> = TorManager::new();
+    manager.connect().await.unwrap();
+    let res = manager.connect().await;
+    assert!(res.is_ok());
 }
 
 #[tokio::test]

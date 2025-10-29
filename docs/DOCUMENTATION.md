@@ -1,5 +1,14 @@
 # Torwell84 V2 - Documentation
 
+## 0. Aktuelle Highlights (v2.5)
+
+- Premiumisierte Glass-UI mit abgestimmten Farbverläufen, Mikroanimationen und responsiven Layouts für Dashboard, Status-Card und Kontrollpanel.
+- Resiliente Verbindungssteuerung: `invoke`-Wrapper mit Exponential-Backoff, entkoppelte Event-Lifecycle-Verwaltung in `torStore`.
+- Arti-spezifische Guardrails mit zusätzlichen Tests für GeoIP- und Routing-Policies.
+- Dokumentations-Hub erweitert um `spec.md`, `plan.md`, `FILEANDWIREMAP.md` und `docs/todo` gemäß Organisationsleitfaden.
+- Frontend-Aktionswarteschlange `connectionQueue` serialisiert Connect/Disconnect/Circuit-Befehle, visualisiert Queue-Tiefe und merkt sich Fehler.
+- `TorManager::connect` verhält sich idempotent – wiederholte Aufrufe liefern Erfolg statt `AlreadyConnected` und vermeiden überflüssige Bootstrap-Versuche.
+
 ## 1. Architecture
 
 Torwell84 V2 is a complete rewrite focusing on a clean, modern, and maintainable architecture. The legacy Go backend and all associated code have been entirely discarded.
@@ -24,12 +33,18 @@ The backend is structured into several logical modules:
 
 ### 2.2. Svelte Frontend (`/src`)
 
-The frontend remains visually and functionally identical to the original design, as per the requirements.
+Der Desktop-Client nutzt eine kuratierte Glassmorphism-Ästhetik mit GPU-beschleunigten Blur-Layern, dynamischen Gradienten und `prefers-reduced-motion`-Aware Animationen.
 
 -   **State Management:**
-    -   `torStore.ts`: A Svelte store that subscribes to backend events (`tor-status-update`) to reactively display the current Tor connection status, bootstrap progress, and errors.
-    -   `uiStore.ts`: A Svelte store for managing the state of the UI, such as open modals. It also handles client-side settings persistence using `Dexie.js`.
--   **Components:** All UI components from the original version are reused without modification to their appearance. The logic within them now communicates with the robust and fully implemented Rust backend via Tauri's `invoke` API. Mock data and placeholders have been removed.
+    -   `torStore.ts`: Registriert Event-Listener lazy und cleaned-up, begrenzt Metrik-Historien und normalisiert Payloads.
+    -   `uiStore.ts`: Verwalten der Modals, persistente Einstellungen via Dexie.
+-   **Komponenten:**
+    -   `StatusCard.svelte`: Enthält Circuit-Routing-Intelligenz, Ping-Historie, Statusbadges und automatische Layout-Anpassung.
+    -   `IdlePanel.svelte`: Tweened Bootstrap-Balken, ARIA-Live Statusmeldungen, Retry-Ausgaben.
+    -   `ActionCard.svelte`: Primärer Connect/Disconnect-Controller mit sequentieller Aktionswarteschlange, Queue-Indikatoren, haptischen Hover-States, Logging & Error-Toasts.
+    -   `NetworkTools`, `TorChain`, `ConnectionDiagnostics`: unverändert, werden in Folgeaufträgen auf das neue Design gehoben.
+
+Alle Komponenten nutzen geteilte Design-Tokens aus `src/app.css` und halten sich an die Barrierefreiheitsanforderungen (mind. 4.5:1 Kontrast).
 
 ## 3. New Features in V2.1
 
@@ -87,7 +102,7 @@ The application is built as a standard Tauri project:
 Errors from the backend are emitted through the `tor-status-update` event. The main variants are:
 
 - `NotConnected` – a command requiring an active Tor connection was invoked while disconnected.
-- `AlreadyConnected` – a connection was attempted when one already exists.
+- `AlreadyConnected` – historischer Fehlerfall; `TorManager::connect` fängt erneute Aufrufe nun ab und meldet Erfolg.
 - `Bootstrap` – the Tor client failed to bootstrap.
 - `NetDir` – the network directory could not be retrieved.
 - `Circuit` – building or retrieving a circuit failed.

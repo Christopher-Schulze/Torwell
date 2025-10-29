@@ -113,14 +113,14 @@
   });
 
   $: if (browser && $uiStore.isLogsModalOpen && !LogsModalComponent) {
-    import("$lib/components/LogsModal.svelte").then((m) => {
-      LogsModalComponent = m.default;
+    import("$lib/components/LogsModal.svelte").then(({ default: component }) => {
+      LogsModalComponent = component;
     });
   }
 
   $: if (browser && $uiStore.isSettingsModalOpen && !SettingsModalComponent) {
-    import("$lib/components/SettingsModal.svelte").then((m) => {
-      SettingsModalComponent = m.default;
+    import("$lib/components/SettingsModal.svelte").then(({ default: component }) => {
+      SettingsModalComponent = component;
     });
   }
 </script>
@@ -136,29 +136,33 @@
       policyReport={policyReport}
     />
 
-    <TorChain
-      isConnected={$torStore.status === "CONNECTED"}
-      isActive={$torStore.status === "CONNECTED"}
-      nodeData={activeCircuit}
-      isolatedCircuits={isolatedCircuits}
-    />
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <TorChain
+        isConnected={$torStore.status === "CONNECTED"}
+        isActive={$torStore.status === "CONNECTED"}
+        nodeData={activeCircuit}
+        isolatedCircuits={isolatedCircuits}
+      />
 
-    <ActionCard
-      on:openLogs={() => uiStore.actions.openLogsModal()}
-      on:openSettings={() => uiStore.actions.openSettingsModal()}
-    />
+      <ActionCard
+        on:openLogs={() => uiStore.actions.openLogsModal()}
+        on:openSettings={() => uiStore.actions.openSettingsModal()}
+      />
+    </div>
 
-    <ConnectionDiagnostics />
+    <div class="grid gap-4 lg:grid-cols-2">
+      <ConnectionDiagnostics />
+
+      <IdlePanel
+        connectionProgress={$torStore.bootstrapProgress}
+        bootstrapMessage={$torStore.bootstrapMessage}
+        currentStatus={$torStore.status}
+        retryCount={$torStore.retryCount}
+        retryDelay={$torStore.retryDelay}
+      />
+    </div>
 
     <NetworkTools />
-
-    <IdlePanel
-      connectionProgress={$torStore.bootstrapProgress}
-      bootstrapMessage={$torStore.bootstrapMessage}
-      currentStatus={$torStore.status}
-      retryCount={$torStore.retryCount}
-      retryDelay={$torStore.retryDelay}
-    />
     <div class="text-right mt-2">
       <a href="/dashboard" class="text-sm text-blue-400 underline">Resource Dashboard</a>
       <span class="mx-2">|</span>

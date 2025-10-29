@@ -1,14 +1,19 @@
-import { vi, describe, it, expect } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
 vi.mock("@tauri-apps/api", () => ({ invoke: vi.fn() }));
 import { render, fireEvent } from "@testing-library/svelte";
 import ActionCard from "../lib/components/ActionCard.svelte";
 import { invoke } from "@tauri-apps/api";
+import { connectionQueue } from "../lib/utils/actionQueue";
 
 // Reset store between tests by importing after test to ensure fresh instance
 import { torStore } from "../lib/stores/torStore";
 
 describe("ActionCard", () => {
+  beforeEach(() => {
+    connectionQueue.reset();
+  });
+
   it("renders Connect button when stopped", () => {
     torStore.set({
       status: "DISCONNECTED",
@@ -24,6 +29,7 @@ describe("ActionCard", () => {
       circuitCount: 0,
       pingMs: undefined,
       metrics: [],
+      lastTransition: null,
     });
 
     const { getByRole } = render(ActionCard);
@@ -56,6 +62,7 @@ describe("ActionCard", () => {
       circuitCount: 0,
       pingMs: undefined,
       metrics: [],
+      lastTransition: null,
     });
 
     const { getByRole } = render(ActionCard);

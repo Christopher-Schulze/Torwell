@@ -8,10 +8,11 @@
   $: rows = [...metrics].slice(-maxRows).reverse();
 
   function severityForRow(row: MetricPoint): Severity {
-    if (row.failedAttempts >= 5 || row.latencyMs >= 600 || row.memoryMB >= 1100) {
+    const latency = row.latencyMs ?? 0;
+    if (row.failedAttempts >= 5 || latency >= 600 || row.memoryMB >= 1100) {
       return 'critical';
     }
-    if (row.failedAttempts >= 2 || row.latencyMs >= 300 || row.memoryMB >= 900) {
+    if (row.failedAttempts >= 2 || latency >= 300 || row.memoryMB >= 900) {
       return 'warning';
     }
     return 'good';
@@ -56,7 +57,7 @@
                 <span class="font-medium text-white">{row.memoryMB} MB</span>
               </td>
               <td class="px-4 py-3">{row.circuitCount}</td>
-              <td class="px-4 py-3">{row.latencyMs} ms</td>
+              <td class="px-4 py-3">{row.latencyMs != null ? `${row.latencyMs} ms` : '–'}</td>
               <td class="px-4 py-3">{row.networkBytes} B/s</td>
               <td class="px-4 py-3">{row.failedAttempts}</td>
               <td class="px-4 py-3">{row.avgCreateMs} ms</td>
