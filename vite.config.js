@@ -30,6 +30,25 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       globals: true,
       setupFiles: './src/setupTests.ts',
+      include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)', 'src/**/*.snapshot.test.ts'],
+      exclude: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/cypress/**',
+        '**/.{idea,git,cache,output,temp}/**',
+        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',
+        'src/__tests__/**',
+        'scripts/__tests__/**',
+        'scripts/benchmarks/**',
+      ],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'lcov', 'html'],
+        reportsDirectory: './coverage/frontend',
+        all: true,
+        include: ['src/**/*.{ts,svelte}'],
+        exclude: ['src/**/*.d.ts', 'src/**/*.stories.ts'],
+      },
     },
   };
 });
