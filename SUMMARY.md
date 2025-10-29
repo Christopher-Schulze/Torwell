@@ -5,6 +5,8 @@
 - Release Notes für v2.5 ergänzt; Plan- und Spec-Dokumente um Benchmarks, Testmatrix und Motion-Anforderungen erweitert.
 
 ## Kommandos
+- Tests (Rust): `cargo test` *(scheitert ohne systemweite glib-2.0 Bibliothek)*
+- Concurrency-Harness: `scripts/tests/run_concurrency.sh`
 - Tests (Frontend): `bun run check`
 - Tests (Rust): `cargo test` (erfordert systemweite `glib-2.0` Bibliotheken)
 - Benchmarks: `scripts/benchmarks/connection_startup.sh`

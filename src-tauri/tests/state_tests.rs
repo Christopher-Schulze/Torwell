@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 use tokio::sync::Mutex;
 
+use torwell84::core::executor::TaskScheduler;
 use torwell84::secure_http::SecureHttpClient;
 use torwell84::session::SessionManager;
 use torwell84::state::AppState;
@@ -70,6 +71,7 @@ async fn update_metrics_closes_circuits_on_limit() {
     let state = AppState {
         tor_manager: Arc::new(manager),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("state.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -107,6 +109,7 @@ async fn tray_warning_on_memory_limit() {
     let state = AppState {
         tor_manager: Arc::new(manager),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("mem.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -147,6 +150,7 @@ async fn tray_warning_on_circuit_limit() {
     let state = AppState {
         tor_manager: Arc::new(manager),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("circ.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -182,6 +186,7 @@ async fn log_rotation_creates_archive() {
     let state = AppState {
         tor_manager: Arc::new(manager),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("rotate.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -247,7 +252,7 @@ async fn metrics_rotation_creates_archive() {
             cpu_percent: 0.0,
             network_bytes: 0,
             network_total: 0,
-            complete: false,
+            ..Default::default()
         };
         state.append_metric(&point).await.unwrap();
     }
@@ -316,7 +321,7 @@ async fn metrics_limit_from_env_shows_warning() {
         cpu_percent: 0.0,
         network_bytes: 0,
         network_total: 0,
-        complete: false,
+        ..Default::default()
     };
 
     // create existing large file
@@ -349,6 +354,7 @@ async fn security_warning_emits_event() {
     let state = AppState {
         tor_manager: Arc::new(TorManager::new()),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("warn.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -388,6 +394,7 @@ async fn tray_menu_contains_metrics_items() {
     let state = AppState {
         tor_manager: Arc::new(TorManager::new()),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("tray.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -424,6 +431,7 @@ async fn update_metrics_emits_security_warning() {
     let state = AppState {
         tor_manager: Arc::new(TorManager::new()),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("warn.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),
@@ -468,6 +476,7 @@ async fn tray_warning_cycle() {
     let state = AppState {
         tor_manager: Arc::new(TorManager::new()),
         http_client: Arc::new(SecureHttpClient::new_default().unwrap()),
+        scheduler: TaskScheduler::global(),
         log_file: PathBuf::from("cycle.log"),
         log_lock: Arc::new(Mutex::new(())),
         retry_counter: Arc::new(Mutex::new(0)),

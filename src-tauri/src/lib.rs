@@ -1,4 +1,5 @@
 mod commands;
+mod core;
 mod error;
 #[cfg(feature = "mobile")]
 mod http_bridge;

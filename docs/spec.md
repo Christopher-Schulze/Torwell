@@ -35,6 +35,7 @@
 ## SLAs & Telemetrie
 - Bootstrap-Fortschritt aktualisiert mindestens alle 250ms während Connect.
 - Metriken-Burst begrenzt auf 720 Punkte (~2h Historie bei 10s Intervall).
+- Scheduler-Metriken (p50/p95/p99, Queue-Depth) werden im gleichen Intervall persistiert und via UI abrufbar gemacht.
 - Fehler werden innerhalb von 500ms als Toast und im Statuspanel angezeigt.
 - Benchmark-Ausführung protokolliert p50/p95/p99 in `.benchmarks/bootstrap_summary.txt` und archiviert Rohdaten.
 
