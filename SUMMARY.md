@@ -1,20 +1,19 @@
 ## Änderungen
-- Cache-Layer (`src/cache`) mit `AdaptiveCache`, Persistenz-Warmup und Invalidierungs-Hooks für Timeline-, Summary- und Geo-Daten.
-- API-Integration: `src/lib/api.ts` nutzt Cache-Hits, persistiert Snapshots und startet Warmup automatisch; `torStore` invalidiert bei Statuswechsel.
-- Metrikpipeline um Struct-of-Arrays (`metricSeries`) erweitert; Trendberechnung in `metrics.ts` arbeitet auf Typed-Arrays.
-- Rust-Backend bindet `mimalloc` als globalen Allocator ein; neue Memory-Profiling-Skripte unter `scripts/benchmarks/` dokumentiert.
-- Vitest-Suite ergänzt (`cacheLayer.spec.ts`, `apiCache.spec.ts`) für Cache-Hits/Misses, Warmup und Token-Reuse.
-- Dokumentation (spec/plan/context/DOCUMENTATION.md/FILEANDWIREMAP.md) um Cache-, Allocator- und Profiling-Inhalte aktualisiert.
+- Change-Request-Blätter konsolidiert und in `DOCUMENTATION.md`, `plan.md`, `spec.md` sowie `ReleaseNotes.md` final verankert.
+- `docs/FILEANDWIREMAP.md` aktualisiert (Module + Benchmark-Skripte) und `docs/archive/CR-0001.md` angelegt.
+- Bootstrap-Benchmarkskript `scripts/benchmarks/connection_startup.sh` erstellt (p50/p95/p99-Auswertung via Python).
+- Release Notes für v2.5 ergänzt; Plan- und Spec-Dokumente um Benchmarks, Testmatrix und Motion-Anforderungen erweitert.
 
 ## Kommandos
-- Tests (zielgerichtet): `npx vitest run src/__tests__/cacheLayer.spec.ts src/__tests__/apiCache.spec.ts`
-- Memory-Profiling: `scripts/benchmarks/run_massif.sh`, `scripts/benchmarks/run_heaptrack.sh`
-- Rust-Tests: `cargo test` (benötigt systemweites `glib-2.0` → in Container derzeit nicht verfügbar)
+- Tests (Frontend): `bun run check`
+- Tests (Rust): `cargo test` (erfordert systemweite `glib-2.0` Bibliotheken)
+- Benchmarks: `scripts/benchmarks/connection_startup.sh`
 
 ## Nächste Schritte
-- Follow-up: Automatisierte Auswertung der Profiling-Artefakte (Plan C7/C8) und CI-Integration.
-- Optionale Caches für weitere IPC-Endpunkte evaluieren (Bridge-Liste, Zertifikate).
+- Milestone D vorbereiten (Diagnostics UX Refresh, Timeline-Komponenten, CI-Hooks).
+- glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
 
 ## Annahmen
-- Browser stellt `localStorage` bereit; Tests mocken `window.localStorage`.
-- Profiling-Tools (Valgrind/Heaptrack) werden bei Bedarf lokal oder in CI installiert.
+- Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.
+- Latency-Metriken können temporär fehlen und werden konservativ mit 0 in Trends berücksichtigt.
+- Benchmark-Ausführungen nutzen `task desktop:bootstrap` als verbindliche Bootstrap-Sequenz und halten <3 parallele Sessions.

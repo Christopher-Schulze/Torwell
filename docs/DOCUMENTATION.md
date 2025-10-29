@@ -5,7 +5,7 @@
 - Premiumisierte Glass-UI mit abgestimmten Farbverläufen, Mikroanimationen und responsiven Layouts für Dashboard, Status-Card und Kontrollpanel.
 - Resiliente Verbindungssteuerung: `invoke`-Wrapper mit Exponential-Backoff, entkoppelte Event-Lifecycle-Verwaltung in `torStore`.
 - Arti-spezifische Guardrails mit zusätzlichen Tests für GeoIP- und Routing-Policies.
-- Dokumentations-Hub erweitert um `spec.md`, `plan.md`, `FILEANDWIREMAP.md` und `docs/todo` gemäß Organisationsleitfaden.
+- Dokumentations-Hub erweitert um `spec.md`, `plan.md`, `FILEANDWIREMAP.md`, `ReleaseNotes.md` und `docs/todo` gemäß Organisationsleitfaden.
 - Frontend-Aktionswarteschlange `connectionQueue` serialisiert Connect/Disconnect/Circuit-Befehle, visualisiert Queue-Tiefe und merkt sich Fehler.
 - `TorManager::connect` verhält sich idempotent – wiederholte Aufrufe liefern Erfolg statt `AlreadyConnected` und vermeiden überflüssige Bootstrap-Versuche.
 - Adaptive Cache-Schicht (`src/cache`) mit LRU/LFU-Eviction, Warmup aus Persistenz und API-Hooks für Timeline-, Summary- und Geo-Lookups.
@@ -108,7 +108,8 @@ The application is built as a standard Tauri project:
 
 1.  The SvelteKit frontend is built into a set of static assets (HTML, CSS, JS).
 2.  The Rust backend is compiled into a binary.
-3.  The Tauri bundler packages the frontend assets and the Rust binary into a single, native executable for the target platform (e.g., `.app` for macOS, `.exe` for Windows).
+3.  The Tauri bundler packages the frontend assets and the Rust binary into a single, native executable für das Zielsystem (z. B. `.app` für macOS, `.exe` für Windows).
+4.  Optional: `scripts/benchmarks/connection_startup.sh` führt nach erfolgreichem Build einen Bootstrap-Benchmark aus und speichert Rohdaten unter `.benchmarks/`.
 
 ## 5. Error States
 
@@ -148,16 +149,23 @@ give users visual feedback during connection.
 
 ## 9. Accessibility Strategy
 
-Torwell84 adheres to WCAG 2.1 AA where possible. All interactive controls now include meaningful `aria-label` attributes, and modal dialogs shift keyboard focus to their close buttons upon opening. Text colors were updated to maintain sufficient contrast against the dark interface. These improvements help screen reader users and enable consistent keyboard navigation.
+Das Skript führt sequentiell aus:
+1. `bun run check` — Typen- & A11y-Checks.
+2. `bun run test` — Vitest-Unit- und Integrationstests.
+3. `cargo test --locked` im `src-tauri`-Crate.
 
-## 10. Accessibility Implementation
+Fehlschläge werden sofort gemeldet (Exit-Code ≠ 0). Für Umgebungen ohne die benötigten Systembibliotheken dokumentiert `docs/plan.md` entsprechende CI-Hooks.
 
-All buttons and form controls declare `aria-label` values so assistive technologies can accurately describe their purpose. When a modal becomes visible, the close button receives focus using Svelte's `tick` helper, enabling keyboard users to dismiss dialogs without hunting for focus. Text colours across the UI were lightened to improve contrast against the dark theme, meeting WCAG AA requirements.
+## 4. Benchmarks
+`scripts/benchmarks/run_frontend_benchmarks.sh` nutzt `bun x vitest bench` für UI-Mikrobenchmarks (z. B. Store-Reducer, Layout-Berechnungen). Weitere Benchmarks können in diesem Ordner ergänzt werden.
 
-## 11. Architekturdiagramme
+```bash
+scripts/benchmarks/run_frontend_benchmarks.sh -- --runInBand
+```
 
-Die folgende Mermaid-Grafik zeigt die grobe Struktur von Torwell84 V2. Der SvelteKit-Frontendcode läuft innerhalb der Tauri-Shell und kommuniziert ausschließlich über IPC mit dem Rust-Backend.
+Ergebnisse sollten p50/p95/p99-Latenzen im Terminal anzeigen. Integration mit `hyperfine` oder `cargo bench` folgt nach Definition konkreter Metriken (siehe Spec).
 
+## 5. Architektur-Überblick
 ```mermaid
 graph TD
     User((Benutzer)) -->|UI-Aktionen| Frontend
@@ -167,10 +175,13 @@ graph TD
     Backend -->|Events| Frontend
 ```
 
-## 12. Datenfluss
+### Komponenten
+- **Frontend (`/src`):** SvelteKit SPA mit State Stores (`torStore.ts`, `uiStore.ts`), Komponenten wie `StatusCard.svelte`, `ActionCard.svelte`, `IdlePanel.svelte`. Nutzt Dexie für persistente Einstellungen.
+- **Backend (`/src-tauri`):** Rust-Crate mit `TorManager` (arti-Integration), `state.rs` (AppState, Log-Puffer), Tauri Commands (`commands.rs`), Fehlerenum (`error.rs`).
+- **IPC Layer:** Tauri `invoke/listen` Events (`tor-status-update`, `metrics-update`, `log-update`).
+- **Tooling:** Taskfile, Scripts in `/scripts`, Tests im Frontend (Vitest) & Backend (Cargo).
 
-Der typische Ablauf einer Verbindung sieht wie folgt aus:
-
+### Datenfluss (Connect)
 ```mermaid
 sequenceDiagram
     participant UI
@@ -178,10 +189,10 @@ sequenceDiagram
     participant Backend
     participant Tor
 
-    UI->>Backend: `connect()` aufrufen
-    Backend->>Tor: Verbindung aufbauen
-    Tor-->>Backend: Status-Updates
-    Backend-->>Store: `tor-status-update`
+    UI->>Backend: connect()
+    Backend->>Tor: Bootstrap starten
+    Tor-->>Backend: Status-Events
+    Backend-->>Store: tor-status-update
     Store-->>UI: Reaktive Anzeige
 ```
 
@@ -236,4 +247,29 @@ gesichert werden. Das Skript `scripts/backup_ui.sh` kopiert dazu den Inhalt von
 `src/lib/components` in das Verzeichnis `src/lib/components_backup` und legt es
 bei Bedarf an. Dieser Ordner ist in `.gitignore` eingetragen und wird nicht ins
 Repository übernommen.
+
+## 16. Diagnostics & Benchmark Status
+
+Die im ursprünglichen Change Request erfassten Nacharbeiten wurden final
+strukturiert und dokumentiert:
+
+- **ConnectionDiagnostics & NetworkTools**: Der Modernisierungsbedarf ist im
+  Roadmap-Milestone "Diagnostics UX" (siehe `docs/plan.md`) fest eingeplant und
+  beschreibt die Anpassung an die neue Motion-/Glass-Sprache.
+- **Trace/Timeline-Komponenten**: Das Spezifikationskapitel "Qualitätsziele"
+  wurde um Animationsanforderungen für Diagnosen ergänzt, sodass neue Timeline
+  Overlays `prefers-reduced-motion` respektieren müssen.
+- **Benchmarking**: `scripts/benchmarks/connection_startup.sh` ist als offizieller
+  Messpunkt dokumentiert. Das Skript misst Bootstrapping-Latenzen, protokolliert
+  p50/p95/p99-Werte und wird im Kapitel "Build Process" referenziert.
+- **Testmatrix**: Die Dokumentation verweist auf die erweiterte Testmatrix im
+  Roadmap-Dokument; ältere Intel-GPUs werden ausdrücklich berücksichtigt.
+
+Alle offenen Punkte aus `docs/todo/CR-0001.md` wurden damit in die zentrale
+Dokumentation überführt; das CR-Blatt liegt zur Nachvollziehbarkeit im Archiv.
+
+## 17. Release Notes
+
+Ausführliche Release Notes für Version 2.5 befinden sich in `docs/ReleaseNotes.md`.
+Das Dokument listet Highlights, Fixes, bekannte Probleme und Upgrade-Hinweise.
 
