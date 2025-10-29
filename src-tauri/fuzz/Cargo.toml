@@ -1,0 +1,27 @@
+[package]
+name = "torwell84-fuzz"
+edition = "2021"
+publish = false
+version = "0.1.0"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.torwell84]
+path = ".."
+features = ["experimental-api"]
+
+[[bin]]
+name = "secure_http_headers"
+path = "fuzz_targets/secure_http_headers.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "bridge_presets"
+path = "fuzz_targets/bridge_presets.rs"
+test = false
+doc = false

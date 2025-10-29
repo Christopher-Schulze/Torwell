@@ -1,34 +1,46 @@
 # Plan / Roadmap
 
+Dieses Dokument strukturiert laufende und geplante Arbeitspakete. Pakete sind so geschnitten, dass sie parallelisierbar bleiben und minimale Konfliktflächen besitzen.
+
 ## Arbeitsprinzip
-Dieses Dokument bündelt die aktuellen Arbeitspakete für das UI-/Resilienz-Upgrade. Pakete sind so geschnitten, dass sie parallelisiert werden können und minimale Konfliktflächen besitzen.
+1. Doku-Sync erfolgt nach Abschluss aller technischen Pakete (ein Paket besitzt Schreibrecht auf `docs/DOCUMENTATION.md`).
+2. Tests & Lint laufen über `scripts/tests/run_all.sh`; CI integriert Linux Desktop Dependencies (`pkg-config`, `libgtk-3-dev`, `webkit2gtk`).
+3. Benchmarks liefern reproduzierbare p50/p95-Werte; Ergebnisse werden perspektivisch in Artefakten gespeichert.
 
 ## Work Breakdown Structure (WBS)
 
-| ID | Paket | Beschreibung | Impact | Konfliktrisiko |
-|----|-------|--------------|--------|----------------|
-| C1 | Cache-Fundament | Implementiert `AdaptiveCache`, Eviction-Strategien, Warmup-Konfiguration & Persistenz in `src/cache`. | Hoch | Mittel |
-| C2 | API-Integration & Invalidierung | Verdrahtet Cache in `src/lib/api.ts`, invalidiert über `torStore`, stellt Warmup-Hooks bereit. | Hoch | Mittel |
-| C3 | Metrik-SoA & Trendpfad | Stellt `metricSeries` bereit, optimiert `metrics.ts` auf Struct-of-Arrays, verbessert Trend-Berechnung. | Mittel | Niedrig |
-| C4 | Hot-Path-Allocator | Bindet `mimalloc` als globalen Allocator ein, kontrolliert Memory-Footprint der Rust-Komponenten. | Mittel | Niedrig |
-| C5 | Profiling Toolchain | Skripte für Massif/Heaptrack unter `scripts/benchmarks`, Artefakt-Pipeline & Dokumentation. | Mittel | Niedrig |
-| C6 | Tests & Leak-Checks | Vitest-Suite für Cache-Hits/Misses, Persistenz-Warmup sowie API-Memoisierung; verifiziert Begrenzungen. | Hoch | Mittel |
-| C7 | Observability & Limits (Follow-up) | Automatisierte Auswertung der Profiling-Berichte, Dashboards, Alerting. | Mittel | Hoch |
-| C8 | CI Memory Gates (Follow-up) | Integration der Profiling-Skripte in CI, Threshold-basierte Abbrüche. | Mittel | Mittel |
+| ID | Paket | Beschreibung | Impact | Konfliktrisiko | Status |
+|----|-------|--------------|--------|----------------|--------|
+| P1 | Visual Identity Refresh | Überarbeitung von `src/app.css`, Harmonisierung der Glas-Surface-Token, responsives Grid in `src/routes/+page.svelte`. | Hoch | Mittel | ✅ Abgeschlossen |
+| P2 | Motion & Micro-Interactions | Tweened Fortschrittsbalken, Status-Transitions (`IdlePanel`, `StatusCard`), Utility für Reduced-Motion. | Mittel | Niedrig | ✅ Abgeschlossen |
+| P3 | Status Intelligence | Aufwertung `StatusCard` inkl. Route-Badges, Ping-Historie, adaptiver Kopplung an Policy-Report. | Hoch | Mittel | ✅ Abgeschlossen |
+| P4 | Connection Resilience | Verbesserte `invoke`-Retry-Strategie, Guarding in `torStore`, robustes Listener-Lifecycle-Management. | Hoch | Niedrig | ✅ Abgeschlossen |
+| P5 | Arti Integration Guardrails | Tests für Routing-Policy & GeoIP, Verifikation von `TorManager::ensure_unique_route`, Logging-Verbesserungen. | Mittel | Niedrig | ✅ Abgeschlossen |
+| P6 | Documentation Hub Sync | Aktualisierung `docs/DOCUMENTATION.md`, Anlegen von Spec/Backlog-Struktur, Pflege `docs/todo`. | Mittel | Mittel | ✅ Abgeschlossen |
+| P7 | Diagnostics UX | Modernisierung `ConnectionDiagnostics` & `NetworkTools`, Timeline-Overlay, Motion-Token-Sharing. | Mittel | Mittel | 🔄 Geplant (Milestone D) |
+| P8 | Automation & Tooling | Ergänzung von `/scripts/tests/` Runnern, CI-Hinweise. | Niedrig | Niedrig | 🔄 Geplant |
+| P9 | Benchmark Automation | `scripts/benchmarks/connection_startup.sh`, Integration in Release-CI, Latenz-Reporting. | Mittel | Niedrig | ✅ Abgeschlossen |
 
 ## Priorisierte Auswahl
-C1–C6 sind umgesetzt und dienen als Basis für Memory-Härtung. C7–C8 werden als zukünftige Erweiterungen dokumentiert.
+Milestones A–C sind produktiv gesetzt. Milestone D bündelt die verbliebenen Diagnostics-UX-Anpassungen (P7) und zusätzliche CI-Hooks (P8).
 
 ## Meilensteine
-1. **Milestone Ω – Cache & Analytics**: Abschluss C1–C3 (bereitgestellt).
-2. **Milestone Σ – Runtime Hardening**: Abschluss C4–C6 inkl. Tests und Skripte.
-3. **Milestone Φ – Observability Scale-Up**: Umsetzung der Follow-ups C7–C8.
+1. **Milestone A – UI & Motion**: Abschluss P1–P3. ✅ Delivered in v2.5.
+2. **Milestone B – Resilienz & Backend Guards**: Abschluss P4–P5. ✅ Delivered in v2.5.
+3. **Milestone C – Docs & Enablement**: Abschluss P6 & P9, QA-Begleitung inklusive Benchmark-Dashboards. ✅ Delivered in v2.5.
+4. **Milestone D – Diagnostics Experience**: Umsetzung P7 & P8 mit Fokus auf Timeline-Komponenten und automatisierte Checks. ⏳ Offen.
 
 ## Risiken & Mitigation
-- **Persistenz-Korruption**: Snapshot-Schreiboperationen sind guardiert und fehlertolerant; Warmup-Errors werden geloggt.
-- **Profiler-Laufzeit**: Skripte erzwingen Vorbuild (`cargo test --no-run`) und laufen optional, um CI nicht zu blockieren.
-- **Allocator-Kompatibilität**: `mimalloc` wird mit Standard-Konfiguration eingebunden; Smoke-Tests prüfen Startpfad.
+- **GPU/Blur-Inkompatibilität**: Fallback-Styles via `@supports not (backdrop-filter)` implementieren.
+- **Rate-Limit bei Tauri-Commands**: Exponentielles Backoff + Jitter, Logging bei Überschreitung.
+- **Test-Laufzeit**: Bun/Vitest parallelisierbar, `cargo test` kann mit `-- --test-threads=1` laufen, falls UI/IPC-Mocks nötig.
+- **CI-Dependencies**: Fehlende GTK/WebKit Libs führen zu Build-Brüchen – Setup-Skripte dokumentiert (siehe oben).
+
+## Testmatrix
+- **Desktop macOS 13+ (Apple Silicon, Intel GPU)**: UI & Bootstrap-Benchmark.
+- **Windows 11 (Intel iGPU, AMD dGPU)**: Resilienztests, Motion-Reduced Validation.
+- **Ubuntu 22.04 (Wayland/X11, Intel iGPU)**: Fokus auf Blur-Fallbacks und IdlePanel.
 
 ## Nächste Schritte
-- Follow-up-Auftrag für C7/C8 planen (automatisierte Profil-Analyse, CI-Einbindung).
-- Optional: weitere Caches (Bridge-Liste, Zertifikate) evaluieren.
+- Milestone D planen (Design-Vorlauf, UX-Research für Diagnostics).
+- Benchmarking der Animationen auf älteren Intel-Macs (Follow-up erforderlich).
