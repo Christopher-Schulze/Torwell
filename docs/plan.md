@@ -7,28 +7,28 @@ Dieses Dokument bündelt die aktuellen Arbeitspakete für das UI-/Resilienz-Upgr
 
 | ID | Paket | Beschreibung | Impact | Konfliktrisiko |
 |----|-------|--------------|--------|----------------|
-| P1 | Visual Identity Refresh | Überarbeitung von `src/app.css`, Harmonisierung der Glas-Surface-Token, responsives Grid in `src/routes/+page.svelte`. | Hoch | Mittel |
-| P2 | Motion & Micro-Interactions | Tweened Fortschrittsbalken, Status-Transitions (`IdlePanel`, `StatusCard`), Utility für Reduced-Motion. | Mittel | Niedrig |
-| P3 | Status Intelligence | Aufwertung `StatusCard` inkl. Route-Badges, Ping-Historie, adaptiver Kopplung an Policy-Report. | Hoch | Mittel |
-| P4 | Connection Resilience | Verbesserte `invoke`-Retry-Strategie, Guarding in `torStore`, robustes Listener-Lifecycle-Management. | Hoch | Niedrig |
-| P5 | Arti Integration Guardrails | Tests für Routing-Policy & GeoIP, Verifikation von `TorManager::ensure_unique_route`, Logging-Verbesserungen. | Mittel | Niedrig |
-| P6 | Documentation Hub Sync | Aktualisierung `docs/DOCUMENTATION.md`, Anlegen von Spec/Backlog-Struktur, Pflege `docs/todo`. | Mittel | Mittel |
-| P7 | Diagnostics UX | Verbesserte Darstellung in `ConnectionDiagnostics` & `NetworkTools` (Future Work). | Mittel | Hoch |
-| P8 | Automation & Tooling | Ergänzung von `/scripts/tests/` Runnern, CI-Hinweise (Future Work). | Niedrig | Niedrig |
+| C1 | Cache-Fundament | Implementiert `AdaptiveCache`, Eviction-Strategien, Warmup-Konfiguration & Persistenz in `src/cache`. | Hoch | Mittel |
+| C2 | API-Integration & Invalidierung | Verdrahtet Cache in `src/lib/api.ts`, invalidiert über `torStore`, stellt Warmup-Hooks bereit. | Hoch | Mittel |
+| C3 | Metrik-SoA & Trendpfad | Stellt `metricSeries` bereit, optimiert `metrics.ts` auf Struct-of-Arrays, verbessert Trend-Berechnung. | Mittel | Niedrig |
+| C4 | Hot-Path-Allocator | Bindet `mimalloc` als globalen Allocator ein, kontrolliert Memory-Footprint der Rust-Komponenten. | Mittel | Niedrig |
+| C5 | Profiling Toolchain | Skripte für Massif/Heaptrack unter `scripts/benchmarks`, Artefakt-Pipeline & Dokumentation. | Mittel | Niedrig |
+| C6 | Tests & Leak-Checks | Vitest-Suite für Cache-Hits/Misses, Persistenz-Warmup sowie API-Memoisierung; verifiziert Begrenzungen. | Hoch | Mittel |
+| C7 | Observability & Limits (Follow-up) | Automatisierte Auswertung der Profiling-Berichte, Dashboards, Alerting. | Mittel | Hoch |
+| C8 | CI Memory Gates (Follow-up) | Integration der Profiling-Skripte in CI, Threshold-basierte Abbrüche. | Mittel | Mittel |
 
 ## Priorisierte Auswahl
-Mangels weiterer Vorgaben werden P1–P6 sofort umgesetzt. P7–P8 bleiben als dokumentierte Next Steps.
+C1–C6 sind umgesetzt und dienen als Basis für Memory-Härtung. C7–C8 werden als zukünftige Erweiterungen dokumentiert.
 
 ## Meilensteine
-1. **Milestone A – UI & Motion**: Abschluss P1–P3.
-2. **Milestone B – Resilienz & Backend Guards**: Abschluss P4–P5.
-3. **Milestone C – Docs & Enablement**: Abschluss P6, Übergabe an QA.
+1. **Milestone Ω – Cache & Analytics**: Abschluss C1–C3 (bereitgestellt).
+2. **Milestone Σ – Runtime Hardening**: Abschluss C4–C6 inkl. Tests und Skripte.
+3. **Milestone Φ – Observability Scale-Up**: Umsetzung der Follow-ups C7–C8.
 
 ## Risiken & Mitigation
-- **GPU/Blur-Inkompatibilität**: Fallback-Styles definiert (`@supports not (backdrop-filter)`).
-- **Rate-Limit bei Tauri-Commands**: Exponentielle Retry-Strategie mit jitter, Logging wenn Limit überschritten.
-- **Test-Laufzeit**: Rust- und Frontend-Checks parallelisierbar, können über `scripts/tests/run_all.sh` orchestriert werden.
+- **Persistenz-Korruption**: Snapshot-Schreiboperationen sind guardiert und fehlertolerant; Warmup-Errors werden geloggt.
+- **Profiler-Laufzeit**: Skripte erzwingen Vorbuild (`cargo test --no-run`) und laufen optional, um CI nicht zu blockieren.
+- **Allocator-Kompatibilität**: `mimalloc` wird mit Standard-Konfiguration eingebunden; Smoke-Tests prüfen Startpfad.
 
 ## Nächste Schritte
-- P7 & P8 in eigenem Auftrag adressieren.
-- Benchmarking der Animationen auf älteren Intel-Macs (Follow-up erforderlich).
+- Follow-up-Auftrag für C7/C8 planen (automatisierte Profil-Analyse, CI-Einbindung).
+- Optional: weitere Caches (Bridge-Liste, Zertifikate) evaluieren.

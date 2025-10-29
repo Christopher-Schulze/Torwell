@@ -1,17 +1,20 @@
 ## Änderungen
-- Premiumisierte Dashboard-Komponenten (`StatusCard`, `ActionCard`, `IdlePanel`) mit neuen Glasgradients, Mikroanimationen und responsiven Layouts.
-- Erweiterte Resilienz im Frontend (`torStore`, `api`-Wrapper) inkl. Retry-Backoff, listener cleanup und reduzierter Motion-Utilities.
-- Aktualisierte Dokumentation gemäss Organisationsrichtlinie (Spec, Plan, File & Wire Map, TODO-Backlog).
-- Neue Motion-Utilities und angepasste Metrik-Auswertungen (Rolling Latency, Trendberechnung, Tests für TorManager).
+- Cache-Layer (`src/cache`) mit `AdaptiveCache`, Persistenz-Warmup und Invalidierungs-Hooks für Timeline-, Summary- und Geo-Daten.
+- API-Integration: `src/lib/api.ts` nutzt Cache-Hits, persistiert Snapshots und startet Warmup automatisch; `torStore` invalidiert bei Statuswechsel.
+- Metrikpipeline um Struct-of-Arrays (`metricSeries`) erweitert; Trendberechnung in `metrics.ts` arbeitet auf Typed-Arrays.
+- Rust-Backend bindet `mimalloc` als globalen Allocator ein; neue Memory-Profiling-Skripte unter `scripts/benchmarks/` dokumentiert.
+- Vitest-Suite ergänzt (`cacheLayer.spec.ts`, `apiCache.spec.ts`) für Cache-Hits/Misses, Warmup und Token-Reuse.
+- Dokumentation (spec/plan/context/DOCUMENTATION.md/FILEANDWIREMAP.md) um Cache-, Allocator- und Profiling-Inhalte aktualisiert.
 
 ## Kommandos
-- Tests (Frontend): `bun run check`
-- Tests (Rust): `cargo test` (scheitert ohne systemweite glib-2.0 Bibliotheken)
+- Tests (zielgerichtet): `npx vitest run src/__tests__/cacheLayer.spec.ts src/__tests__/apiCache.spec.ts`
+- Memory-Profiling: `scripts/benchmarks/run_massif.sh`, `scripts/benchmarks/run_heaptrack.sh`
+- Rust-Tests: `cargo test` (benötigt systemweites `glib-2.0` → in Container derzeit nicht verfügbar)
 
 ## Nächste Schritte
-- Follow-up CR-0001 zur Modernisierung der Diagnostics- und Network-Ansichten umsetzen.
-- glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
+- Follow-up: Automatisierte Auswertung der Profiling-Artefakte (Plan C7/C8) und CI-Integration.
+- Optionale Caches für weitere IPC-Endpunkte evaluieren (Bridge-Liste, Zertifikate).
 
 ## Annahmen
-- Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.
-- Latency-Metriken können temporär fehlen und werden konservativ mit 0 in Trends berücksichtigt.
+- Browser stellt `localStorage` bereit; Tests mocken `window.localStorage`.
+- Profiling-Tools (Valgrind/Heaptrack) werden bei Bedarf lokal oder in CI installiert.

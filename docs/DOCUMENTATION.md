@@ -8,6 +8,9 @@
 - Dokumentations-Hub erweitert um `spec.md`, `plan.md`, `FILEANDWIREMAP.md` und `docs/todo` gemäß Organisationsleitfaden.
 - Frontend-Aktionswarteschlange `connectionQueue` serialisiert Connect/Disconnect/Circuit-Befehle, visualisiert Queue-Tiefe und merkt sich Fehler.
 - `TorManager::connect` verhält sich idempotent – wiederholte Aufrufe liefern Erfolg statt `AlreadyConnected` und vermeiden überflüssige Bootstrap-Versuche.
+- Adaptive Cache-Schicht (`src/cache`) mit LRU/LFU-Eviction, Warmup aus Persistenz und API-Hooks für Timeline-, Summary- und Geo-Lookups.
+- Struct-of-Arrays basierte Metrikpipeline (`metricSeries`) verkürzt Trendberechnungen und reduziert GC-Last im Hot-Path.
+- Hot-Path-Allocator `mimalloc` für alle Rust-Komponenten, inklusive Memory-Profiling-Playbooks (`run_massif.sh`, `run_heaptrack.sh`).
 
 ## 1. Architecture
 
@@ -38,6 +41,9 @@ Der Desktop-Client nutzt eine kuratierte Glassmorphism-Ästhetik mit GPU-beschle
 -   **State Management:**
     -   `torStore.ts`: Registriert Event-Listener lazy und cleaned-up, begrenzt Metrik-Historien und normalisiert Payloads.
     -   `uiStore.ts`: Verwalten der Modals, persistente Einstellungen via Dexie.
+-   **Analytics:**
+    -   `src/cache/metricSeries.ts` stellt Struct-of-Arrays Puffer für Trendberechnungen bereit.
+    -   `src/lib/utils/metrics.ts` nutzt Typed-Arrays zur latenzarmen Trend-, Statistik- und Health-Auswertung.
 -   **Komponenten:**
     -   `StatusCard.svelte`: Enthält Circuit-Routing-Intelligenz, Ping-Historie, Statusbadges und automatische Layout-Anpassung.
     -   `IdlePanel.svelte`: Tweened Bootstrap-Balken, ARIA-Live Statusmeldungen, Retry-Ausgaben.
@@ -45,6 +51,13 @@ Der Desktop-Client nutzt eine kuratierte Glassmorphism-Ästhetik mit GPU-beschle
     -   `NetworkTools`, `TorChain`, `ConnectionDiagnostics`: unverändert, werden in Folgeaufträgen auf das neue Design gehoben.
 
 Alle Komponenten nutzen geteilte Design-Tokens aus `src/app.css` und halten sich an die Barrierefreiheitsanforderungen (mind. 4.5:1 Kontrast).
+
+### 2.3 Cache Layer (`/src/cache`)
+
+-   `adaptiveCache.ts`: Generischer Cache mit konfigurierbarer Größe, TTL, LRU/LFU/FIFO-Eviction, Warmup-Plan und Statistik-API.
+-   `metricSeries.ts`: Typed-Array Stacks (Struct-of-Arrays) für numerische Metriken, reduzieren GC-Druck in Trendberechnungen.
+-   `index.ts`: Stellt `connectionTimelineCache`, `connectionSummaryCache` und `countryLookupCache` bereit, persistiert Snapshots in `localStorage`, bietet Warmup- und Invalidation-Hooks.
+-   Cache-Snapshots werden zyklisch aktualisiert (`cacheConnectionTimeline`, …) und können via `warmupCaches()` hydratisiert werden – wichtig für Offline-Start.
 
 ## 3. New Features in V2.1
 
@@ -206,7 +219,17 @@ async function fetchLogs() {
 
 Die Tokens verfallen nach der in `TORWELL_SESSION_TTL` definierten Zeitspanne. Erhält der Client einen `401`-Fehler oder eine Meldung "Invalid session token", sollte umgehend ein neues Token angefordert und der Befehl erneut ausgeführt werden.
 
-## 15. UI Backup
+## 15. Memory Profiling & Allocator
+
+-   **Allocator:** Das Rust-Backend nutzt `mimalloc` als globalen Allocator (`src-tauri/src/lib.rs`), um Fragmentierung zu reduzieren und Hot-Path-Latenzen zu glätten.
+-   **Cache Limits:** `connectionTimelineCache` (max 16 Einträge / maxCost 256) und `connectionSummaryCache` (max 4) invalidieren sich automatisch bei Statuswechsel (`torStore` → `invalidateConnectionCaches`).
+-   **Profiling-Skripte:**
+    -   `scripts/benchmarks/run_massif.sh [testname]` – startet Valgrind Massif auf dem ausgewählten Integrationstest (`parallel_metrics_benchmark` als Default). Ergebnisse landen unter `src-tauri/target/memory-profiles/massif-*.out`.
+    -   `scripts/benchmarks/run_heaptrack.sh [testname]` – erzeugt Heaptrack-Traces (`*.gz`) im selben Verzeichnis.
+-   **Analyse:** `massif-visualizer` bzw. `heaptrack_gui` öffnen die Artefakte. Empfehlungen: Peaks < 200 MB für `parallel_metrics_benchmark`, Differenz zwischen Start/Ende < 5 MB.
+-   **Operational Limits:** Profiling ist optional; CI kann über Feature-Toggles (Follow-up C7/C8) entscheiden. Skripte prüfen Tool-Verfügbarkeit und brechen mit Exit-Code ≠0 ab, falls Tools fehlen.
+
+## 16. UI Backup
 
 Vor Experimenten mit neuen Layouts kann die aktuelle Benutzeroberfläche
 gesichert werden. Das Skript `scripts/backup_ui.sh` kopiert dazu den Inhalt von

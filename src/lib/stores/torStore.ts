@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { invalidateConnectionCaches } from "../../cache";
 
 export type TorStatus =
   | "DISCONNECTED"
@@ -111,6 +112,9 @@ function createTorStore() {
         const isEphemeral = ["NEW_IDENTITY", "NEW_CIRCUIT"].includes(rawStatus);
         const statusStr = (isEphemeral ? "CONNECTED" : rawStatus) as TorStatus;
         const clearError = !["RETRYING", "ERROR"].includes(statusStr);
+        if (["DISCONNECTED", "ERROR"].includes(statusStr)) {
+          invalidateConnectionCaches();
+        }
         return {
           ...state,
           ...payload,

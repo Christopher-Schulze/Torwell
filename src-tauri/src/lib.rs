@@ -7,6 +7,9 @@ mod session;
 mod state;
 mod tor_manager;
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use open;
 use secure_http::SecureHttpClient;
 use state::AppState;
