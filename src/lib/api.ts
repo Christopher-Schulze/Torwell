@@ -1,6 +1,15 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/tauri';
 import { errorStore } from '$lib/stores/errorStore';
 import type { ConnectionEvent, ConnectionHealthSummary } from '$lib/types';
+import {
+  cacheConnectionSummary,
+  cacheConnectionTimeline,
+  cacheCountryLookup,
+  connectionSummaryCache,
+  connectionTimelineCache,
+  countryLookupCache,
+  warmupCaches,
+} from '../cache';
 
 const RETRYABLE_PATTERNS = [
   /Network.+unreachable/i,
@@ -21,6 +30,12 @@ function delay(ms: number): Promise<void> {
 }
 
 let token: string | null = null;
+
+if (typeof window !== 'undefined') {
+  void warmupCaches().catch((error) => {
+    console.warn('Cache warmup failed', error);
+  });
+}
 
 export async function ensureToken(force = false): Promise<string> {
   if (!force && token) return token;
@@ -58,14 +73,41 @@ export async function invoke<T = any>(
 }
 
 export function lookupCountry(ip: string) {
-  return invoke('lookup_country', { ip }) as Promise<string>;
+  const normalised = ip.trim();
+  if (!normalised) {
+    return Promise.resolve('');
+  }
+  const cached = countryLookupCache.get(normalised);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+  return invoke('lookup_country', { ip: normalised }).then((result) => {
+    cacheCountryLookup(normalised, result, { ttlMs: 86_400_000 });
+    return result;
+  });
 }
 
 export function getConnectionTimeline(limit?: number) {
   const args = typeof limit === 'number' ? { limit } : {};
-  return invoke<ConnectionEvent[]>('get_connection_timeline', args);
+  const cacheKey = `timeline:${typeof limit === 'number' ? limit : 'default'}`;
+  const cached = connectionTimelineCache.get(cacheKey);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+  return invoke<ConnectionEvent[]>('get_connection_timeline', args).then((events) => {
+    cacheConnectionTimeline(cacheKey, events, { ttlMs: 25_000 });
+    return events;
+  });
 }
 
 export function getConnectionHealthSummary() {
-  return invoke<ConnectionHealthSummary>('get_connection_health_summary');
+  const cacheKey = 'summary:default';
+  const cached = connectionSummaryCache.get(cacheKey);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+  return invoke<ConnectionHealthSummary>('get_connection_health_summary').then((summary) => {
+    cacheConnectionSummary(cacheKey, summary, { ttlMs: 20_000 });
+    return summary;
+  });
 }

@@ -1,4 +1,5 @@
 import type { MetricPoint } from "../stores/torStore";
+import { buildMetricSeries, type MetricSeries } from "../../cache/metricSeries";
 
 export type MetricNumericField =
   | "memoryMB"
@@ -49,18 +50,63 @@ export interface HealthAssessment {
 const DEFAULT_TREND_WINDOW = 5;
 const FLAT_TOLERANCE_PERCENT = 2;
 
-function pickNumericFieldValue(point: MetricPoint, field: MetricNumericField): number {
-  const value = point[field];
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return 0;
+const metricSeriesCache = new WeakMap<MetricPoint[], MetricSeries>();
+
+function ensureSeries(metrics: MetricPoint[]): MetricSeries {
+  let series = metricSeriesCache.get(metrics);
+  if (!series) {
+    series = buildMetricSeries(metrics);
+    metricSeriesCache.set(metrics, series);
   }
-  return value;
+  return series;
+}
+
+function getSeriesColumn(
+  series: MetricSeries,
+  field: MetricNumericField
+): Float64Array {
+  switch (field) {
+    case "memoryMB":
+      return series.memoryMB;
+    case "circuitCount":
+      return series.circuitCount;
+    case "latencyMs":
+      return series.latencyMs;
+    case "oldestAge":
+      return series.oldestAge;
+    case "avgCreateMs":
+      return series.avgCreateMs;
+    case "failedAttempts":
+      return series.failedAttempts;
+    case "cpuPercent":
+      return series.cpuPercent;
+    case "networkBytes":
+      return series.networkBytes;
+    case "networkTotal":
+      return series.networkTotal;
+    default: {
+      const exhaustive: never = field;
+      return exhaustive;
+    }
+  }
 }
 
 export function getRecentWindow(metrics: MetricPoint[], size: number): MetricPoint[] {
   if (!metrics.length) return [];
   const limit = Math.max(1, Math.floor(size));
   return metrics.slice(-limit);
+}
+
+export function getRecentSeries(
+  metrics: MetricPoint[],
+  size: number
+): MetricSeries {
+  if (!metrics.length) {
+    return buildMetricSeries([]);
+  }
+  const limit = Math.max(1, Math.floor(size));
+  const scope = metrics.slice(-limit);
+  return ensureSeries(scope);
 }
 
 export function calculateTrend(
@@ -72,9 +118,16 @@ export function calculateTrend(
     return { direction: "flat", change: 0, percent: 0, previous: 0, current: 0 };
   }
 
-  const sample = metrics.slice(-Math.max(2, window));
-  const first = pickNumericFieldValue(sample[0], field);
-  const last = pickNumericFieldValue(sample[sample.length - 1], field);
+  const series = ensureSeries(metrics);
+  const values = getSeriesColumn(series, field);
+  const available = values.length;
+  if (!available) {
+    return { direction: "flat", change: 0, percent: 0, previous: 0, current: 0 };
+  }
+  const span = Math.max(2, Math.min(window, available));
+  const startIndex = available - span;
+  const first = values[startIndex];
+  const last = values[available - 1];
   const change = last - first;
   const base = Math.abs(first) < 1e-3 ? 1 : first;
   const percent = (change / base) * 100;
@@ -99,14 +152,23 @@ export function summarizeMetric(
   if (!metrics.length) return null;
   const window = options?.window;
   const scope = typeof window === "number" ? metrics.slice(-Math.max(1, window)) : metrics;
-  const values = scope.map((point) => pickNumericFieldValue(point, field));
+  const series = ensureSeries(scope);
+  const values = getSeriesColumn(series, field);
   if (!values.length) return null;
-  const current = values[values.length - 1];
-  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const count = values.length;
+  let sum = 0;
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < count; i += 1) {
+    const value = values[i];
+    sum += value;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+  const current = values[count - 1];
+  const average = count ? sum / count : 0;
   const trend = calculateTrend(scope, field, window ?? DEFAULT_TREND_WINDOW);
-  return { field, current, average, min, max, trend, values };
+  return { field, current, average, min, max, trend, values: Array.from(values) };
 }
 
 export function resolveSeverity(value: number, thresholds?: Thresholds): Severity {
