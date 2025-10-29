@@ -136,16 +136,23 @@ give users visual feedback during connection.
 
 ## 9. Accessibility Strategy
 
-Torwell84 adheres to WCAG 2.1 AA where possible. All interactive controls now include meaningful `aria-label` attributes, and modal dialogs shift keyboard focus to their close buttons upon opening. Text colors were updated to maintain sufficient contrast against the dark interface. These improvements help screen reader users and enable consistent keyboard navigation.
+Das Skript führt sequentiell aus:
+1. `bun run check` — Typen- & A11y-Checks.
+2. `bun run test` — Vitest-Unit- und Integrationstests.
+3. `cargo test --locked` im `src-tauri`-Crate.
 
-## 10. Accessibility Implementation
+Fehlschläge werden sofort gemeldet (Exit-Code ≠ 0). Für Umgebungen ohne die benötigten Systembibliotheken dokumentiert `docs/plan.md` entsprechende CI-Hooks.
 
-All buttons and form controls declare `aria-label` values so assistive technologies can accurately describe their purpose. When a modal becomes visible, the close button receives focus using Svelte's `tick` helper, enabling keyboard users to dismiss dialogs without hunting for focus. Text colours across the UI were lightened to improve contrast against the dark theme, meeting WCAG AA requirements.
+## 4. Benchmarks
+`scripts/benchmarks/run_frontend_benchmarks.sh` nutzt `bun x vitest bench` für UI-Mikrobenchmarks (z. B. Store-Reducer, Layout-Berechnungen). Weitere Benchmarks können in diesem Ordner ergänzt werden.
 
-## 11. Architekturdiagramme
+```bash
+scripts/benchmarks/run_frontend_benchmarks.sh -- --runInBand
+```
 
-Die folgende Mermaid-Grafik zeigt die grobe Struktur von Torwell84 V2. Der SvelteKit-Frontendcode läuft innerhalb der Tauri-Shell und kommuniziert ausschließlich über IPC mit dem Rust-Backend.
+Ergebnisse sollten p50/p95/p99-Latenzen im Terminal anzeigen. Integration mit `hyperfine` oder `cargo bench` folgt nach Definition konkreter Metriken (siehe Spec).
 
+## 5. Architektur-Überblick
 ```mermaid
 graph TD
     User((Benutzer)) -->|UI-Aktionen| Frontend
@@ -155,10 +162,13 @@ graph TD
     Backend -->|Events| Frontend
 ```
 
-## 12. Datenfluss
+### Komponenten
+- **Frontend (`/src`):** SvelteKit SPA mit State Stores (`torStore.ts`, `uiStore.ts`), Komponenten wie `StatusCard.svelte`, `ActionCard.svelte`, `IdlePanel.svelte`. Nutzt Dexie für persistente Einstellungen.
+- **Backend (`/src-tauri`):** Rust-Crate mit `TorManager` (arti-Integration), `state.rs` (AppState, Log-Puffer), Tauri Commands (`commands.rs`), Fehlerenum (`error.rs`).
+- **IPC Layer:** Tauri `invoke/listen` Events (`tor-status-update`, `metrics-update`, `log-update`).
+- **Tooling:** Taskfile, Scripts in `/scripts`, Tests im Frontend (Vitest) & Backend (Cargo).
 
-Der typische Ablauf einer Verbindung sieht wie folgt aus:
-
+### Datenfluss (Connect)
 ```mermaid
 sequenceDiagram
     participant UI
@@ -166,10 +176,10 @@ sequenceDiagram
     participant Backend
     participant Tor
 
-    UI->>Backend: `connect()` aufrufen
-    Backend->>Tor: Verbindung aufbauen
-    Tor-->>Backend: Status-Updates
-    Backend-->>Store: `tor-status-update`
+    UI->>Backend: connect()
+    Backend->>Tor: Bootstrap starten
+    Tor-->>Backend: Status-Events
+    Backend-->>Store: tor-status-update
     Store-->>UI: Reaktive Anzeige
 ```
 

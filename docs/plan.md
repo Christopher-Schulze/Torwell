@@ -1,7 +1,11 @@
 # Plan / Roadmap
 
+Dieses Dokument strukturiert laufende und geplante Arbeitspakete. Pakete sind so geschnitten, dass sie parallelisierbar bleiben und minimale Konfliktflächen besitzen.
+
 ## Arbeitsprinzip
-Dieses Dokument bündelt die aktuellen Arbeitspakete für das UI-/Resilienz-Upgrade. Pakete sind so geschnitten, dass sie parallelisiert werden können und minimale Konfliktflächen besitzen.
+1. Doku-Sync erfolgt nach Abschluss aller technischen Pakete (ein Paket besitzt Schreibrecht auf `docs/DOCUMENTATION.md`).
+2. Tests & Lint laufen über `scripts/tests/run_all.sh`; CI integriert Linux Desktop Dependencies (`pkg-config`, `libgtk-3-dev`, `webkit2gtk`).
+3. Benchmarks liefern reproduzierbare p50/p95-Werte; Ergebnisse werden perspektivisch in Artefakten gespeichert.
 
 ## Work Breakdown Structure (WBS)
 
@@ -27,9 +31,10 @@ Milestones A–C sind produktiv gesetzt. Milestone D bündelt die verbliebenen D
 4. **Milestone D – Diagnostics Experience**: Umsetzung P7 & P8 mit Fokus auf Timeline-Komponenten und automatisierte Checks. ⏳ Offen.
 
 ## Risiken & Mitigation
-- **GPU/Blur-Inkompatibilität**: Fallback-Styles definiert (`@supports not (backdrop-filter)`).
-- **Rate-Limit bei Tauri-Commands**: Exponentielle Retry-Strategie mit jitter, Logging wenn Limit überschritten.
-- **Test-Laufzeit**: Rust- und Frontend-Checks parallelisierbar, können über `scripts/tests/run_all.sh` orchestriert werden.
+- **GPU/Blur-Inkompatibilität**: Fallback-Styles via `@supports not (backdrop-filter)` implementieren.
+- **Rate-Limit bei Tauri-Commands**: Exponentielles Backoff + Jitter, Logging bei Überschreitung.
+- **Test-Laufzeit**: Bun/Vitest parallelisierbar, `cargo test` kann mit `-- --test-threads=1` laufen, falls UI/IPC-Mocks nötig.
+- **CI-Dependencies**: Fehlende GTK/WebKit Libs führen zu Build-Brüchen – Setup-Skripte dokumentiert (siehe oben).
 
 ## Testmatrix
 - **Desktop macOS 13+ (Apple Silicon, Intel GPU)**: UI & Bootstrap-Benchmark.

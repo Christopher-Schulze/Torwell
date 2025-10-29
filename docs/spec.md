@@ -1,15 +1,15 @@
 # Spec (Zielzustand)
 
 ## Scope
-- Modernisiere die Torwell84-Desktopoberfläche mit einer hochwertigen Glassmorphism-Ästhetik, fein abgestimmten Animationen und responsiven Layouts.
-- Stärke die Resilienz der Verbindungssteuerung (Frontend + API-Layer), damit wiederholte Verbindungsversuche, Token-Invalidierungen und temporäre Netzwerkfehler ohne Nutzerinteraktion abgefangen werden.
-- Sicherstelle, dass das Arti-basierte Backend (TorManager) deterministisch konfiguriert wird, Brücken-/Länderkonfigurationen respektiert und mit aussagekräftigen Fehlern reagiert.
-- Dokumentiere Architektur, Annahmen, Workstreams und Backlog zentral in `/docs` gemäss Projektleitfaden.
+- Zentralisiere Projektwissen gemäß Organisationsleitfaden: `docs/DOCUMENTATION.md` als Hub, vollständige Pflege von `spec.md`, `plan.md`, `todo.md`.
+- Liefere reproduzierbare Qualitäts-Gates über `scripts/tests/run_all.sh` und Dev-Workflow via `scripts/utils/dev_run.sh`.
+- Stelle Benchmark-Grundgerüst unter `scripts/benchmarks/` bereit (Vitest Bench für UI, Hookpunkte für Rust/Cargo-Benchmarks).
+- Erweitere Architektur- und Sicherheitsdokumentation um eine präzise Übersicht sowie Threat-Model (STRIDE) und verweise auf relevante Artefakte.
 
 ## Nicht-Ziele
-- Keine grundlegende Änderung des Tauri-Build- oder Deployment-Prozesses.
-- Kein Austausch des arti-Clients oder Migration auf eine andere Tor-Implementierung.
-- Keine tiefgreifenden Änderungen an Mobile-/Capacitor-spezifischen Workflows.
+- Keine grundlegende Änderung des Build-Tooling (Tauri, SvelteKit, Cargo) oder der Paketmanager (Bun, Cargo).
+- Keine Erweiterung der bestehenden Feature-Sets der UI oder Backend-Kommandos über Dokumentation/Tooling hinaus.
+- Keine Auslieferung produktiver Benchmark-Suites – Fokus auf lauffähige Skeletons & Integrationspunkte.
 
 ## Annahmen
 - Desktop-Zielplattformen: macOS 13+, Windows 11, Ubuntu 22.04+ (Wayland/X11).
@@ -37,8 +37,8 @@
 - Benchmark-Ausführung protokolliert p50/p95/p99 in `.benchmarks/bootstrap_summary.txt` und archiviert Rohdaten.
 
 ## Migration / Rollout
-- Feature-Flag `experimental-api` bleibt optional; UI degradert ohne zusätzliche Datenquellen.
-- Keine Datenbankmigrationen notwendig. Clientseitige Einstellungen bleiben kompatibel.
+- Bestehende Workflows (`bun run check`, `bun run test`, `cargo test`) bleiben unverändert nutzbar.
+- Neue Skripte werden in CI-Pipeline integriert, sobald Hooks in `docs/plan.md` umgesetzt sind (Follow-up mit konkreten CI-Konfigurationen).
 
 ## Offene Fragen
 - 3D-Hardwarebeschleunigung auf Low-End-Geräten: Monitoring via Telemetrie TBD.
