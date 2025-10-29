@@ -1,0 +1,6 @@
+{
+  "fcp_ms": 2500,
+  "domContentLoaded_ms": 3500,
+  "load_ms": 5000,
+  "maxRegressionPct": 20
+}
