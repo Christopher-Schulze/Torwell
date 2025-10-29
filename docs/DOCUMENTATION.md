@@ -5,7 +5,7 @@
 - Premiumisierte Glass-UI mit abgestimmten Farbverläufen, Mikroanimationen und responsiven Layouts für Dashboard, Status-Card und Kontrollpanel.
 - Resiliente Verbindungssteuerung: `invoke`-Wrapper mit Exponential-Backoff, entkoppelte Event-Lifecycle-Verwaltung in `torStore`.
 - Arti-spezifische Guardrails mit zusätzlichen Tests für GeoIP- und Routing-Policies.
-- Dokumentations-Hub erweitert um `spec.md`, `plan.md`, `FILEANDWIREMAP.md` und `docs/todo` gemäß Organisationsleitfaden.
+- Dokumentations-Hub erweitert um `spec.md`, `plan.md`, `FILEANDWIREMAP.md`, `ReleaseNotes.md` und `docs/todo` gemäß Organisationsleitfaden.
 - Frontend-Aktionswarteschlange `connectionQueue` serialisiert Connect/Disconnect/Circuit-Befehle, visualisiert Queue-Tiefe und merkt sich Fehler.
 - `TorManager::connect` verhält sich idempotent – wiederholte Aufrufe liefern Erfolg statt `AlreadyConnected` und vermeiden überflüssige Bootstrap-Versuche.
 
@@ -95,7 +95,8 @@ The application is built as a standard Tauri project:
 
 1.  The SvelteKit frontend is built into a set of static assets (HTML, CSS, JS).
 2.  The Rust backend is compiled into a binary.
-3.  The Tauri bundler packages the frontend assets and the Rust binary into a single, native executable for the target platform (e.g., `.app` for macOS, `.exe` for Windows).
+3.  The Tauri bundler packages the frontend assets and the Rust binary into a single, native executable für das Zielsystem (z. B. `.app` für macOS, `.exe` für Windows).
+4.  Optional: `scripts/benchmarks/connection_startup.sh` führt nach erfolgreichem Build einen Bootstrap-Benchmark aus und speichert Rohdaten unter `.benchmarks/`.
 
 ## 5. Error States
 
@@ -213,4 +214,29 @@ gesichert werden. Das Skript `scripts/backup_ui.sh` kopiert dazu den Inhalt von
 `src/lib/components` in das Verzeichnis `src/lib/components_backup` und legt es
 bei Bedarf an. Dieser Ordner ist in `.gitignore` eingetragen und wird nicht ins
 Repository übernommen.
+
+## 16. Diagnostics & Benchmark Status
+
+Die im ursprünglichen Change Request erfassten Nacharbeiten wurden final
+strukturiert und dokumentiert:
+
+- **ConnectionDiagnostics & NetworkTools**: Der Modernisierungsbedarf ist im
+  Roadmap-Milestone "Diagnostics UX" (siehe `docs/plan.md`) fest eingeplant und
+  beschreibt die Anpassung an die neue Motion-/Glass-Sprache.
+- **Trace/Timeline-Komponenten**: Das Spezifikationskapitel "Qualitätsziele"
+  wurde um Animationsanforderungen für Diagnosen ergänzt, sodass neue Timeline
+  Overlays `prefers-reduced-motion` respektieren müssen.
+- **Benchmarking**: `scripts/benchmarks/connection_startup.sh` ist als offizieller
+  Messpunkt dokumentiert. Das Skript misst Bootstrapping-Latenzen, protokolliert
+  p50/p95/p99-Werte und wird im Kapitel "Build Process" referenziert.
+- **Testmatrix**: Die Dokumentation verweist auf die erweiterte Testmatrix im
+  Roadmap-Dokument; ältere Intel-GPUs werden ausdrücklich berücksichtigt.
+
+Alle offenen Punkte aus `docs/todo/CR-0001.md` wurden damit in die zentrale
+Dokumentation überführt; das CR-Blatt liegt zur Nachvollziehbarkeit im Archiv.
+
+## 17. Release Notes
+
+Ausführliche Release Notes für Version 2.5 befinden sich in `docs/ReleaseNotes.md`.
+Das Dokument listet Highlights, Fixes, bekannte Probleme und Upgrade-Hinweise.
 

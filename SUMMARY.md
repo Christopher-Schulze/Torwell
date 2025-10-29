@@ -1,17 +1,19 @@
 ## Änderungen
-- Premiumisierte Dashboard-Komponenten (`StatusCard`, `ActionCard`, `IdlePanel`) mit neuen Glasgradients, Mikroanimationen und responsiven Layouts.
-- Erweiterte Resilienz im Frontend (`torStore`, `api`-Wrapper) inkl. Retry-Backoff, listener cleanup und reduzierter Motion-Utilities.
-- Aktualisierte Dokumentation gemäss Organisationsrichtlinie (Spec, Plan, File & Wire Map, TODO-Backlog).
-- Neue Motion-Utilities und angepasste Metrik-Auswertungen (Rolling Latency, Trendberechnung, Tests für TorManager).
+- Change-Request-Blätter konsolidiert und in `DOCUMENTATION.md`, `plan.md`, `spec.md` sowie `ReleaseNotes.md` final verankert.
+- `docs/FILEANDWIREMAP.md` aktualisiert (Module + Benchmark-Skripte) und `docs/archive/CR-0001.md` angelegt.
+- Bootstrap-Benchmarkskript `scripts/benchmarks/connection_startup.sh` erstellt (p50/p95/p99-Auswertung via Python).
+- Release Notes für v2.5 ergänzt; Plan- und Spec-Dokumente um Benchmarks, Testmatrix und Motion-Anforderungen erweitert.
 
 ## Kommandos
 - Tests (Frontend): `bun run check`
-- Tests (Rust): `cargo test` (scheitert ohne systemweite glib-2.0 Bibliotheken)
+- Tests (Rust): `cargo test` (erfordert systemweite `glib-2.0` Bibliotheken)
+- Benchmarks: `scripts/benchmarks/connection_startup.sh`
 
 ## Nächste Schritte
-- Follow-up CR-0001 zur Modernisierung der Diagnostics- und Network-Ansichten umsetzen.
+- Milestone D vorbereiten (Diagnostics UX Refresh, Timeline-Komponenten, CI-Hooks).
 - glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
 
 ## Annahmen
 - Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.
 - Latency-Metriken können temporär fehlen und werden konservativ mit 0 in Trends berücksichtigt.
+- Benchmark-Ausführungen nutzen `task desktop:bootstrap` als verbindliche Bootstrap-Sequenz und halten <3 parallele Sessions.
