@@ -1,0 +1,3884 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Root dashboard snapshot > matches the expected markup 1`] = `
+<div>
+  <div
+    class="p-6 max-w-6xl mx-auto"
+  >
+    <div
+      class="tw-surface flex flex-col gap-4"
+    >
+      
+       
+      <div
+        aria-label="Status information"
+        class="relative overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/40 p-6 shadow-[0_45px_120px_rgba(10,15,45,0.6)]"
+        role="region"
+      >
+        <div
+          class="pointer-events-none absolute -inset-24 bg-gradient-to-br from-slate-900/70 via-slate-800/40 to-slate-900/60 opacity-60 blur-3xl"
+        />
+         
+        <div
+          class="pointer-events-none absolute inset-0 bg-gradient-to-tr from-slate-600/20 via-transparent to-slate-900/60 opacity-40"
+        />
+         
+        <div
+          class="relative z-10 space-y-8"
+        >
+          <div
+            class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between"
+          >
+            <div
+              class="flex-1 space-y-4"
+            >
+              <div
+                class="flex items-center gap-3"
+              >
+                <span
+                  class="h-3 w-3 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.35)] bg-rose-400"
+                />
+                 
+                <div>
+                  <h3
+                    class="text-lg font-semibold uppercase tracking-[0.22em] text-white"
+                  >
+                    Disconnected
+                  </h3>
+                   
+                  <p
+                    class="text-sm text-slate-200/80"
+                  >
+                    Bereit für eine neue Sitzung
+                  </p>
+                </div>
+              </div>
+               
+               
+              <div
+                class="flex flex-wrap gap-3"
+              >
+                <div
+                  class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_25px_55px_rgba(12,18,46,0.55)]"
+                >
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-sky-300/80 via-indigo-400/80 to-purple-400/70 opacity-70 blur-xl"
+                  />
+                   
+                  <div
+                    class="relative z-10 flex items-center gap-3"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="lucide-icon lucide lucide-activity h-4 w-4 text-white/90"
+                      fill="none"
+                      height="24"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M22 12h-4l-3 9L9 3l-3 9H2"
+                      />
+                      
+                      
+                    </svg>
+                     
+                    <div
+                      class="flex flex-col leading-tight"
+                    >
+                      <span
+                        class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+                      >
+                        Traffic
+                      </span>
+                       
+                      <span
+                        class="text-sm font-semibold text-white"
+                      >
+                        0 MB
+                      </span>
+                       
+                      <span
+                        class="text-[11px] text-white/60"
+                      >
+                        Total
+                      </span>
+                    </div>
+                  </div>
+                   
+                </div>
+                <div
+                  class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_25px_55px_rgba(12,18,46,0.55)]"
+                >
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-emerald-300/70 via-teal-400/60 to-sky-400/60 opacity-70 blur-xl"
+                  />
+                   
+                  <div
+                    class="relative z-10 flex items-center gap-3"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="lucide-icon lucide lucide-cpu h-4 w-4 text-white/90"
+                      fill="none"
+                      height="24"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <rect
+                        height="16"
+                        rx="2"
+                        width="16"
+                        x="4"
+                        y="4"
+                      />
+                      
+                      <rect
+                        height="6"
+                        width="6"
+                        x="9"
+                        y="9"
+                      />
+                      
+                      <path
+                        d="M15 2v2"
+                      />
+                      
+                      <path
+                        d="M15 20v2"
+                      />
+                      
+                      <path
+                        d="M2 15h2"
+                      />
+                      
+                      <path
+                        d="M2 9h2"
+                      />
+                      
+                      <path
+                        d="M20 15h2"
+                      />
+                      
+                      <path
+                        d="M20 9h2"
+                      />
+                      
+                      <path
+                        d="M9 2v2"
+                      />
+                      
+                      <path
+                        d="M9 20v2"
+                      />
+                      
+                      
+                    </svg>
+                     
+                    <div
+                      class="flex flex-col leading-tight"
+                    >
+                      <span
+                        class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+                      >
+                        Memory
+                      </span>
+                       
+                      <span
+                        class="text-sm font-semibold text-white"
+                      >
+                        0 MB
+                      </span>
+                       
+                      <span
+                        class="text-[11px] text-white/60"
+                      >
+                        Arti Resident
+                      </span>
+                    </div>
+                  </div>
+                   
+                </div>
+                <div
+                  class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_25px_55px_rgba(12,18,46,0.55)]"
+                >
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-violet-400/70 via-purple-400/60 to-fuchsia-400/50 opacity-70 blur-xl"
+                  />
+                   
+                  <div
+                    class="relative z-10 flex items-center gap-3"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="lucide-icon lucide lucide-gauge h-4 w-4 text-white/90"
+                      fill="none"
+                      height="24"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="m12 14 4-4"
+                      />
+                      
+                      <path
+                        d="M3.34 19a10 10 0 1 1 17.32 0"
+                      />
+                      
+                      
+                    </svg>
+                     
+                    <div
+                      class="flex flex-col leading-tight"
+                    >
+                      <span
+                        class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+                      >
+                        Circuits
+                      </span>
+                       
+                      <span
+                        class="text-sm font-semibold text-white"
+                      >
+                        0
+                      </span>
+                       
+                      <span
+                        class="text-[11px] text-white/60"
+                      >
+                        Aktiv
+                      </span>
+                    </div>
+                  </div>
+                   
+                </div>
+                <div
+                  class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_25px_55px_rgba(12,18,46,0.55)]"
+                >
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-amber-400/70 via-orange-400/60 to-rose-400/50 opacity-70 blur-xl"
+                  />
+                   
+                  <div
+                    class="relative z-10 flex items-center gap-3"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="lucide-icon lucide lucide-zap h-4 w-4 text-white/90"
+                      fill="none"
+                      height="24"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <polygon
+                        points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                      />
+                      
+                      
+                    </svg>
+                     
+                    <div
+                      class="flex flex-col leading-tight"
+                    >
+                      <span
+                        class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+                      >
+                        Latency
+                      </span>
+                       
+                      <span
+                        class="text-sm font-semibold text-white"
+                      >
+                        –
+                      </span>
+                       
+                      <span
+                        class="text-[11px] text-white/60"
+                      >
+                        Ping
+                      </span>
+                    </div>
+                  </div>
+                   
+                </div>
+              </div>
+            </div>
+             
+            <div
+              class="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 shadow-[0_35px_65px_rgba(8,12,32,0.6)]"
+            >
+              <div
+                class="flex items-center justify-between"
+              >
+                <span
+                  class="text-[11px] uppercase tracking-[0.32em] text-white/60"
+                >
+                  Ping Monitor
+                </span>
+                 
+                <button
+                  aria-label="Run ping test"
+                  class="group relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/10 text-white shadow-[0_18px_40px_rgba(37,99,235,0.45)] transition-transform duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60"
+                  title="Start Ping Test"
+                >
+                  <div
+                    class="absolute inset-0 bg-gradient-to-br from-sky-400/40 via-indigo-400/30 to-purple-500/30"
+                  />
+                   
+                  <svg
+                    aria-hidden="true"
+                    class="lucide-icon lucide lucide-zap relative h-4 w-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <polygon
+                      points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                    />
+                    
+                    
+                  </svg>
+                </button>
+              </div>
+               
+              <div
+                class="relative h-20 overflow-hidden rounded-xl border border-white/5 bg-black/20"
+              >
+                <svg
+                  aria-label="Ping history chart"
+                  class="absolute inset-0 h-full w-full text-sky-300"
+                  height="40"
+                  role="img"
+                  width="120"
+                >
+                  <text
+                    class="fill-white/40 text-[10px]"
+                    x="10"
+                    y="24"
+                  >
+                    No data
+                  </text>
+                </svg>
+              </div>
+               
+              <p
+                class="text-xs text-white/70"
+              >
+                Zuletzt gemessen: 
+                keine Daten
+              </p>
+            </div>
+          </div>
+           
+          <div
+            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            <div
+              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+            >
+              <span
+                class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+              >
+                Uptime
+              </span>
+               
+              <p
+                class="mt-1 text-sm font-semibold text-white"
+              >
+                -
+              </p>
+            </div>
+             
+            <div
+              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+            >
+              <span
+                class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+              >
+                Throughput
+              </span>
+               
+              <p
+                class="mt-1 text-sm font-semibold text-white"
+              >
+                -
+              </p>
+            </div>
+             
+            <div
+              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+            >
+              <span
+                class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+              >
+                Connected Since
+              </span>
+               
+              <p
+                class="mt-1 text-sm font-semibold text-white/90 break-words"
+              >
+                -
+              </p>
+            </div>
+             
+            <div
+              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+            >
+              <span
+                class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+              >
+                Oldest Circuit
+              </span>
+               
+              <p
+                class="mt-1 text-sm font-semibold text-white"
+              >
+                -
+              </p>
+            </div>
+          </div>
+           
+          <div
+            class="rounded-3xl border border-white/10 bg-slate-900/40 p-4 shadow-[0_30px_65px_rgba(8,12,32,0.55)]"
+          >
+            <div
+              class="flex items-center justify-between"
+            >
+              <h4
+                class="text-[11px] uppercase tracking-[0.28em] text-white/70"
+              >
+                Circuit Route
+              </h4>
+               
+            </div>
+             
+            <div
+              class="mt-3 grid gap-3 sm:grid-cols-3"
+            >
+              <div
+                class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+                title="Effective entry node: Germany"
+              >
+                <div
+                  class="flex items-center justify-between text-[11px] uppercase tracking-[0.24em] text-white/70"
+                >
+                  <span>
+                    Entry Node
+                  </span>
+                   
+                  <span
+                    aria-hidden="true"
+                  >
+                    🇩🇪
+                  </span>
+                </div>
+                 
+                <p
+                  class="mt-2 text-sm font-semibold text-white"
+                >
+                  Germany
+                </p>
+                 
+                <p
+                  class="text-[11px] text-slate-300/80"
+                >
+                  Automatic
+                </p>
+                 
+                <p
+                  class="text-[10px] text-sky-200/90"
+                >
+                  Fast-tier relay
+                </p>
+                 
+              </div>
+              <div
+                class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+                title="Effective middle node: Netherlands"
+              >
+                <div
+                  class="flex items-center justify-between text-[11px] uppercase tracking-[0.24em] text-white/70"
+                >
+                  <span>
+                    Middle Node
+                  </span>
+                   
+                  <span
+                    aria-hidden="true"
+                  >
+                    🇳🇱
+                  </span>
+                </div>
+                 
+                <p
+                  class="mt-2 text-sm font-semibold text-white"
+                >
+                  Netherlands
+                </p>
+                 
+                <p
+                  class="text-[11px] text-slate-300/80"
+                >
+                  Automatic
+                </p>
+                 
+                <p
+                  class="text-[10px] text-sky-200/90"
+                >
+                  Fast-tier relay
+                </p>
+                 
+              </div>
+              <div
+                class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+                title="Effective exit node: Sweden"
+              >
+                <div
+                  class="flex items-center justify-between text-[11px] uppercase tracking-[0.24em] text-white/70"
+                >
+                  <span>
+                    Exit Node
+                  </span>
+                   
+                  <span
+                    aria-hidden="true"
+                  >
+                    🇸🇪
+                  </span>
+                </div>
+                 
+                <p
+                  class="mt-2 text-sm font-semibold text-white"
+                >
+                  Sweden
+                </p>
+                 
+                <p
+                  class="text-[11px] text-slate-300/80"
+                >
+                  Automatic
+                </p>
+                 
+                <p
+                  class="text-[10px] text-sky-200/90"
+                >
+                  Fast-tier relay
+                </p>
+                 
+              </div>
+            </div>
+          </div>
+           
+          <div
+            class="space-y-4"
+          >
+            <svg
+              aria-label="Tor metrics chart"
+              class="text-green-400"
+              height="40"
+              role="img"
+              width="120"
+            >
+              
+              
+              
+              
+              
+            </svg>
+             
+            <svg
+              aria-label="Average build time chart"
+              class="text-purple-300"
+              height="40"
+              role="img"
+              width="120"
+            />
+             
+            <svg
+              aria-label="Failed attempts chart"
+              class="text-red-400"
+              height="40"
+              role="img"
+              width="120"
+            />
+             
+            
+          </div>
+        </div>
+      </div>
+       
+      <div
+        class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]"
+      >
+        <div
+          aria-label="Tor chain configuration"
+          class="glass-md rounded-2xl p-6 shadow-lg border border-white/15"
+          role="region"
+        >
+          <div
+            class="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,160px))_auto] md:items-center"
+          >
+            <h3
+              class="text-base font-semibold text-white tracking-wide"
+            >
+              Chain of Nodes
+            </h3>
+             
+            <div
+              class="flex gap-3 md:col-span-3 flex-wrap"
+            >
+              <label
+                class="flex items-center gap-2 text-xs text-white/80 font-medium"
+              >
+                <span
+                  class="whitespace-nowrap"
+                >
+                  Entry node
+                </span>
+                 
+                <select
+                  class="h-8 rounded-lg bg-black/60 border border-white/20 px-2 text-xs text-white focus:border-white/50 focus:outline-none"
+                >
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AL"
+                  >
+                    🇦🇱
+                     
+                    Albania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AR"
+                  >
+                    🇦🇷
+                     
+                    Argentina
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AU"
+                  >
+                    🇦🇺
+                     
+                    Australia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AT"
+                  >
+                    🇦🇹
+                     
+                    Austria
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BE"
+                  >
+                    🇧🇪
+                     
+                    Belgium
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BR"
+                  >
+                    🇧🇷
+                     
+                    Brazil
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BG"
+                  >
+                    🇧🇬
+                     
+                    Bulgaria
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CA"
+                  >
+                    🇨🇦
+                     
+                    Canada
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CL"
+                  >
+                    🇨🇱
+                     
+                    Chile
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CN"
+                  >
+                    🇨🇳
+                     
+                    China
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CY"
+                  >
+                    🇨🇾
+                     
+                    Cyprus
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CZ"
+                  >
+                    🇨🇿
+                     
+                    Czech Republic
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="DK"
+                  >
+                    🇩🇰
+                     
+                    Denmark
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="EE"
+                  >
+                    🇪🇪
+                     
+                    Estonia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="FI"
+                  >
+                    🇫🇮
+                     
+                    Finland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="FR"
+                  >
+                    🇫🇷
+                     
+                    France
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="DE"
+                  >
+                    🇩🇪
+                     
+                    Germany
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="GR"
+                  >
+                    🇬🇷
+                     
+                    Greece
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="HU"
+                  >
+                    🇭🇺
+                     
+                    Hungary
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IS"
+                  >
+                    🇮🇸
+                     
+                    Iceland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IN"
+                  >
+                    🇮🇳
+                     
+                    India
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IE"
+                  >
+                    🇮🇪
+                     
+                    Ireland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IL"
+                  >
+                    🇮🇱
+                     
+                    Israel
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IT"
+                  >
+                    🇮🇹
+                     
+                    Italy
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="JP"
+                  >
+                    🇯🇵
+                     
+                    Japan
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LV"
+                  >
+                    🇱🇻
+                     
+                    Latvia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LT"
+                  >
+                    🇱🇹
+                     
+                    Lithuania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LU"
+                  >
+                    🇱🇺
+                     
+                    Luxembourg
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="MT"
+                  >
+                    🇲🇹
+                     
+                    Malta
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="MX"
+                  >
+                    🇲🇽
+                     
+                    Mexico
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NL"
+                  >
+                    🇳🇱
+                     
+                    Netherlands
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NZ"
+                  >
+                    🇳🇿
+                     
+                    New Zealand
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NO"
+                  >
+                    🇳🇴
+                     
+                    Norway
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="PL"
+                  >
+                    🇵🇱
+                     
+                    Poland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="PT"
+                  >
+                    🇵🇹
+                     
+                    Portugal
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RO"
+                  >
+                    🇷🇴
+                     
+                    Romania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RU"
+                  >
+                    🇷🇺
+                     
+                    Russia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RS"
+                  >
+                    🇷🇸
+                     
+                    Serbia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SG"
+                  >
+                    🇸🇬
+                     
+                    Singapore
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SK"
+                  >
+                    🇸🇰
+                     
+                    Slovakia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SI"
+                  >
+                    🇸🇮
+                     
+                    Slovenia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="KR"
+                  >
+                    🇰🇷
+                     
+                    South Korea
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="ES"
+                  >
+                    🇪🇸
+                     
+                    Spain
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SE"
+                  >
+                    🇸🇪
+                     
+                    Sweden
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CH"
+                  >
+                    🇨🇭
+                     
+                    Switzerland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="TR"
+                  >
+                    🇹🇷
+                     
+                    Turkey
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="UA"
+                  >
+                    🇺🇦
+                     
+                    Ukraine
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="GB"
+                  >
+                    🇬🇧
+                     
+                    United Kingdom
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="US"
+                  >
+                    🇺🇸
+                     
+                    United States
+                     
+                  </option>
+                </select>
+              </label>
+               
+              <label
+                class="flex items-center gap-2 text-xs text-white/80 font-medium"
+              >
+                <span
+                  class="whitespace-nowrap"
+                >
+                  Middle node
+                </span>
+                 
+                <select
+                  class="h-8 rounded-lg bg-black/60 border border-white/20 px-2 text-xs text-white focus:border-white/50 focus:outline-none"
+                >
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AL"
+                  >
+                    🇦🇱
+                     
+                    Albania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AR"
+                  >
+                    🇦🇷
+                     
+                    Argentina
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AU"
+                  >
+                    🇦🇺
+                     
+                    Australia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AT"
+                  >
+                    🇦🇹
+                     
+                    Austria
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BE"
+                  >
+                    🇧🇪
+                     
+                    Belgium
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BR"
+                  >
+                    🇧🇷
+                     
+                    Brazil
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BG"
+                  >
+                    🇧🇬
+                     
+                    Bulgaria
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CA"
+                  >
+                    🇨🇦
+                     
+                    Canada
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CL"
+                  >
+                    🇨🇱
+                     
+                    Chile
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CN"
+                  >
+                    🇨🇳
+                     
+                    China
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CY"
+                  >
+                    🇨🇾
+                     
+                    Cyprus
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CZ"
+                  >
+                    🇨🇿
+                     
+                    Czech Republic
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="DK"
+                  >
+                    🇩🇰
+                     
+                    Denmark
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="EE"
+                  >
+                    🇪🇪
+                     
+                    Estonia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="FI"
+                  >
+                    🇫🇮
+                     
+                    Finland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="FR"
+                  >
+                    🇫🇷
+                     
+                    France
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="DE"
+                  >
+                    🇩🇪
+                     
+                    Germany
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="GR"
+                  >
+                    🇬🇷
+                     
+                    Greece
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="HU"
+                  >
+                    🇭🇺
+                     
+                    Hungary
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IS"
+                  >
+                    🇮🇸
+                     
+                    Iceland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IN"
+                  >
+                    🇮🇳
+                     
+                    India
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IE"
+                  >
+                    🇮🇪
+                     
+                    Ireland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IL"
+                  >
+                    🇮🇱
+                     
+                    Israel
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IT"
+                  >
+                    🇮🇹
+                     
+                    Italy
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="JP"
+                  >
+                    🇯🇵
+                     
+                    Japan
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LV"
+                  >
+                    🇱🇻
+                     
+                    Latvia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LT"
+                  >
+                    🇱🇹
+                     
+                    Lithuania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LU"
+                  >
+                    🇱🇺
+                     
+                    Luxembourg
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="MT"
+                  >
+                    🇲🇹
+                     
+                    Malta
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="MX"
+                  >
+                    🇲🇽
+                     
+                    Mexico
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NL"
+                  >
+                    🇳🇱
+                     
+                    Netherlands
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NZ"
+                  >
+                    🇳🇿
+                     
+                    New Zealand
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NO"
+                  >
+                    🇳🇴
+                     
+                    Norway
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="PL"
+                  >
+                    🇵🇱
+                     
+                    Poland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="PT"
+                  >
+                    🇵🇹
+                     
+                    Portugal
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RO"
+                  >
+                    🇷🇴
+                     
+                    Romania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RU"
+                  >
+                    🇷🇺
+                     
+                    Russia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RS"
+                  >
+                    🇷🇸
+                     
+                    Serbia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SG"
+                  >
+                    🇸🇬
+                     
+                    Singapore
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SK"
+                  >
+                    🇸🇰
+                     
+                    Slovakia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SI"
+                  >
+                    🇸🇮
+                     
+                    Slovenia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="KR"
+                  >
+                    🇰🇷
+                     
+                    South Korea
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="ES"
+                  >
+                    🇪🇸
+                     
+                    Spain
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SE"
+                  >
+                    🇸🇪
+                     
+                    Sweden
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CH"
+                  >
+                    🇨🇭
+                     
+                    Switzerland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="TR"
+                  >
+                    🇹🇷
+                     
+                    Turkey
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="UA"
+                  >
+                    🇺🇦
+                     
+                    Ukraine
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="GB"
+                  >
+                    🇬🇧
+                     
+                    United Kingdom
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="US"
+                  >
+                    🇺🇸
+                     
+                    United States
+                     
+                  </option>
+                </select>
+              </label>
+               
+              <label
+                class="flex items-center gap-2 text-xs text-white/80 font-medium"
+              >
+                <span
+                  class="whitespace-nowrap"
+                >
+                  Exit node
+                </span>
+                 
+                <select
+                  class="h-8 rounded-lg bg-black/60 border border-white/20 px-2 text-xs text-white focus:border-white/50 focus:outline-none"
+                >
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AL"
+                  >
+                    🇦🇱
+                     
+                    Albania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AR"
+                  >
+                    🇦🇷
+                     
+                    Argentina
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AU"
+                  >
+                    🇦🇺
+                     
+                    Australia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="AT"
+                  >
+                    🇦🇹
+                     
+                    Austria
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BE"
+                  >
+                    🇧🇪
+                     
+                    Belgium
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BR"
+                  >
+                    🇧🇷
+                     
+                    Brazil
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="BG"
+                  >
+                    🇧🇬
+                     
+                    Bulgaria
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CA"
+                  >
+                    🇨🇦
+                     
+                    Canada
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CL"
+                  >
+                    🇨🇱
+                     
+                    Chile
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CN"
+                  >
+                    🇨🇳
+                     
+                    China
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CY"
+                  >
+                    🇨🇾
+                     
+                    Cyprus
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CZ"
+                  >
+                    🇨🇿
+                     
+                    Czech Republic
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="DK"
+                  >
+                    🇩🇰
+                     
+                    Denmark
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="EE"
+                  >
+                    🇪🇪
+                     
+                    Estonia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="FI"
+                  >
+                    🇫🇮
+                     
+                    Finland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="FR"
+                  >
+                    🇫🇷
+                     
+                    France
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="DE"
+                  >
+                    🇩🇪
+                     
+                    Germany
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="GR"
+                  >
+                    🇬🇷
+                     
+                    Greece
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="HU"
+                  >
+                    🇭🇺
+                     
+                    Hungary
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IS"
+                  >
+                    🇮🇸
+                     
+                    Iceland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IN"
+                  >
+                    🇮🇳
+                     
+                    India
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IE"
+                  >
+                    🇮🇪
+                     
+                    Ireland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IL"
+                  >
+                    🇮🇱
+                     
+                    Israel
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="IT"
+                  >
+                    🇮🇹
+                     
+                    Italy
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="JP"
+                  >
+                    🇯🇵
+                     
+                    Japan
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LV"
+                  >
+                    🇱🇻
+                     
+                    Latvia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LT"
+                  >
+                    🇱🇹
+                     
+                    Lithuania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="LU"
+                  >
+                    🇱🇺
+                     
+                    Luxembourg
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="MT"
+                  >
+                    🇲🇹
+                     
+                    Malta
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="MX"
+                  >
+                    🇲🇽
+                     
+                    Mexico
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NL"
+                  >
+                    🇳🇱
+                     
+                    Netherlands
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NZ"
+                  >
+                    🇳🇿
+                     
+                    New Zealand
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="NO"
+                  >
+                    🇳🇴
+                     
+                    Norway
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="PL"
+                  >
+                    🇵🇱
+                     
+                    Poland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="PT"
+                  >
+                    🇵🇹
+                     
+                    Portugal
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RO"
+                  >
+                    🇷🇴
+                     
+                    Romania
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RU"
+                  >
+                    🇷🇺
+                     
+                    Russia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="RS"
+                  >
+                    🇷🇸
+                     
+                    Serbia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SG"
+                  >
+                    🇸🇬
+                     
+                    Singapore
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SK"
+                  >
+                    🇸🇰
+                     
+                    Slovakia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SI"
+                  >
+                    🇸🇮
+                     
+                    Slovenia
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="KR"
+                  >
+                    🇰🇷
+                     
+                    South Korea
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="ES"
+                  >
+                    🇪🇸
+                     
+                    Spain
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="SE"
+                  >
+                    🇸🇪
+                     
+                    Sweden
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="CH"
+                  >
+                    🇨🇭
+                     
+                    Switzerland
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="TR"
+                  >
+                    🇹🇷
+                     
+                    Turkey
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="UA"
+                  >
+                    🇺🇦
+                     
+                    Ukraine
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="GB"
+                  >
+                    🇬🇧
+                     
+                    United Kingdom
+                     
+                  </option>
+                  <option
+                    class="text-xs text-gray-900"
+                    value="US"
+                  >
+                    🇺🇸
+                     
+                    United States
+                     
+                  </option>
+                </select>
+              </label>
+            </div>
+             
+            <label
+              class="ml-auto flex items-center gap-2 text-xs text-white/80 font-medium"
+            >
+              <span>
+                Active
+              </span>
+               
+              <span
+                class="relative inline-flex items-center"
+              >
+                <input
+                  aria-label="Toggle chain active"
+                  class="sr-only"
+                  type="checkbox"
+                />
+                 
+                <span
+                  class="block h-4 w-8 rounded-full bg-gray-600 transition-colors"
+                />
+                 
+                <span
+                  class="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform"
+                />
+              </span>
+            </label>
+          </div>
+           
+          <div
+            class="mt-4 flex flex-wrap gap-3 items-center"
+          >
+            <label
+              class="text-xs text-white/80 font-medium"
+              for="exit-country"
+            >
+              Preferred exit
+            </label>
+             
+            <div
+              class="relative"
+            >
+              <select
+                aria-label="Preferred exit country"
+                class="h-8 w-48 rounded-lg bg-black/60 border border-white/20 px-2 text-xs text-white focus:border-white/50 focus:outline-none"
+                id="exit-country"
+              >
+                <option
+                  value=""
+                >
+                  Auto
+                </option>
+                <option
+                  value="AL"
+                >
+                  🇦🇱
+                   
+                  Albania
+                </option>
+                <option
+                  value="AR"
+                >
+                  🇦🇷
+                   
+                  Argentina
+                </option>
+                <option
+                  value="AU"
+                >
+                  🇦🇺
+                   
+                  Australia
+                </option>
+                <option
+                  value="AT"
+                >
+                  🇦🇹
+                   
+                  Austria
+                </option>
+                <option
+                  value="BE"
+                >
+                  🇧🇪
+                   
+                  Belgium
+                </option>
+                <option
+                  value="BR"
+                >
+                  🇧🇷
+                   
+                  Brazil
+                </option>
+                <option
+                  value="BG"
+                >
+                  🇧🇬
+                   
+                  Bulgaria
+                </option>
+                <option
+                  value="CA"
+                >
+                  🇨🇦
+                   
+                  Canada
+                </option>
+                <option
+                  value="CL"
+                >
+                  🇨🇱
+                   
+                  Chile
+                </option>
+                <option
+                  value="CN"
+                >
+                  🇨🇳
+                   
+                  China
+                </option>
+                <option
+                  value="CY"
+                >
+                  🇨🇾
+                   
+                  Cyprus
+                </option>
+                <option
+                  value="CZ"
+                >
+                  🇨🇿
+                   
+                  Czech Republic
+                </option>
+                <option
+                  value="DK"
+                >
+                  🇩🇰
+                   
+                  Denmark
+                </option>
+                <option
+                  value="EE"
+                >
+                  🇪🇪
+                   
+                  Estonia
+                </option>
+                <option
+                  value="FI"
+                >
+                  🇫🇮
+                   
+                  Finland
+                </option>
+                <option
+                  value="FR"
+                >
+                  🇫🇷
+                   
+                  France
+                </option>
+                <option
+                  value="DE"
+                >
+                  🇩🇪
+                   
+                  Germany
+                </option>
+                <option
+                  value="GR"
+                >
+                  🇬🇷
+                   
+                  Greece
+                </option>
+                <option
+                  value="HU"
+                >
+                  🇭🇺
+                   
+                  Hungary
+                </option>
+                <option
+                  value="IS"
+                >
+                  🇮🇸
+                   
+                  Iceland
+                </option>
+                <option
+                  value="IN"
+                >
+                  🇮🇳
+                   
+                  India
+                </option>
+                <option
+                  value="IE"
+                >
+                  🇮🇪
+                   
+                  Ireland
+                </option>
+                <option
+                  value="IL"
+                >
+                  🇮🇱
+                   
+                  Israel
+                </option>
+                <option
+                  value="IT"
+                >
+                  🇮🇹
+                   
+                  Italy
+                </option>
+                <option
+                  value="JP"
+                >
+                  🇯🇵
+                   
+                  Japan
+                </option>
+                <option
+                  value="LV"
+                >
+                  🇱🇻
+                   
+                  Latvia
+                </option>
+                <option
+                  value="LT"
+                >
+                  🇱🇹
+                   
+                  Lithuania
+                </option>
+                <option
+                  value="LU"
+                >
+                  🇱🇺
+                   
+                  Luxembourg
+                </option>
+                <option
+                  value="MT"
+                >
+                  🇲🇹
+                   
+                  Malta
+                </option>
+                <option
+                  value="MX"
+                >
+                  🇲🇽
+                   
+                  Mexico
+                </option>
+                <option
+                  value="NL"
+                >
+                  🇳🇱
+                   
+                  Netherlands
+                </option>
+                <option
+                  value="NZ"
+                >
+                  🇳🇿
+                   
+                  New Zealand
+                </option>
+                <option
+                  value="NO"
+                >
+                  🇳🇴
+                   
+                  Norway
+                </option>
+                <option
+                  value="PL"
+                >
+                  🇵🇱
+                   
+                  Poland
+                </option>
+                <option
+                  value="PT"
+                >
+                  🇵🇹
+                   
+                  Portugal
+                </option>
+                <option
+                  value="RO"
+                >
+                  🇷🇴
+                   
+                  Romania
+                </option>
+                <option
+                  value="RU"
+                >
+                  🇷🇺
+                   
+                  Russia
+                </option>
+                <option
+                  value="RS"
+                >
+                  🇷🇸
+                   
+                  Serbia
+                </option>
+                <option
+                  value="SG"
+                >
+                  🇸🇬
+                   
+                  Singapore
+                </option>
+                <option
+                  value="SK"
+                >
+                  🇸🇰
+                   
+                  Slovakia
+                </option>
+                <option
+                  value="SI"
+                >
+                  🇸🇮
+                   
+                  Slovenia
+                </option>
+                <option
+                  value="KR"
+                >
+                  🇰🇷
+                   
+                  South Korea
+                </option>
+                <option
+                  value="ES"
+                >
+                  🇪🇸
+                   
+                  Spain
+                </option>
+                <option
+                  value="SE"
+                >
+                  🇸🇪
+                   
+                  Sweden
+                </option>
+                <option
+                  value="CH"
+                >
+                  🇨🇭
+                   
+                  Switzerland
+                </option>
+                <option
+                  value="TR"
+                >
+                  🇹🇷
+                   
+                  Turkey
+                </option>
+                <option
+                  value="UA"
+                >
+                  🇺🇦
+                   
+                  Ukraine
+                </option>
+                <option
+                  value="GB"
+                >
+                  🇬🇧
+                   
+                  United Kingdom
+                </option>
+                <option
+                  value="US"
+                >
+                  🇺🇸
+                   
+                  United States
+                </option>
+              </select>
+               
+              <svg
+                class="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 9l-7 7-7-7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                />
+              </svg>
+            </div>
+          </div>
+           
+          <div
+            class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
+          >
+            <article
+              aria-label="You node"
+              class="relative flex min-h-[220px] flex-col rounded-xl border border-white/10 bg-black/40 p-4 text-left shadow-lg backdrop-blur"
+            >
+              <div
+                class="absolute right-3 top-3"
+              >
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ring-1 bg-slate-500/20 text-slate-200 ring-slate-400/30"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    ⏸️
+                  </span>
+                   
+                  <span
+                    class="tracking-wide text-white/90"
+                  >
+                    Paused
+                  </span>
+                </span>
+              </div>
+               
+              <div
+                class="mb-3 flex items-center gap-3"
+              >
+                <div
+                  class="flex h-11 w-11 items-center justify-center rounded-lg bg-white/5 text-2xl"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    🌐
+                  </span>
+                </div>
+                 
+                <div
+                  class="space-y-0.5"
+                >
+                  <p
+                    class="text-sm font-semibold text-white"
+                  >
+                    You
+                  </p>
+                   
+                  <p
+                    class="text-[11px] text-white/60"
+                  >
+                    Local device
+                  </p>
+                </div>
+              </div>
+               
+              <dl
+                class="flex flex-1 flex-col gap-2 text-xs text-white/75"
+              >
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    IP
+                  </dt>
+                   
+                  <dd
+                    class="text-right font-mono text-[11px]"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Planned country
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Nickname
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                
+              </dl>
+               
+              <p
+                class="mt-3 text-[11px] text-white/60"
+              >
+                Awaiting activation
+              </p>
+               
+            </article>
+            <article
+              aria-label="Entry Node node"
+              class="relative flex min-h-[220px] flex-col rounded-xl border border-white/10 bg-black/40 p-4 text-left shadow-lg backdrop-blur"
+            >
+              <div
+                class="absolute right-3 top-3"
+              >
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ring-1 bg-slate-500/20 text-slate-200 ring-slate-400/30"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    ⏸️
+                  </span>
+                   
+                  <span
+                    class="tracking-wide text-white/90"
+                  >
+                    Paused
+                  </span>
+                </span>
+              </div>
+               
+              <div
+                class="mb-3 flex items-center gap-3"
+              >
+                <div
+                  class="flex h-11 w-11 items-center justify-center rounded-lg bg-white/5 text-2xl"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    🛡️
+                  </span>
+                </div>
+                 
+                <div
+                  class="space-y-0.5"
+                >
+                  <p
+                    class="text-sm font-semibold text-white"
+                  >
+                    Entry Node
+                  </p>
+                   
+                  <p
+                    class="text-[11px] text-white/60"
+                  >
+                    Guards your connection
+                  </p>
+                </div>
+              </div>
+               
+              <dl
+                class="flex flex-1 flex-col gap-2 text-xs text-white/75"
+              >
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    IP
+                  </dt>
+                   
+                  <dd
+                    class="text-right font-mono text-[11px]"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Planned country
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    🇦🇱 Albania
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Nickname
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                
+              </dl>
+               
+               
+            </article>
+            <article
+              aria-label="Middle Node node"
+              class="relative flex min-h-[220px] flex-col rounded-xl border border-white/10 bg-black/40 p-4 text-left shadow-lg backdrop-blur"
+            >
+              <div
+                class="absolute right-3 top-3"
+              >
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ring-1 bg-slate-500/20 text-slate-200 ring-slate-400/30"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    ⏸️
+                  </span>
+                   
+                  <span
+                    class="tracking-wide text-white/90"
+                  >
+                    Paused
+                  </span>
+                </span>
+              </div>
+               
+              <div
+                class="mb-3 flex items-center gap-3"
+              >
+                <div
+                  class="flex h-11 w-11 items-center justify-center rounded-lg bg-white/5 text-2xl"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    🔒
+                  </span>
+                </div>
+                 
+                <div
+                  class="space-y-0.5"
+                >
+                  <p
+                    class="text-sm font-semibold text-white"
+                  >
+                    Middle Node
+                  </p>
+                   
+                  <p
+                    class="text-[11px] text-white/60"
+                  >
+                    Blends traffic
+                  </p>
+                </div>
+              </div>
+               
+              <dl
+                class="flex flex-1 flex-col gap-2 text-xs text-white/75"
+              >
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    IP
+                  </dt>
+                   
+                  <dd
+                    class="text-right font-mono text-[11px]"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Planned country
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    🇦🇷 Argentina
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Nickname
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                
+              </dl>
+               
+               
+            </article>
+            <article
+              aria-label="Exit Node node"
+              class="relative flex min-h-[220px] flex-col rounded-xl border border-white/10 bg-black/40 p-4 text-left shadow-lg backdrop-blur"
+            >
+              <div
+                class="absolute right-3 top-3"
+              >
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ring-1 bg-slate-500/20 text-slate-200 ring-slate-400/30"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    ⏸️
+                  </span>
+                   
+                  <span
+                    class="tracking-wide text-white/90"
+                  >
+                    Paused
+                  </span>
+                </span>
+              </div>
+               
+              <div
+                class="mb-3 flex items-center gap-3"
+              >
+                <div
+                  class="flex h-11 w-11 items-center justify-center rounded-lg bg-white/5 text-2xl"
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    🚪
+                  </span>
+                </div>
+                 
+                <div
+                  class="space-y-0.5"
+                >
+                  <p
+                    class="text-sm font-semibold text-white"
+                  >
+                    Exit Node
+                  </p>
+                   
+                  <p
+                    class="text-[11px] text-white/60"
+                  >
+                    Final hop to destination
+                  </p>
+                </div>
+              </div>
+               
+              <dl
+                class="flex flex-1 flex-col gap-2 text-xs text-white/75"
+              >
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    IP
+                  </dt>
+                   
+                  <dd
+                    class="text-right font-mono text-[11px]"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Planned country
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    🇦🇺 Australia
+                  </dd>
+                   
+                </div>
+                <div
+                  class="flex justify-between gap-3"
+                >
+                  <dt
+                    class="font-medium text-white/70"
+                  >
+                    Nickname
+                  </dt>
+                   
+                  <dd
+                    class="text-right"
+                  >
+                    –
+                  </dd>
+                   
+                </div>
+                
+              </dl>
+               
+               
+            </article>
+          </div>
+           
+          <div
+            aria-live="polite"
+            class="mt-6 space-y-2"
+            role="status"
+          >
+            <div
+              class="flex items-start gap-3 rounded-lg border px-3 py-2 text-xs leading-relaxed border-sky-400/40 bg-sky-500/10 text-sky-100"
+            >
+              <span
+                aria-hidden="true"
+                class="text-sm"
+              >
+                ℹ️
+              </span>
+               
+              <p
+                class="flex-1 text-white/80"
+              >
+                The chain is paused. Resume to establish or maintain tunnels.
+              </p>
+               
+            </div>
+            <div
+              class="flex items-start gap-3 rounded-lg border px-3 py-2 text-xs leading-relaxed border-sky-400/40 bg-sky-500/10 text-sky-100"
+            >
+              <span
+                aria-hidden="true"
+                class="text-sm"
+              >
+                ℹ️
+              </span>
+               
+              <p
+                class="flex-1 text-white/80"
+              >
+                Connect to Tor to populate live node information.
+              </p>
+               
+            </div>
+          </div>
+        </div>
+         
+        
+         
+        <div
+          aria-label="Tor controls"
+          class="relative overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/40 p-6 shadow-[0_40px_100px_rgba(8,12,32,0.65)]"
+          role="region"
+        >
+          <div
+            class="pointer-events-none absolute -inset-24 bg-gradient-to-br from-slate-800/60 via-indigo-500/30 to-purple-500/20 opacity-60 blur-3xl"
+          />
+           
+          <div
+            class="pointer-events-none absolute inset-0 bg-gradient-to-tr from-emerald-400/10 via-transparent to-indigo-500/15"
+          />
+           
+          <div
+            class="pointer-events-none absolute -inset-32 tw-orbit border border-emerald-300/20"
+          />
+           
+          <div
+            class="pointer-events-none absolute -inset-20 tw-orbit border border-indigo-400/15"
+            style="animation-duration: 46s;"
+          />
+           
+          <div
+            class="relative z-10 space-y-6"
+          >
+             
+            <div>
+              <p
+                class="text-[11px] uppercase tracking-[0.32em] text-slate-200"
+              >
+                Bereit
+              </p>
+               
+              <p
+                class="mt-1 text-sm text-white/75"
+              >
+                Starte eine neue Tor-Sitzung, um geschützt zu surfen.
+              </p>
+            </div>
+             
+            <div
+              class="grid grid-cols-1 gap-3 md:grid-cols-4"
+            >
+              <button
+                aria-label="Connect to Tor"
+                aria-live="polite"
+                class="group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-emerald-500/30 via-sky-500/20 to-indigo-500/20 p-5 text-left text-white transition-transform duration-200 ease-out shadow-[0_40px_95px_rgba(16,185,129,0.45)] disabled:cursor-not-allowed disabled:opacity-75 md:col-span-2 md:row-span-2"
+                type="button"
+              >
+                <div
+                  class="flex items-center justify-between"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="lucide-icon lucide lucide-play h-5 w-5 text-white/90"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <polygon
+                      points="5 3 19 12 5 21 5 3"
+                    />
+                    
+                    
+                  </svg>
+                   
+                </div>
+                 
+                <div
+                  class="space-y-1"
+                >
+                  <span
+                    class="text-2xl font-semibold tracking-wide"
+                  >
+                    Connect
+                  </span>
+                   
+                  <span
+                    class="text-sm text-white/80"
+                  >
+                    Sichere Verbindung aufbauen
+                  </span>
+                </div>
+                 
+              </button>
+               
+              <button
+                aria-busy="false"
+                aria-label="Request new circuit"
+                class="relative overflow-hidden rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-left text-white shadow-[0_25px_60px_rgba(12,18,46,0.55)] transition-transform duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 opacity-60"
+                disabled=""
+                type="button"
+              >
+                <div
+                  class="absolute inset-0 bg-gradient-to-br from-sky-400/30 via-indigo-400/25 to-purple-400/20"
+                />
+                 
+                <div
+                  class="relative flex items-center gap-3"
+                >
+                  <svg
+                    class="lucide-icon lucide lucide-rotate-ccw h-4 w-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                    />
+                    
+                    <path
+                      d="M3 3v5h5"
+                    />
+                    
+                    
+                  </svg>
+                   
+                  <div
+                    class="flex flex-col text-sm"
+                  >
+                    <span
+                      class="font-semibold"
+                    >
+                      New Circuit
+                    </span>
+                     
+                    <span
+                      class="text-[11px] text-white/70"
+                    >
+                      Fresh relay path
+                    </span>
+                  </div>
+                   
+                </div>
+              </button>
+               
+              <button
+                aria-busy="false"
+                aria-label="Request new identity"
+                class="relative overflow-hidden rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-left text-white shadow-[0_25px_60px_rgba(12,18,46,0.55)] transition-transform duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/60 opacity-60"
+                disabled=""
+                type="button"
+              >
+                <div
+                  class="absolute inset-0 bg-gradient-to-br from-purple-400/30 via-pink-400/25 to-rose-400/20"
+                />
+                 
+                <div
+                  class="relative flex items-center gap-3"
+                >
+                  <svg
+                    class="lucide-icon lucide lucide-refresh-cw h-4 w-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                    />
+                    
+                    <path
+                      d="M21 3v5h-5"
+                    />
+                    
+                    <path
+                      d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                    />
+                    
+                    <path
+                      d="M8 16H3v5"
+                    />
+                    
+                    
+                  </svg>
+                   
+                  <div
+                    class="flex flex-col text-sm"
+                  >
+                    <span
+                      class="font-semibold"
+                    >
+                      New Identity
+                    </span>
+                     
+                    <span
+                      class="text-[11px] text-white/70"
+                    >
+                      Retire circuits
+                    </span>
+                  </div>
+                   
+                </div>
+              </button>
+               
+              <button
+                aria-label="Open logs"
+                class="relative overflow-hidden rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-left text-white shadow-[0_25px_60px_rgba(12,18,46,0.55)] transition-transform duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/60"
+                type="button"
+              >
+                <div
+                  class="absolute inset-0 bg-gradient-to-br from-indigo-400/25 via-slate-500/20 to-slate-900/30"
+                />
+                 
+                <div
+                  class="relative flex items-center gap-3"
+                >
+                  <svg
+                    class="lucide-icon lucide lucide-activity h-4 w-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M22 12h-4l-3 9L9 3l-3 9H2"
+                    />
+                    
+                    
+                  </svg>
+                   
+                  <div
+                    class="flex flex-col text-sm"
+                  >
+                    <span
+                      class="font-semibold"
+                    >
+                      Logs
+                    </span>
+                     
+                    <span
+                      class="text-[11px] text-white/70"
+                    >
+                      Inspect events
+                    </span>
+                  </div>
+                </div>
+              </button>
+               
+              <button
+                aria-label="Open settings"
+                class="relative overflow-hidden rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-left text-white shadow-[0_25px_60px_rgba(12,18,46,0.55)] transition-transform duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/60"
+                type="button"
+              >
+                <div
+                  class="absolute inset-0 bg-gradient-to-br from-violet-400/30 via-indigo-400/20 to-blue-400/20"
+                />
+                 
+                <div
+                  class="relative flex items-center gap-3"
+                >
+                  <svg
+                    class="lucide-icon lucide lucide-settings h-4 w-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                    />
+                    
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="3"
+                    />
+                    
+                    
+                  </svg>
+                   
+                  <div
+                    class="flex flex-col text-sm"
+                  >
+                    <span
+                      class="font-semibold"
+                    >
+                      Settings
+                    </span>
+                     
+                    <span
+                      class="text-[11px] text-white/70"
+                    >
+                      Policy & bridges
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </div>
+             
+             
+             
+             
+          </div>
+        </div>
+      </div>
+       
+      <div
+        class="grid gap-4 lg:grid-cols-2"
+      >
+        <div
+          aria-label="Verbindungsdiagnose"
+          class="glass-md rounded-xl p-6 flex flex-col gap-6"
+          role="region"
+        >
+          <div
+            class="flex flex-wrap items-center justify-between gap-3"
+          >
+            <div>
+              <h2
+                class="text-lg font-semibold text-slate-100"
+              >
+                Verbindungsdiagnose
+              </h2>
+               
+              <p
+                class="text-sm text-slate-400"
+              >
+                Langzeitübersicht über Stabilität und Ereignisse der Tor-Verbindung.
+              </p>
+            </div>
+             
+            <div
+              class="flex items-center gap-3 text-sm text-slate-400"
+            >
+              <span>
+                Noch nicht aktualisiert
+              </span>
+               
+              <button
+                aria-label="Diagnosedaten aktualisieren"
+                class="inline-flex items-center gap-2 rounded-lg border border-slate-600/50 px-3 py-1.5 text-slate-200 transition hover:border-slate-400 hover:text-white"
+                type="button"
+              >
+                <svg
+                  class="lucide-icon lucide lucide-refresh-ccw "
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                  />
+                  
+                  <path
+                    d="M3 3v5h5"
+                  />
+                  
+                  <path
+                    d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"
+                  />
+                  
+                  <path
+                    d="M16 16h5v5"
+                  />
+                  
+                  
+                </svg>
+                
+        Aktualisieren
+              </button>
+            </div>
+          </div>
+           
+           
+          <div
+            class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+          >
+            <div
+              class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4"
+            >
+              <div
+                class="flex items-center justify-between text-sm text-slate-400"
+              >
+                <span>
+                  Verfügbarkeit
+                </span>
+                 
+                <svg
+                  class="lucide-icon lucide lucide-clock-3 text-slate-500"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                  
+                  <polyline
+                    points="12 6 12 12 16.5 12"
+                  />
+                  
+                  
+                </svg>
+              </div>
+               
+              <div
+                class="mt-2 text-2xl font-semibold text-slate-100"
+              >
+                –
+              </div>
+               
+              <p
+                class="mt-1 text-xs text-slate-400"
+              >
+                Basierend auf den letzten 
+                0
+                 Statuswechseln.
+              </p>
+            </div>
+             
+            <div
+              class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4"
+            >
+              <div
+                class="flex items-center justify-between text-sm text-slate-400"
+              >
+                <span>
+                  Aktuelle Laufzeit
+                </span>
+                 
+                <svg
+                  class="lucide-icon lucide lucide-timer-reset text-slate-500"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M10 2h4"
+                  />
+                  
+                  <path
+                    d="M12 14v-4"
+                  />
+                  
+                  <path
+                    d="M4 13a8 8 0 0 1 8-7 8 8 0 1 1-5.3 14L4 17.6"
+                  />
+                  
+                  <path
+                    d="M9 17H4v5"
+                  />
+                  
+                  
+                </svg>
+              </div>
+               
+              <div
+                class="mt-2 text-2xl font-semibold text-slate-100"
+              >
+                –
+              </div>
+               
+              <p
+                class="mt-1 text-xs text-slate-400"
+              >
+                Längste Session: 
+                –
+              </p>
+            </div>
+             
+            <div
+              class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4"
+            >
+              <div
+                class="flex items-center justify-between text-sm text-slate-400"
+              >
+                <span>
+                  Retries (1h)
+                </span>
+                 
+                <svg
+                  class="lucide-icon lucide lucide-refresh-ccw text-slate-500"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                  />
+                  
+                  <path
+                    d="M3 3v5h5"
+                  />
+                  
+                  <path
+                    d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"
+                  />
+                  
+                  <path
+                    d="M16 16h5v5"
+                  />
+                  
+                  
+                </svg>
+              </div>
+               
+              <div
+                class="mt-2 text-2xl font-semibold text-slate-100"
+              >
+                0
+              </div>
+               
+              <p
+                class="mt-1 text-xs text-slate-400"
+              >
+                Letzter Fehler: 
+                –
+              </p>
+            </div>
+             
+            <div
+              class="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4"
+            >
+              <div
+                class="flex items-center justify-between text-sm text-slate-400"
+              >
+                <span>
+                  Letztes Ereignis
+                </span>
+                 
+                <svg
+                  class="lucide-icon lucide lucide-history text-slate-500"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                  />
+                  
+                  <path
+                    d="M3 3v5h5"
+                  />
+                  
+                  <path
+                    d="M12 7v5l4 2"
+                  />
+                  
+                  
+                </svg>
+              </div>
+               
+              <div
+                class="mt-2 text-2xl font-semibold text-slate-100"
+              >
+                –
+              </div>
+               
+              <p
+                class="mt-1 text-xs text-slate-400"
+              >
+                Noch keine Daten
+              </p>
+            </div>
+          </div>
+           
+          <div>
+            <h3
+              class="text-sm font-semibold uppercase tracking-wide text-slate-300"
+            >
+              Ereignisprotokoll
+            </h3>
+             
+            <div
+              class="mt-4 text-sm text-slate-400"
+            >
+              Noch keine Verbindungsereignisse aufgezeichnet.
+            </div>
+          </div>
+        </div>
+         
+        <div
+          aria-label="Connection progress"
+          class="glass-md relative overflow-hidden rounded-3xl p-6"
+          role="region"
+        >
+          <div
+            class="pointer-events-none absolute -inset-12 bg-gradient-to-br from-sky-500/15 via-indigo-500/10 to-purple-500/5 blur-3xl"
+          />
+           
+          <div
+            class="flex w-full flex-col gap-5"
+          >
+            <div
+              class="space-y-3"
+            >
+              <div
+                aria-valuemax="100"
+                aria-valuemin="0"
+                aria-valuenow="0"
+                class="relative h-3 w-full overflow-hidden rounded-full border border-white/10 bg-white/10"
+                role="progressbar"
+              >
+                <div
+                  class="absolute inset-0 bg-gradient-to-r from-sky-300/60 via-indigo-400/70 to-purple-500/60 opacity-90"
+                  style="width: 0%"
+                />
+                 
+                <div
+                  class="absolute inset-0 animate-[pulse_4s_ease-in-out_infinite] bg-white/40 mix-blend-overlay"
+                />
+                 
+                <div
+                  class="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-60 animate-[tw-orbit_22s_linear_infinite]"
+                />
+              </div>
+               
+              <div
+                class="flex items-baseline justify-between text-xs"
+              >
+                <span
+                  class="font-semibold uppercase tracking-[0.24em] text-white/80"
+                >
+                  Bootstrap
+                </span>
+                 
+                <span
+                  class="font-mono text-sm text-slate-100"
+                >
+                  0
+                  %
+                </span>
+              </div>
+            </div>
+             
+             
+            <div
+              class="rounded-2xl border border-white/10 bg-slate-900/40 p-4 shadow-inner"
+            >
+              <div
+                aria-live="polite"
+                class="flex flex-col gap-2"
+              >
+                <div
+                  class="flex items-center gap-3"
+                >
+                  <span
+                    class="inline-flex h-2.5 w-2.5 rounded-full bg-gradient-to-r from-emerald-300 via-sky-400 to-violet-400 shadow-[0_0_12px_rgba(94,234,212,0.45)]"
+                  />
+                   
+                  <div
+                    class="flex flex-col"
+                  >
+                    <span
+                      class="text-sm font-semibold leading-tight text-slate-200"
+                    >
+                      Disconnected
+                    </span>
+                     
+                    <span
+                      class="text-[11px] text-slate-300/80"
+                    >
+                      Bereit, eine Verbindung aufzubauen.
+                    </span>
+                  </div>
+                </div>
+                 
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+       
+      <div
+        aria-label="Network tools"
+        class="glass-md rounded-2xl p-6 space-y-6"
+        role="region"
+      >
+        <header
+          class="flex flex-wrap items-center justify-between gap-4"
+        >
+          <div
+            class="space-y-1"
+          >
+            <p
+              class="tw-section-title"
+            >
+              Network Diagnostics
+            </p>
+             
+            <h2
+              class="text-xl font-semibold tracking-tight text-slate-50"
+            >
+              Resolve and trace through your Tor connection
+            </h2>
+             
+            <p
+              class="text-sm text-slate-300/80 max-w-2xl"
+            >
+              Use these tools to confirm DNS resolution and hop-level routing while connected to the Tor network. Each request
+        runs through the current Tor circuit so you can validate exit behaviour and latency.
+            </p>
+          </div>
+           
+          <span
+            aria-live="polite"
+            class="tw-badge"
+            data-state="error"
+          >
+            Disconnected
+          </span>
+        </header>
+         
+        <p
+          class="tw-inline-alert"
+          role="status"
+        >
+          Connect to Tor to enable the diagnostic tools.
+        </p>
+         
+        <form
+          class="space-y-4"
+        >
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="tw-section-title"
+              for="host-input"
+            >
+              Target host or address
+            </label>
+             
+            <input
+              aria-required="true"
+              autocomplete="off"
+              class="tw-input"
+              id="host-input"
+              placeholder="e.g. check.torproject.org"
+              spellcheck="false"
+              type="text"
+            />
+          </div>
+           
+          <div
+            aria-label="Quick targets"
+            class="flex flex-wrap gap-2"
+          >
+            <button
+              class="tw-chip"
+              type="button"
+            >
+              Tor Check
+               
+            </button>
+            <button
+              class="tw-chip"
+              type="button"
+            >
+              Tor Project
+               
+            </button>
+            <button
+              class="tw-chip"
+              type="button"
+            >
+              Cloudflare DNS
+               
+            </button>
+            <button
+              class="tw-chip"
+              type="button"
+            >
+              Google DNS
+               
+            </button>
+          </div>
+           
+          <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            <div
+              class="flex flex-1 flex-wrap gap-2"
+            >
+              <button
+                aria-label="Run DNS lookup"
+                class="tw-button tw-button--accent flex-1 sm:flex-none"
+                data-state="idle"
+                disabled=""
+                type="submit"
+              >
+                DNS Lookup
+              </button>
+               
+              <button
+                aria-label="Run traceroute"
+                class="tw-button tw-button--neutral flex-1 sm:flex-none"
+                data-state="idle"
+                disabled=""
+                type="button"
+              >
+                Traceroute
+              </button>
+            </div>
+             
+            <button
+              aria-label="Clear results"
+              class="tw-button tw-button--neutral"
+              disabled=""
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+        </form>
+         
+        <div
+          class="grid gap-4 lg:grid-cols-2"
+        >
+          <section
+            aria-live="polite"
+            class="tw-results-card"
+          >
+            <header
+              class="tw-results-header"
+            >
+              <h3>
+                DNS Results
+              </h3>
+               
+              <button
+                class="tw-chip tw-chip--action"
+                disabled=""
+                type="button"
+              >
+                Copy
+              </button>
+            </header>
+             
+            <p
+              class="tw-empty-state"
+            >
+              Run a lookup to populate DNS records.
+            </p>
+          </section>
+           
+          <section
+            aria-live="polite"
+            class="tw-results-card"
+          >
+            <header
+              class="tw-results-header"
+            >
+              <h3>
+                Traceroute
+              </h3>
+               
+              <button
+                class="tw-chip tw-chip--action"
+                disabled=""
+                type="button"
+              >
+                Copy
+              </button>
+            </header>
+             
+            <p
+              class="tw-empty-state"
+            >
+              Traceroute results will appear here.
+            </p>
+          </section>
+        </div>
+      </div>
+       
+      <div
+        class="text-right mt-2"
+      >
+        <a
+          class="text-sm text-blue-400 underline"
+          href="/dashboard"
+        >
+          Resource Dashboard
+        </a>
+         
+        <span
+          class="mx-2"
+        >
+          |
+        </span>
+         
+        <a
+          class="text-sm text-blue-400 underline"
+          href="/network"
+        >
+          Network Monitor
+        </a>
+      </div>
+    </div>
+  </div>
+   
+   
+  
+</div>
+`;

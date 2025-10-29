@@ -59,6 +59,11 @@ serial_test = "2"
 tempfile = "3"
 hyper = { version = "1", features = ["server", "http1"] }
 tokio-rustls = "0.26"
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+[[bench]]
+name = "bootstrap"
+harness = false
 
 [package.metadata.hsm]
 library = "/usr/lib/softhsm/libsofthsm2.so"
