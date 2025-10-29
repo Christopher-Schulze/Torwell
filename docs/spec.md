@@ -13,8 +13,8 @@
 
 ## Annahmen
 - Desktop-Zielplattformen: macOS 13+, Windows 11, Ubuntu 22.04+ (Wayland/X11).
-- GPU-Beschleunigte Blur-Filter sind verfügbar; bei `prefers-reduced-motion` wird Animation reduziert.
-- Rust 1.77+, Node.js 20+/Bun 1.1+ sind installiert.
+- GPU-beschleunigte Blur-Filter sind verfügbar; bei `prefers-reduced-motion` wird Animation reduziert.
+- Rust 1.77+, Node.js 20+/Bun 1.1+ sowie `cargo-tarpaulin`, `cargo-fuzz` und `@playwright/test` stehen in der Toolchain bereit.
 - Tor-Netzwerkzugriff ist möglich, Firewalls erlauben ausgehende Verbindungen auf Standard-Tor-Ports.
 - Diagnose-Ansichten (`ConnectionDiagnostics`, `NetworkTools`) teilen sich Motion-Tokens und Timeline-Komponenten mit dem Dashboard.
 - Benchmark-Läufe dürfen die Tor-Bootstrap-Infrastruktur maximal 3 parallele Sessions starten (koordiniert via `task desktop:bootstrap`).
@@ -22,7 +22,9 @@
 ## Schnittstellen
 - Frontend ↔ Backend via Tauri `invoke` / `listen` Events (`tor-status-update`, `metrics-update`).
 - Dokumentations-Hub `docs/DOCUMENTATION.md` verlinkt auf Spezifikation, Roadmap und Todos.
-- Tests laufen via `bun run lint`, `bun run check`, `cargo test` im Ordner `src-tauri`.
+- Tests laufen via `npm run lint`, `npm run test:unit`, `npm run test:ui-snapshots` und `cargo test` im Ordner `src-tauri`.
+- Coverage wird über `scripts/tests/coverage.sh` generiert und in `docs/todo/CR-0002.md` gespiegelt.
+- Benchmarks laufen via `scripts/benchmarks/run_all.sh`; Fuzzing via `scripts/tests/fuzz.sh`.
 
 - **Performance:** UI-Animationen <16ms Framebudget, keine Layout-Jumps >8px; Bootstrap-Benchmark p95 < 45s laut `connection_startup.sh`.
 - **Resilienz:** Verbindungs-UI führt max. 1 parallelen Connect/Disconnect-Workflow; API-Retries mit exponentiellem Backoff bis 3 Versuche.

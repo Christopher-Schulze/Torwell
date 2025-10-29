@@ -124,6 +124,16 @@ fn parse_tls_version(v: Option<&str>) -> reqwest::tls::Version {
     }
 }
 
+#[cfg(fuzzing)]
+pub fn fuzz_parse_max_age(header: &str) -> Option<u64> {
+    parse_max_age(header)
+}
+
+#[cfg(fuzzing)]
+pub fn fuzz_tls_version(version: Option<&str>) {
+    let _ = parse_tls_version(version);
+}
+
 #[cfg(feature = "hsm")]
 pub struct HsmKeyPair {
     pub key: Vec<u8>,
