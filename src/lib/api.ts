@@ -2,6 +2,24 @@ import { invoke as tauriInvoke } from '@tauri-apps/api/tauri';
 import { errorStore } from '$lib/stores/errorStore';
 import type { ConnectionEvent, ConnectionHealthSummary } from '$lib/types';
 
+const RETRYABLE_PATTERNS = [
+  /Network.+unreachable/i,
+  /Network.+timeout/i,
+  /operation timed out/i,
+  /temporarily unavailable/i,
+  /rate limit/i,
+  /os error 11/i,
+];
+
+function shouldRetry(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return RETRYABLE_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 let token: string | null = null;
 
 export async function ensureToken(force = false): Promise<string> {
@@ -13,9 +31,10 @@ export async function ensureToken(force = false): Promise<string> {
 export async function invoke<T = any>(
   cmd: string,
   args: Record<string, any> = {},
-  retried = false
+  retried = false,
+  attempt = 0
 ): Promise<T> {
-  const t = await ensureToken();
+  const t = await ensureToken(retried && attempt === 0);
   try {
     return await tauriInvoke<T>(cmd, { token: t, ...args });
   } catch (err: any) {
@@ -26,6 +45,13 @@ export async function invoke<T = any>(
         await ensureToken(true);
         return invoke<T>(cmd, args, true);
       }
+    }
+    if (shouldRetry(err) && attempt < 3) {
+      const nextAttempt = attempt + 1;
+      const backoff = Math.min(500 * 2 ** attempt, 3000);
+      const jitter = Math.random() * 150;
+      await delay(backoff + jitter);
+      return invoke<T>(cmd, args, retried, nextAttempt);
     }
     throw err;
   }

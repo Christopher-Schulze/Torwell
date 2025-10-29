@@ -698,8 +698,9 @@ impl<C: TorClientBehavior> TorManager<C> {
         P: FnMut(u8, String) + Send,
     {
         if self.is_connected().await {
-            log::error!("connect_once: already connected");
-            return Err(Error::AlreadyConnected);
+            log::warn!("connect_once: already connected - short-circuiting");
+            progress(100, "connected".into());
+            return Ok(());
         }
         progress(0, "starting".into());
         let config = self
@@ -751,8 +752,9 @@ impl<C: TorClientBehavior> TorManager<C> {
             match self.connect_once(&mut on_progress).await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
-                    if attempt == 0 && matches!(e, Error::AlreadyConnected) {
-                        return Err(e);
+                    if matches!(e, Error::AlreadyConnected) {
+                        log::warn!("connect_with_backoff: already connected");
+                        return Ok(());
                     }
                     if let Error::ConnectionFailed { step, source, .. } = &e {
                         last_step = *step;
@@ -1455,5 +1457,29 @@ mod tests {
         let manager: TorManager<DummyClient> = TorManager::new_with_geoip(Some("/no/such/path"));
         let code = manager.lookup_country_code("8.8.8.8").await.unwrap();
         assert!(!code.is_empty());
+    }
+
+    #[test]
+    fn ensure_unique_route_resolves_duplicates() {
+        let requested = vec![
+            Some("DE".to_string()),
+            Some("DE".to_string()),
+            Some("NL".to_string()),
+        ];
+        let fallback = vec!["SE".to_string(), "CH".to_string(), "US".to_string()];
+        let resolved = TorManager::<DummyClient>::ensure_unique_route(&requested, &fallback);
+        assert_eq!(resolved.len(), 3);
+        assert_eq!(resolved[0], "DE");
+        assert_eq!(resolved[1], "SE");
+        assert_eq!(resolved[2], "NL");
+        assert_eq!(resolved.iter().collect::<std::collections::HashSet<_>>().len(), 3);
+    }
+
+    #[test]
+    fn ensure_unique_route_uses_fallback_when_empty() {
+        let requested = vec![None, None, None];
+        let fallback = vec!["DE".to_string(), "NL".to_string(), "US".to_string()];
+        let resolved = TorManager::<DummyClient>::ensure_unique_route(&requested, &fallback);
+        assert_eq!(resolved, fallback);
     }
 }

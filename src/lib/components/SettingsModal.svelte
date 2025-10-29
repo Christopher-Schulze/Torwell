@@ -216,6 +216,18 @@
     exitSelection = normaliseCountryCode(value) ?? "";
   }
 
+  function handleEntryChange(event: Event) {
+    updateEntrySelection((event.currentTarget as HTMLSelectElement).value);
+  }
+
+  function handleMiddleChange(event: Event) {
+    updateMiddleSelection((event.currentTarget as HTMLSelectElement).value);
+  }
+
+  function handleExitChange(event: Event) {
+    updateExitSelection((event.currentTarget as HTMLSelectElement).value);
+  }
+
   async function applyRoutePreferences() {
     const entry = normaliseCountryCode(entrySelection);
     const middle = normaliseCountryCode(middleSelection);
@@ -586,7 +598,7 @@
                 id="entry-country-select"
                 class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
                 bind:value={entrySelection}
-                on:change={(event) => updateEntrySelection((event.target as HTMLSelectElement).value)}
+                on:change={handleEntryChange}
                 aria-label="Preferred entry country"
               >
                 <option value="">Auto</option>
@@ -603,7 +615,7 @@
                 id="middle-country-select"
                 class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
                 bind:value={middleSelection}
-                on:change={(event) => updateMiddleSelection((event.target as HTMLSelectElement).value)}
+                on:change={handleMiddleChange}
                 aria-label="Preferred middle country"
               >
                 <option value="">Auto</option>
@@ -620,7 +632,7 @@
                 id="exit-country-select"
                 class="w-full bg-black/50 rounded border border-white/20 p-2 text-sm"
                 bind:value={exitSelection}
-                on:change={(event) => updateExitSelection((event.target as HTMLSelectElement).value)}
+                on:change={handleExitChange}
                 aria-label="Preferred exit country"
               >
                 <option value="">Auto</option>

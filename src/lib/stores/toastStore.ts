@@ -16,7 +16,7 @@ export function addToast(message: string, type: 'error' | 'info' = 'info', durat
   }, duration);
 }
 
-export type ErrorToastType = 'dns' | 'traceroute' | 'connection';
+export type ErrorToastType = 'dns' | 'traceroute' | 'connection' | 'input' | 'clipboard';
 
 export function addErrorToast(kind: ErrorToastType, detail?: string, duration = 5000) {
   let message = '';
@@ -29,6 +29,12 @@ export function addErrorToast(kind: ErrorToastType, detail?: string, duration = 
       break;
     case 'connection':
       message = 'Connection error';
+      break;
+    case 'input':
+      message = 'Input required';
+      break;
+    case 'clipboard':
+      message = 'Clipboard operation failed';
       break;
     default:
       message = 'Error';

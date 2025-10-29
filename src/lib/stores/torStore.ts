@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import { listen } from "@tauri-apps/api/event";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export type TorStatus =
   | "DISCONNECTED"
@@ -30,7 +30,7 @@ export interface MetricPoint {
   time: number;
   memoryMB: number;
   circuitCount: number;
-  latencyMs: number;
+  latencyMs: number | undefined;
   oldestAge: number;
   avgCreateMs: number;
   failedAttempts: number;
@@ -58,96 +58,123 @@ function createTorStore() {
     lastTransition: null,
   };
 
-  const { subscribe, update, set } = writable<TorState>(initialState);
+  const listeners: Promise<UnlistenFn>[] = [];
 
-  // Listen for metrics updates from the Rust backend
-  const MAX_POINTS = 720;
-  listen<any>("metrics-update", (event) => {
-    const point: MetricPoint = {
-      time: Date.now(),
-      memoryMB: Math.round(event.payload.memory_bytes / 1_000_000),
-      circuitCount: event.payload.circuit_count,
-      latencyMs: event.payload.latency_ms,
-      oldestAge: event.payload.oldest_age ?? 0,
-      avgCreateMs: event.payload.avg_create_ms ?? 0,
-      failedAttempts: event.payload.failed_attempts ?? 0,
-      cpuPercent: event.payload.cpu_percent ?? 0,
-      networkBytes: event.payload.network_bytes ?? 0,
-      networkTotal: event.payload.total_network_bytes ?? 0,
-      complete: event.payload.complete ?? true,
-    };
-    update((state) => {
-      const metrics = [...state.metrics, point].slice(-MAX_POINTS);
-      return {
-        ...state,
-        memoryUsageMB: point.memoryMB,
-        circuitCount: point.circuitCount,
-        pingMs: point.latencyMs,
-        metrics,
+  const { subscribe, update, set } = writable<TorState>(initialState, () => {
+    const MAX_POINTS = 720;
+
+    const metricsListener = listen<Record<string, any>>("metrics-update", (event) => {
+      const payload = event.payload ?? {};
+      const memoryBytes = Number(payload.memory_bytes ?? payload.memoryBytes ?? 0);
+      const rawCircuitCount = payload.circuit_count ?? payload.circuitCount ?? 0;
+      const circuitCountValue =
+        typeof rawCircuitCount === "number"
+          ? rawCircuitCount
+          : Number(rawCircuitCount);
+      const safeCircuitCount: number = Number.isFinite(circuitCountValue)
+        ? (circuitCountValue as number)
+        : 0;
+      const latency = payload.latency_ms ?? payload.latencyMs;
+      const point: MetricPoint = {
+        time: Date.now(),
+        memoryMB: Math.max(0, Math.round(memoryBytes / 1_000_000)),
+        circuitCount: safeCircuitCount,
+        latencyMs: typeof latency === "number" ? latency : undefined,
+        oldestAge: Number(payload.oldest_age ?? payload.oldestAge ?? 0),
+        avgCreateMs: Number(payload.avg_create_ms ?? payload.avgCreateMs ?? 0),
+        failedAttempts: Number(payload.failed_attempts ?? payload.failedAttempts ?? 0),
+        cpuPercent: Number(payload.cpu_percent ?? payload.cpuPercent ?? 0),
+        networkBytes: Number(payload.network_bytes ?? payload.networkBytes ?? 0),
+        networkTotal: Number(payload.total_network_bytes ?? payload.totalNetworkBytes ?? 0),
+        complete: payload.complete ?? true,
       };
-    });
-  });
-
-  listen<string>("security-warning", (event) => {
-    update((state) => ({ ...state, securityWarning: event.payload }));
-  });
-
-  // Listen for status updates from the Rust backend
-  listen<Record<string, any>>("tor-status-update", (event) => {
-    update((state) => {
-      const rawStatus = (event.payload?.status as string) ?? initialState.status;
-      const isEphemeral = ["NEW_IDENTITY", "NEW_CIRCUIT"].includes(rawStatus);
-      const statusStr = (isEphemeral ? "CONNECTED" : rawStatus) as TorStatus;
-      const clearError = !["RETRYING", "ERROR"].includes(statusStr);
-      return {
-        ...state,
-        ...event.payload,
-        status: statusStr,
-        lastTransition: rawStatus,
-        retryCount:
-          event.payload?.retryCount ??
-          (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
-            ? 0
-            : state.retryCount),
-        retryDelay:
-          event.payload?.retryDelay ??
-          (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
-            ? 0
-            : state.retryDelay),
-        bootstrapMessage:
-          event.payload?.bootstrapMessage ??
-          (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
-            ? ""
-            : state.bootstrapMessage),
-        errorMessage:
-          event.payload?.errorMessage ??
-          (["CONNECTED", "DISCONNECTED"].includes(statusStr)
-            ? null
-            : state.errorMessage),
-        errorStep: event.payload?.errorStep ?? (clearError ? null : state.errorStep),
-        errorSource:
-          event.payload?.errorSource ?? (clearError ? null : state.errorSource),
-      };
-    });
-
-    update((state) => {
-      if (state.status === "CONNECTED") {
+      update((state) => {
+        const metrics = [...state.metrics, point].slice(-MAX_POINTS);
         return {
           ...state,
-          securityWarning: null,
-          errorMessage: null,
-          errorStep: null,
-          errorSource: null,
+          memoryUsageMB: point.memoryMB,
+          circuitCount: point.circuitCount,
+          pingMs: point.latencyMs,
+          metrics,
         };
-      }
-      return {
-        ...state,
-        memoryUsageMB: 0,
-        circuitCount: 0,
-        pingMs: undefined,
-        metrics: [],
-      };
+      });
     });
+
+    const securityListener = listen<string>("security-warning", (event) => {
+      update((state) => ({ ...state, securityWarning: event.payload ?? null }));
+    });
+
+    const statusListener = listen<Record<string, any>>("tor-status-update", (event) => {
+      const payload = event.payload ?? {};
+      update((state) => {
+        const rawStatus = (payload.status as string) ?? initialState.status;
+        const isEphemeral = ["NEW_IDENTITY", "NEW_CIRCUIT"].includes(rawStatus);
+        const statusStr = (isEphemeral ? "CONNECTED" : rawStatus) as TorStatus;
+        const clearError = !["RETRYING", "ERROR"].includes(statusStr);
+        return {
+          ...state,
+          ...payload,
+          status: statusStr,
+          lastTransition: rawStatus,
+          retryCount:
+            payload.retryCount ??
+            (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
+              ? 0
+              : state.retryCount),
+          retryDelay:
+            payload.retryDelay ??
+            (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
+              ? 0
+              : state.retryDelay),
+          bootstrapMessage:
+            payload.bootstrapMessage ??
+            (["CONNECTED", "DISCONNECTED", "ERROR"].includes(statusStr)
+              ? ""
+              : state.bootstrapMessage),
+          errorMessage:
+            payload.errorMessage ??
+            (["CONNECTED", "DISCONNECTED"].includes(statusStr)
+              ? null
+              : state.errorMessage),
+          errorStep: payload.errorStep ?? (clearError ? null : state.errorStep),
+          errorSource:
+            payload.errorSource ?? (clearError ? null : state.errorSource),
+        };
+      });
+
+      update((state) => {
+        if (state.status === "CONNECTED") {
+          return {
+            ...state,
+            securityWarning: null,
+            errorMessage: null,
+            errorStep: null,
+            errorSource: null,
+          };
+        }
+        return {
+          ...state,
+          memoryUsageMB: 0,
+          circuitCount: 0,
+          pingMs: undefined,
+          metrics: [],
+        };
+      });
+    });
+
+    listeners.push(metricsListener, securityListener, statusListener);
+
+    return () => {
+      listeners.splice(0).forEach(async (promise) => {
+        try {
+          const unlisten = await promise;
+          unlisten();
+        } catch (error) {
+          console.error("Failed to unlisten from Tauri event", error);
+        }
+      });
+      set(initialState);
+    };
   });
 
   return {
