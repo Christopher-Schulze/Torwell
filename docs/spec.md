@@ -28,7 +28,7 @@
 
 - **Performance:** UI-Animationen <16ms Framebudget, keine Layout-Jumps >8px; Bootstrap-Benchmark p95 < 45s laut `connection_startup.sh`.
 - **Resilienz:** Verbindungs-UI führt max. 1 parallelen Connect/Disconnect-Workflow; API-Retries mit exponentiellem Backoff bis 3 Versuche.
-- **DX:** Saubere Typen, modulare Komponenten, `torStore` ohne Event-Leaks, dedizierte Utilitys für Motion/Theme.
+- **DX:** Saubere Typen, modulare Komponenten, `torStore` ohne Event-Leaks, dedizierte Utilitys für Motion/Theme, dokumentierte SIMD-Dispatch-Layer.
 - **Sicherheit:** Konsistente Fehlerpfade, strukturierte Logs, keine unvalidierten Eingaben Richtung TorManager.
 - **Barrierefreiheit:** WCAG 2.1 AA Farbkontrast, ARIA-Live Regionen für Statuswechsel, respektiert Reduced-Motion; Timeline-Overlays bieten Tastatur- und Screenreader-Zugriff.
 

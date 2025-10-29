@@ -2,6 +2,8 @@ mod commands;
 mod error;
 #[cfg(feature = "mobile")]
 mod http_bridge;
+#[path = "lib/mod.rs"]
+pub mod lib;
 mod secure_http;
 mod session;
 mod state;
