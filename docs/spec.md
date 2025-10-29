@@ -20,7 +20,9 @@
 - Benchmark-Läufe dürfen die Tor-Bootstrap-Infrastruktur maximal 3 parallele Sessions starten (koordiniert via `task desktop:bootstrap`).
 
 ## Schnittstellen
-- Frontend ↔ Backend via Tauri `invoke` / `listen` Events (`tor-status-update`, `metrics-update`).
+- Frontend ↔ Backend via Tauri `invoke` / `listen` Events (`tor-status-update`, `metrics-update`, `frame-metrics`).
+- Neuer Tauri-Command `get_frame_metrics` liefert Momentaufnahme + Percentiles der Renderloop-Kennzahlen.
+- Headless-Screenshot-Tool `renderer_capture` (Cargo-Binary) erzeugt Referenzframes für Skripte in `/scripts/tests/`.
 - Dokumentations-Hub `docs/DOCUMENTATION.md` verlinkt auf Spezifikation, Roadmap und Todos.
 - Tests laufen via `npm run lint`, `npm run test:unit`, `npm run test:ui-snapshots` und `cargo test` im Ordner `src-tauri`.
 - Coverage wird über `scripts/tests/coverage.sh` generiert und in `docs/todo/CR-0002.md` gespiegelt.

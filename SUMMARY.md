@@ -14,6 +14,7 @@
 ## Nächste Schritte
 - Milestone D vorbereiten (Diagnostics UX Refresh, Timeline-Komponenten, CI-Hooks).
 - glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
+- CR-0002 adressieren (Postprocessing-Shader, Renderer-Fallbacks, GPU-Benchmarks).
 
 ## Annahmen
 - Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.

@@ -1,6 +1,7 @@
 use crate::core::executor::TaskError;
 use crate::error::{Error, Result};
 use crate::icmp;
+use crate::renderer::FrameMetricsSnapshot;
 use crate::state::{
     AppState, ConnectionEventSnapshot, ConnectionHealthSummary, LogEntry, MetricPoint,
 };
@@ -861,6 +862,12 @@ pub async fn load_metrics(
         return Err(Error::InvalidToken);
     }
     state.load_metrics(limit).await
+}
+
+#[tauri::command]
+pub async fn get_frame_metrics(state: State<'_, AppState>) -> Result<FrameMetricsSnapshot> {
+    check_api_rate()?;
+    Ok(state.renderer_service().metrics_snapshot())
 }
 
 #[tauri::command]

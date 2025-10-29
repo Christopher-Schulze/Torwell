@@ -111,6 +111,9 @@ pub enum Error {
 
     #[error("Invalid session token")]
     InvalidToken,
+
+    #[error("GPU error: {0}")]
+    Gpu(String),
 }
 
 impl From<arti_client::Error> for Error {

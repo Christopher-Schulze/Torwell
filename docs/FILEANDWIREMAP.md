@@ -62,6 +62,7 @@ flowchart LR
     subgraph Backend [Tauri Backend]
         T1[commands.rs]
         T2[tor_manager.rs]
+        T3[renderer::RendererService]
     end
 
     A --> B
@@ -78,5 +79,7 @@ flowchart LR
     A -->|cache-aware calls| C1
     C1 -->|persist/warmup| A
     T1 --> T2
+    T1 -->|get_frame_metrics| T3
+    T3 -->|frame-metrics event| Frontend
     T2 -->|arti-client| Tor[(Tor Network)]
 ```

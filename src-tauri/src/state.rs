@@ -1,6 +1,7 @@
 use crate::core::executor::{SchedulerSnapshot, TaskScheduler};
 use crate::error::{Error, Result};
 use crate::icmp;
+use crate::renderer::RendererService;
 use crate::secure_http::SecureHttpClient;
 use crate::session::SessionManager;
 use crate::tor_manager::{TorClientBehavior, TorManager};
@@ -244,6 +245,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub reconnect_in_progress: Arc<Mutex<bool>>,
     /// Timestamp when the client last entered the connected state
     pub connected_since: Arc<Mutex<Option<DateTime<Utc>>>>,
+    /// GPU renderer service handle
+    pub renderer: RendererService,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -366,6 +369,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             tray_warning: Arc::new(Mutex::new(None)),
             reconnect_in_progress: Arc::new(Mutex::new(false)),
             connected_since: Arc::new(Mutex::new(None)),
+            renderer: RendererService::new(),
         }
     }
 }
@@ -486,7 +490,12 @@ impl<C: TorClientBehavior> AppState<C> {
             )),
             app_handle: Arc::new(Mutex::new(None)),
             tray_warning: Arc::new(Mutex::new(None)),
+            renderer: RendererService::new(),
         }
+    }
+
+    pub fn renderer_service(&self) -> RendererService {
+        self.renderer.clone()
     }
 
     const DEFAULT_MAX_LINES: usize = DEFAULT_MAX_LOG_LINES;
@@ -1178,6 +1187,7 @@ impl<C: TorClientBehavior> AppState<C> {
                     }
                 }
 
+                let frame_snapshot = self.renderer.metrics_snapshot();
                 let _ = handle.emit_all(
                     "metrics-update",
                     serde_json::json!({
@@ -1190,7 +1200,11 @@ impl<C: TorClientBehavior> AppState<C> {
                         "cpu_percent": cpu,
                         "network_bytes": *self.network_throughput.lock().await,
                         "total_network_bytes": *self.network_total.lock().await,
-                        "complete": circ.complete
+                        "complete": circ.complete,
+                        "frame": {
+                            "available": frame_snapshot.available,
+                            "summary": frame_snapshot.summary,
+                        }
                     }),
                 );
             }

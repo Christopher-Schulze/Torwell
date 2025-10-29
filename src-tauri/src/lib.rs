@@ -3,8 +3,7 @@ mod core;
 mod error;
 #[cfg(feature = "mobile")]
 mod http_bridge;
-#[path = "lib/mod.rs"]
-pub mod lib;
+pub mod renderer;
 mod secure_http;
 mod session;
 mod state;
@@ -176,7 +175,10 @@ pub fn run() {
                     })
                     .await;
             });
-            state.start_metrics_task(handle);
+            let renderer = state.renderer_service();
+            renderer.attach_handle(handle.clone());
+            renderer.start_render_loop();
+            state.start_metrics_task(handle.clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -221,7 +223,8 @@ pub fn run() {
             commands::set_secure_key,
             commands::reconnect,
             commands::show_dashboard,
-            commands::request_token
+            commands::request_token,
+            commands::get_frame_metrics
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
