@@ -1472,7 +1472,13 @@ mod tests {
         assert_eq!(resolved[0], "DE");
         assert_eq!(resolved[1], "SE");
         assert_eq!(resolved[2], "NL");
-        assert_eq!(resolved.iter().collect::<std::collections::HashSet<_>>().len(), 3);
+        assert_eq!(
+            resolved
+                .iter()
+                .collect::<std::collections::HashSet<_>>()
+                .len(),
+            3
+        );
     }
 
     #[test]

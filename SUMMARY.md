@@ -1,17 +1,19 @@
 ## Änderungen
-- Premiumisierte Dashboard-Komponenten (`StatusCard`, `ActionCard`, `IdlePanel`) mit neuen Glasgradients, Mikroanimationen und responsiven Layouts.
-- Erweiterte Resilienz im Frontend (`torStore`, `api`-Wrapper) inkl. Retry-Backoff, listener cleanup und reduzierter Motion-Utilities.
-- Aktualisierte Dokumentation gemäss Organisationsrichtlinie (Spec, Plan, File & Wire Map, TODO-Backlog).
-- Neue Motion-Utilities und angepasste Metrik-Auswertungen (Rolling Latency, Trendberechnung, Tests für TorManager).
+- Devcontainer inklusive VSCode/Neovim Defaults, Post-Create Setup und reproduzierbarer Bootstrap.
+- Erweiterter `Taskfile.yml` mit Lint/Test/Bench-Flows plus Helper-Skripte (`run_task.sh`, Benchmarks).
+- `.githooks` Pre-Commit, `.editorconfig`, `.env.example`, Issue/PR-Templates und Onboarding-Skript.
+- Spezifikation, Plan und TODO-Backlog um neue Tooling-Ziele ergänzt; CR-0002 mit Workflow-Doku angelegt.
 
 ## Kommandos
-- Tests (Frontend): `bun run check`
-- Tests (Rust): `cargo test` (scheitert ohne systemweite glib-2.0 Bibliotheken)
+- Setup: `task setup`
+- Lint: `task lint`
+- Tests: `task test`
+- Benchmarks: `task bench`
 
 ## Nächste Schritte
-- Follow-up CR-0001 zur Modernisierung der Diagnostics- und Network-Ansichten umsetzen.
-- glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
+- CI/Container-Abbilder auf neuen Devcontainer-Stack ausrichten (Follow-up in P7).
+- Inhalte von CR-0002 in `docs/DOCUMENTATION.md` konsolidieren, sobald alle Pakete gemerged sind.
 
 ## Annahmen
-- Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.
-- Latency-Metriken können temporär fehlen und werden konservativ mit 0 in Trends berücksichtigt.
+- Contributors verfügen über Bun, Rust und Node oder verwenden den bereitgestellten Devcontainer.
+- `bunx` verfügbar für Fallback, falls `task` nicht global installiert ist.
