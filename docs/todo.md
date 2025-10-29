@@ -1,3 +1,3 @@
 # TODO-Übersicht
-- CR-0001: Diagnostics UX & Benchmark-Follow-up
-- CR-0002: GPU Renderer Follow-ups
+- Milestone D: Diagnostics UX Refresh (ConnectionDiagnostics, NetworkTools, Timeline-Overlay)
+- Milestone D: Automation & Tooling (CI-Hooks für Benchmarks und Tests)

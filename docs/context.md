@@ -6,5 +6,6 @@ Torwell84 befindet sich in der Phase „UI/Resilience Refresh + GPU“. Die bish
 - Verbesserte Resilienzschichten im Frontend (`invoke`-Wrapper, Stores) und zusätzliche Tests für den Arti-TorManager.
 - Einen wgpu-basierten Renderer (Metal/Vulkan/DX12) mit Worker-Threads, Triple-Buffering, Shader-Cache und Frame-Metriken plus Headless-/Screenshot-Tests (`scripts/tests/headless_renderer.sh`).
 - Einen aktualisierten Dokumentations-Hub mit Spezifikation, Roadmap und Backlog (`docs/todo`).
+- Speicher- und Performance-Härtung via konfigurierbarer Cache-Schicht, SoA-Metriken, `mimalloc`-Allocator und reproduzierbaren Profiling-Skripten.
 
 Stakeholder: Privacy Engineering (Lead), Desktop Team, QA Automation.

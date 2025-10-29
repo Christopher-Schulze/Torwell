@@ -11,10 +11,15 @@ tasks:
       - task: --list-all
 
   setup:
-    desc: "Install all frontend and backend dependencies."
+    desc: "Install and configure the full development toolchain."
     cmds:
-      - bun install
-      - bun add -d @sveltejs/kit
+      - ./scripts/utils/bootstrap.sh
+
+  hooks:install:
+    desc: "Point git to the repository managed hooks."
+    cmds:
+      - git config core.hooksPath .githooks
+      - chmod +x .githooks/* 2>/dev/null || true
 
   dev:
     desc: "Starts the application in development mode with hot-reloading."
@@ -49,3 +54,67 @@ tasks:
     desc: "Build MSI/DEB/DMG packages for the current platform"
     cmds:
       - ./scripts/build_release.sh
+
+  lint:
+    desc: "Run formatting and lint suites for frontend and Rust codebases."
+    cmds:
+      - task lint:frontend
+      - task lint:rust
+
+  lint:frontend:
+    desc: "Run Svelte, TypeScript and formatting checks."
+    cmds:
+      - bun run check
+      - bun run lint:a11y
+
+  lint:rust:
+    desc: "Run Rust fmt and clippy."
+    dir: src-tauri
+    cmds:
+      - cargo fmt -- --check
+      - cargo clippy --all-targets --all-features -- -D warnings
+
+  test:
+    desc: "Execute frontend and backend test suites."
+    cmds:
+      - task test:frontend
+      - task test:backend
+
+  test:frontend:
+    desc: "Run Vitest suite."
+    cmds:
+      - bun run test -- --maxWorkers=1 --reporter=dot
+
+  test:backend:
+    desc: "Run Rust tests for the Tauri layer."
+    dir: src-tauri
+    cmds:
+      - cargo test --all-targets
+
+  test:quick:
+    desc: "Fast sanity checks for pre-commit hooks."
+    cmds:
+      - bun run test -- --maxWorkers=1 --reporter=dot
+      - task test:rust-build
+
+  test:rust-build:
+    desc: "Compile Rust tests without executing them."
+    dir: src-tauri
+    cmds:
+      - cargo test --all-targets --no-run
+
+  bench:
+    desc: "Run benchmark harnesses for build loops."
+    cmds:
+      - task bench:frontend-build
+      - task bench:rust-check
+
+  bench:frontend-build:
+    desc: "Measure frontend build duration."
+    cmds:
+      - ./scripts/benchmarks/measure_frontend_build.sh
+
+  bench:rust-check:
+    desc: "Measure Rust compile-check duration."
+    cmds:
+      - ./scripts/benchmarks/measure_rust_check.sh

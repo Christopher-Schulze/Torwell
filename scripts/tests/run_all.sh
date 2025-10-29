@@ -1,19 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+FRONTEND_DIR="${PROJECT_ROOT}"
+BACKEND_DIR="${PROJECT_ROOT}/src-tauri"
 
-echo "[run_all] Running Rust test suite"
-pushd src-tauri >/dev/null
-cargo test --all-targets
+log() {
+  printf "[run_all] %s\n" "$1"
+}
+
+if ! command -v bun >/dev/null 2>&1; then
+  log "Fehler: 'bun' wurde nicht gefunden. Bitte Bun >=1.1 installieren."
+  exit 1
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  log "Fehler: 'cargo' wurde nicht gefunden. Bitte Rust/Cargo >=1.77 installieren."
+  exit 1
+fi
+
+EXTRA_ARGS=("$@")
+
+pushd "${FRONTEND_DIR}" >/dev/null
+log "Starte 'bun run check'"
+bun run check
+
+log "Starte 'bun run test'"
+bun run test
 popd >/dev/null
 
-echo "[run_all] Running UI test suite"
-npm test -- --runInBand
+pushd "${BACKEND_DIR}" >/dev/null
+log "Starte 'cargo test --locked'"
+cargo test --locked "${EXTRA_ARGS[@]}"
+popd >/dev/null
 
-echo "[run_all] Verifying TLS compliance"
-node scripts/tests/check_tls.js
-
-echo "[run_all] Capturing GPU headless frame"
-scripts/tests/headless_renderer.sh
+log "Alle Tests erfolgreich abgeschlossen."

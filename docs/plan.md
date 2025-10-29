@@ -1,35 +1,46 @@
 # Plan / Roadmap
 
+Dieses Dokument strukturiert laufende und geplante Arbeitspakete. Pakete sind so geschnitten, dass sie parallelisierbar bleiben und minimale Konfliktflächen besitzen.
+
 ## Arbeitsprinzip
-Dieses Dokument bündelt die aktuellen Arbeitspakete für das UI-/Resilienz-Upgrade. Pakete sind so geschnitten, dass sie parallelisiert werden können und minimale Konfliktflächen besitzen.
+1. Doku-Sync erfolgt nach Abschluss aller technischen Pakete (ein Paket besitzt Schreibrecht auf `docs/DOCUMENTATION.md`).
+2. Tests & Lint laufen über `scripts/tests/run_all.sh`; CI integriert Linux Desktop Dependencies (`pkg-config`, `libgtk-3-dev`, `webkit2gtk`).
+3. Benchmarks liefern reproduzierbare p50/p95-Werte; Ergebnisse werden perspektivisch in Artefakten gespeichert.
 
 ## Work Breakdown Structure (WBS)
 
-| ID | Paket | Beschreibung | Impact | Konfliktrisiko |
-|----|-------|--------------|--------|----------------|
-| R1 | GPU-Spec & Docs Sync | Spezifikation/Plan aktualisieren, Threat-Model-Aktualisierungen und Annahmen zu Shader-Cache & Renderloop dokumentieren. | Hoch | Niedrig |
-| R2 | Renderer-Core (wgpu) | Neues Modul `renderer` mit Adapter-Discovery, Worker-Thread, Renderloop-Steuerung und Triple-Buffering. | Hoch | Mittel |
-| R3 | Shader-Cache & Warmup | Hash-basierter Cache unter `~/Library/Application Support/Torwell/shader_cache`, Warmup im Worker inkl. Override per Env. | Hoch | Niedrig |
-| R4 | CPU↔GPU Sync & Metrics | Fence-Handling, `FrameMetrics` + Percentiles, Events + `get_frame_metrics` Command, Integration in `AppState`. | Hoch | Mittel |
-| R5 | Screenshot/Headless Tests | CLI `renderer_capture`, Integrationstests (`renderer_tests.rs`), Skripte unter `/scripts/tests/` inkl. Hash-Validierung. | Hoch | Mittel |
-| R6 | Docs Hub Update | `docs/DOCUMENTATION.md` GPU-Abschnitt, TODO-Backlog ergänzen, SUMMARY.md aktualisieren. | Mittel | Mittel |
-| R7 | Follow-up Backlog | Erweiterte Shader (PostFX), Benchmark-Szenarien, GPU-Fallback-UX vorbereiten (Dokumentation in `docs/todo`). | Mittel | Niedrig |
-| R8 | CI/Automation Hooks | GitHub Actions/Taskfile-Erweiterung für GPU-Checks (auf spätere Aufträge verschoben). | Mittel | Hoch |
+| ID | Paket | Beschreibung | Impact | Konfliktrisiko | Status |
+|----|-------|--------------|--------|----------------|--------|
+| P1 | Visual Identity Refresh | Überarbeitung von `src/app.css`, Harmonisierung der Glas-Surface-Token, responsives Grid in `src/routes/+page.svelte`. | Hoch | Mittel | ✅ Abgeschlossen |
+| P2 | Motion & Micro-Interactions | Tweened Fortschrittsbalken, Status-Transitions (`IdlePanel`, `StatusCard`), Utility für Reduced-Motion. | Mittel | Niedrig | ✅ Abgeschlossen |
+| P3 | Status Intelligence | Aufwertung `StatusCard` inkl. Route-Badges, Ping-Historie, adaptiver Kopplung an Policy-Report. | Hoch | Mittel | ✅ Abgeschlossen |
+| P4 | Connection Resilience | Verbesserte `invoke`-Retry-Strategie, Guarding in `torStore`, robustes Listener-Lifecycle-Management. | Hoch | Niedrig | ✅ Abgeschlossen |
+| P5 | Arti Integration Guardrails | Tests für Routing-Policy & GeoIP, Verifikation von `TorManager::ensure_unique_route`, Logging-Verbesserungen. | Mittel | Niedrig | ✅ Abgeschlossen |
+| P6 | Documentation Hub Sync | Aktualisierung `docs/DOCUMENTATION.md`, Anlegen von Spec/Backlog-Struktur, Pflege `docs/todo`. | Mittel | Mittel | ✅ Abgeschlossen |
+| P7 | Diagnostics UX | Modernisierung `ConnectionDiagnostics` & `NetworkTools`, Timeline-Overlay, Motion-Token-Sharing. | Mittel | Mittel | 🔄 Geplant (Milestone D) |
+| P8 | Automation & Tooling | Ergänzung von `/scripts/tests/` Runnern, CI-Hinweise. | Niedrig | Niedrig | 🔄 Geplant |
+| P9 | Benchmark Automation | `scripts/benchmarks/connection_startup.sh`, Integration in Release-CI, Latenz-Reporting. | Mittel | Niedrig | ✅ Abgeschlossen |
 
 ## Priorisierte Auswahl
-Für diesen Auftrag werden R1–R6 umgesetzt, um GPU-Backend, Cache, Telemetrie und Tests vollständig bereitzustellen. R7–R8 bleiben als nachgelagerte Maßnahmen dokumentiert.
+Milestones A–C sind produktiv gesetzt. Milestone D bündelt die verbliebenen Diagnostics-UX-Anpassungen (P7) und zusätzliche CI-Hooks (P8).
 
 ## Meilensteine
-1. **Milestone Γ – Renderer Core**: Abschluss R1–R3 (Initialisierung, Cache, Threading).
-2. **Milestone Δ – Telemetrie & Sync**: Abschluss R4 (Frame-Metriken, Commands, Events).
-3. **Milestone Ε – Tests & Enablement**: Abschluss R5–R6, Erstellung der Headless-/Screenshot-Pipeline.
+1. **Milestone A – UI & Motion**: Abschluss P1–P3. ✅ Delivered in v2.5.
+2. **Milestone B – Resilienz & Backend Guards**: Abschluss P4–P5. ✅ Delivered in v2.5.
+3. **Milestone C – Docs & Enablement**: Abschluss P6 & P9, QA-Begleitung inklusive Benchmark-Dashboards. ✅ Delivered in v2.5.
+4. **Milestone D – Diagnostics Experience**: Umsetzung P7 & P8 mit Fokus auf Timeline-Komponenten und automatisierte Checks. ⏳ Offen.
 
 ## Risiken & Mitigation
-- **Kein kompatibler GPU-Adapter vorhanden**: Renderer degradiert und liefert Telemetrie-Flag `available = false`; Tests erkennen und skippen kontrolliert.
-- **Shader-Cache-Korruption**: Hash-Index wird atomar ersetzt; Warmup überschreibt nur bei Hash-Mismatch.
-- **Test-Laufzeit**: GPU-Headless-Tests werden parallel zu bestehenden Rust-Tests im Runner ausgeführt, Caching minimiert Setup-Zeit.
-- **Screenshot-Drift**: Referenz wird aus deterministischem Shader abgeleitet und per CPU-Rechnung validiert, kein statisches Binary-Baseline notwendig.
+- **GPU/Blur-Inkompatibilität**: Fallback-Styles via `@supports not (backdrop-filter)` implementieren.
+- **Rate-Limit bei Tauri-Commands**: Exponentielles Backoff + Jitter, Logging bei Überschreitung.
+- **Test-Laufzeit**: Bun/Vitest parallelisierbar, `cargo test` kann mit `-- --test-threads=1` laufen, falls UI/IPC-Mocks nötig.
+- **CI-Dependencies**: Fehlende GTK/WebKit Libs führen zu Build-Brüchen – Setup-Skripte dokumentiert (siehe oben).
+
+## Testmatrix
+- **Desktop macOS 13+ (Apple Silicon, Intel GPU)**: UI & Bootstrap-Benchmark.
+- **Windows 11 (Intel iGPU, AMD dGPU)**: Resilienztests, Motion-Reduced Validation.
+- **Ubuntu 22.04 (Wayland/X11, Intel iGPU)**: Fokus auf Blur-Fallbacks und IdlePanel.
 
 ## Nächste Schritte
-- R7 vorbereiten: Erweiterte Shader, Postprocessing und GPU-Fallback-UI im Backlog priorisieren.
-- R8: Automatisierte GPU-Prüfungen in CI evaluieren (Benötigt GPU-fähige Runner oder Software-Fallback-Builds).
+- Milestone D planen (Design-Vorlauf, UX-Research für Diagnostics).
+- Benchmarking der Animationen auf älteren Intel-Macs (Follow-up erforderlich).

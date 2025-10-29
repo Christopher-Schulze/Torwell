@@ -1,3 +1,4 @@
+use crate::core::executor::TaskError;
 use crate::error::{Error, Result};
 use crate::icmp;
 use crate::renderer::FrameMetricsSnapshot;
@@ -959,18 +960,28 @@ pub async fn traceroute_host(
     }
     let host_clone = host.clone();
     let limit = max_hops.unwrap_or(30) as usize;
-    let hops = tokio::task::spawn_blocking(move || {
-        let addr = format!("{}:0", host_clone);
-        let trace: TraceResult = traceroute::execute(addr.as_str()).map_err(|e| e.to_string())?;
-        let mut out = Vec::new();
-        for hop in trace.take(limit) {
-            let hop = hop.map_err(|e| e.to_string())?;
-            out.push(hop.host.ip().to_string());
-        }
-        Ok::<_, String>(out)
-    })
-    .await
-    .map_err(|e| Error::Io(e.to_string()))??;
+    let scheduler = state.scheduler();
+    let hops = scheduler
+        .spawn(
+            "traceroute_host",
+            move || -> std::result::Result<Vec<String>, String> {
+                let addr = format!("{}:0", host_clone);
+                let trace: TraceResult =
+                    traceroute::execute(addr.as_str()).map_err(|e| e.to_string())?;
+                let mut out = Vec::new();
+                for hop in trace.take(limit) {
+                    let hop = hop.map_err(|e| e.to_string())?;
+                    out.push(hop.host.ip().to_string());
+                }
+                Ok(out)
+            },
+        )
+        .await
+        .map_err(|err| match err {
+            TaskError::Canceled => Error::Io("traceroute task cancelled".into()),
+            TaskError::Panicked { message, .. } => Error::Io(message),
+        })??
+        .map_err(Error::Io)?;
     Ok(hops)
 }
 
