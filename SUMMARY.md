@@ -3,10 +3,12 @@
 - Erweiterte Resilienz im Frontend (`torStore`, `api`-Wrapper) inkl. Retry-Backoff, listener cleanup und reduzierter Motion-Utilities.
 - Aktualisierte Dokumentation gemäss Organisationsrichtlinie (Spec, Plan, File & Wire Map, TODO-Backlog).
 - Neue Motion-Utilities und angepasste Metrik-Auswertungen (Rolling Latency, Trendberechnung, Tests für TorManager).
+- SIMD-Pipeline unter `src-tauri/src/lib/simd` mit AVX2/AVX/NEON-Kernels, Scalar-Fallback, Property-/Snapshot-Tests und Benchmark-Skript.
 
 ## Kommandos
 - Tests (Frontend): `bun run check`
 - Tests (Rust): `cargo test` (scheitert ohne systemweite glib-2.0 Bibliotheken)
+- SIMD-Benchmarks: `scripts/benchmarks/run_simd_filters.sh` (benötigt `libglib2.0-dev` für Tauri-Transitive Abhängigkeiten)
 
 ## Nächste Schritte
 - Follow-up CR-0001 zur Modernisierung der Diagnostics- und Network-Ansichten umsetzen.

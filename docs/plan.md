@@ -15,9 +15,15 @@ Dieses Dokument bündelt die aktuellen Arbeitspakete für das UI-/Resilienz-Upgr
 | P6 | Documentation Hub Sync | Aktualisierung `docs/DOCUMENTATION.md`, Anlegen von Spec/Backlog-Struktur, Pflege `docs/todo`. | Mittel | Mittel |
 | P7 | Diagnostics UX | Verbesserte Darstellung in `ConnectionDiagnostics` & `NetworkTools` (Future Work). | Mittel | Hoch |
 | P8 | Automation & Tooling | Ergänzung von `/scripts/tests/` Runnern, CI-Hinweise (Future Work). | Niedrig | Niedrig |
+| P9 | SIMD Runtime Layer | Detect/dispatch Layer für Pixel-Pipeline unter `src-tauri/src/lib/simd`, inkl. Telemetrie. | Hoch | Niedrig |
+| P10 | AVX2/AVX Kernels | Implementierung schneller RGBA-Transformationen (Gain, Bias, Luma) mit Unsafe-Safety-Comments. | Hoch | Mittel |
+| P11 | NEON Kernels | ARM64-Optimierung für dieselben Filter, kompatibel zu macOS/Windows ARM. | Hoch | Mittel |
+| P12 | Scalar Fallback & Tests | Fallback-Pfade, Property-/Snapshot-Tests, deterministische Ausgabe. | Hoch | Niedrig |
+| P13 | Benchmarks & Tooling | Criterion-Benchmarks, Skripte unter `/scripts/benchmarks/`, automatisierte Report-Generierung. | Mittel | Niedrig |
+| P14 | Integration & Docs | API-Export, Annahmen in Spec, CR-Report-Aktualisierung. | Mittel | Mittel |
 
 ## Priorisierte Auswahl
-Mangels weiterer Vorgaben werden P1–P6 sofort umgesetzt. P7–P8 bleiben als dokumentierte Next Steps.
+Mangels weiterer Vorgaben werden P1–P6 sofort umgesetzt. Für die SIMD-Offensive werden P9–P13 unmittelbar adressiert, P14 bündelt Nacharbeiten.
 
 ## Meilensteine
 1. **Milestone A – UI & Motion**: Abschluss P1–P3.
