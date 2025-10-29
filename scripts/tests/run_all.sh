@@ -14,3 +14,6 @@ npm test -- --runInBand
 
 echo "[run_all] Verifying TLS compliance"
 node scripts/tests/check_tls.js
+
+echo "[run_all] Capturing GPU headless frame"
+scripts/tests/headless_renderer.sh

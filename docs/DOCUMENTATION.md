@@ -8,6 +8,7 @@
 - Dokumentations-Hub erweitert um `spec.md`, `plan.md`, `FILEANDWIREMAP.md` und `docs/todo` gemäß Organisationsleitfaden.
 - Frontend-Aktionswarteschlange `connectionQueue` serialisiert Connect/Disconnect/Circuit-Befehle, visualisiert Queue-Tiefe und merkt sich Fehler.
 - `TorManager::connect` verhält sich idempotent – wiederholte Aufrufe liefern Erfolg statt `AlreadyConnected` und vermeiden überflüssige Bootstrap-Versuche.
+- GPU-Render-Service auf Basis von `wgpu` (Metal/Vulkan/DX12) mit Worker-Threads, Triple-Buffering, Frame-Metriken sowie Hash-basiertem Shader-Cache inkl. Headless-Screenshot-Tests.
 
 ## 1. Architecture
 
@@ -190,6 +191,13 @@ Das Backend akzeptiert verschiedene Umgebungsvariablen zur Laufzeitkonfiguration
 - `TORWELL_LOG_ENDPOINT` – Optionaler HTTP-Endpunkt zum Weiterleiten von Logeinträgen.
 - Bei Überschreitung dieser Limits erscheint ein Warnhinweis im Systemtray-Menü.
 
+## 13. GPU Renderer & Telemetrie
+
+- Der `RendererService` initialisiert `wgpu` mit Metal-, Vulkan- und DX12-Backends, betreibt den Renderloop auf einem dedizierten Worker-Thread und nutzt Triple-Buffering inkl. Fence-Handling via `WaitForSubmissionIndex`.
+- Shader werden über einen Hash-basierten Cache unter `~/Library/Application Support/Torwell/shader_cache` (overridebar per `TORWELL_SHADER_CACHE_DIR`) gewärmt, wodurch wiederholte Builds ohne zusätzliche Latenz starten.
+- Frame-Metriken (CPU-Encode, GPU-Laufzeit, Queue-Wait, Frame-Intervalle) werden als Percentiles aggregiert und stehen über `metrics-update` (`frame.summary`) sowie den Command `get_frame_metrics` zur Verfügung.
+- Headless-/Screenshot-Tests laufen via `scripts/tests/headless_renderer.sh` und dem CLI `cargo run --bin renderer_capture`, das GPU-Ausgaben gegen eine deterministische CPU-Referenz verifiziert.
+- Rust-Integrationstests (`src-tauri/tests/renderer_tests.rs`) prüfen Shader-Cache, Triple-Buffering und Frame-Konsistenz; ist kein kompatibler Adapter vorhanden, werden die Tests sauber übersprungen.
 
 ## 14. Session Tokens
 
