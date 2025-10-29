@@ -1,3 +1,4 @@
+use crate::core::executor::{SchedulerSnapshot, TaskScheduler};
 use crate::error::{Error, Result};
 use crate::icmp;
 use crate::secure_http::SecureHttpClient;
@@ -90,7 +91,7 @@ pub struct LogEntry {
     pub stack: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct MetricPoint {
     #[serde(rename = "time")]
     pub time: i64,
@@ -116,6 +117,18 @@ pub struct MetricPoint {
     #[serde(rename = "complete")]
     #[serde(default)]
     pub complete: bool,
+    #[serde(rename = "schedulerP50Us")]
+    #[serde(default)]
+    pub scheduler_p50_us: u64,
+    #[serde(rename = "schedulerP95Us")]
+    #[serde(default)]
+    pub scheduler_p95_us: u64,
+    #[serde(rename = "schedulerP99Us")]
+    #[serde(default)]
+    pub scheduler_p99_us: u64,
+    #[serde(rename = "schedulerQueueDepth")]
+    #[serde(default)]
+    pub scheduler_queue_depth: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -178,6 +191,7 @@ pub struct ConnectionHealthSummary {
 pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub tor_manager: Arc<RwLock<Arc<TorManager<C>>>>,
     pub http_client: Arc<SecureHttpClient>,
+    pub scheduler: TaskScheduler,
     /// Path to the persistent log file
     pub log_file: PathBuf,
     /// Mutex used to serialize file writes
@@ -293,6 +307,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
                 geoip_path.clone(),
             )))),
             http_client,
+            scheduler: TaskScheduler::global(),
             log_file,
             log_lock: Arc::new(Mutex::new(())),
             metrics_file: cfg
@@ -414,6 +429,7 @@ impl<C: TorClientBehavior> AppState<C> {
                 geoip_path.clone(),
             )))),
             http_client,
+            scheduler: TaskScheduler::global(),
             log_file,
             log_lock: Arc::new(Mutex::new(())),
             metrics_file: cfg
@@ -788,6 +804,16 @@ impl<C: TorClientBehavior> AppState<C> {
         self.log_file.to_string_lossy().into()
     }
 
+    /// Access the shared CPU task scheduler.
+    pub fn scheduler(&self) -> TaskScheduler {
+        self.scheduler.clone()
+    }
+
+    /// Obtain a snapshot of scheduler latency and backlog statistics.
+    pub fn scheduler_snapshot(&self) -> SchedulerSnapshot {
+        self.scheduler.snapshot()
+    }
+
     /// Update stored metrics
     pub async fn update_metrics(
         &self,
@@ -1121,6 +1147,8 @@ impl<C: TorClientBehavior> AppState<C> {
                 self.update_latency(latency).await;
                 self.update_tray_menu().await;
 
+                let scheduler_snapshot = self.scheduler_snapshot();
+
                 let point = MetricPoint {
                     time: Utc::now().timestamp_millis(),
                     memory_mb: mem / 1_000_000,
@@ -1133,6 +1161,10 @@ impl<C: TorClientBehavior> AppState<C> {
                     network_bytes: *self.network_throughput.lock().await,
                     network_total: *self.network_total.lock().await,
                     complete: circ.complete,
+                    scheduler_p50_us: scheduler_snapshot.p50_us,
+                    scheduler_p95_us: scheduler_snapshot.p95_us,
+                    scheduler_p99_us: scheduler_snapshot.p99_us,
+                    scheduler_queue_depth: scheduler_snapshot.queue_depth,
                 };
                 let _ = self.append_metric(&point).await;
 

@@ -1,3 +1,4 @@
+use crate::core::executor::{TaskError, TaskScheduler};
 use crate::error::Error;
 use anyhow::anyhow;
 use governor::clock::DefaultClock;
@@ -270,6 +271,7 @@ pub struct SecureHttpClient {
     worker_token: Arc<Mutex<Option<String>>>,
     update_task: Mutex<Option<JoinHandle<()>>>,
     security_warning_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
+    scheduler: TaskScheduler,
 }
 
 impl Clone for SecureHttpClient {
@@ -288,6 +290,7 @@ impl Clone for SecureHttpClient {
             worker_token: self.worker_token.clone(),
             update_task: Mutex::new(None),
             security_warning_limiter: self.security_warning_limiter.clone(),
+            scheduler: self.scheduler.clone(),
         }
     }
 }
@@ -380,6 +383,15 @@ impl SecureHttpClient {
         Self::new_with_min_tls(cert_path, reqwest::tls::Version::TLS_1_2)
     }
 
+    fn map_scheduler_error(context: &str, err: TaskError) -> anyhow::Error {
+        match err {
+            TaskError::Canceled => anyhow!(format!("{context} cancelled by scheduler")),
+            TaskError::Panicked { message, .. } => {
+                anyhow!(format!("{context} panicked: {message}"))
+            }
+        }
+    }
+
     pub fn new_with_min_tls<P: AsRef<Path>>(
         cert_path: P,
         min_tls: reqwest::tls::Version,
@@ -402,6 +414,7 @@ impl SecureHttpClient {
             security_warning_limiter: Arc::new(RateLimiter::direct(Quota::per_minute(
                 NonZeroU32::new(6).unwrap(),
             ))),
+            scheduler: TaskScheduler::global(),
         })
     }
 
@@ -795,7 +808,15 @@ impl SecureHttpClient {
     }
 
     pub async fn reload_certificates(&self) -> anyhow::Result<()> {
-        let client = Self::build_client(&self.cert_path, self.min_tls)?;
+        let path = self.cert_path.clone();
+        let min_tls = self.min_tls;
+        let scheduler = self.scheduler.clone();
+        let client = scheduler
+            .spawn("reload_certificates", move || {
+                Self::build_client(&path, min_tls)
+            })
+            .await
+            .map_err(|err| Self::map_scheduler_error("reload_certificates", err))??;
         let mut guard = self.client.lock().await;
         *guard = client;
         Ok(())
@@ -803,11 +824,19 @@ impl SecureHttpClient {
 
     pub async fn update_certificates(&self, url: &str) -> anyhow::Result<()> {
         let resp = self.get_with_hsts_check(url).await?;
-        let pem = resp.bytes().await?;
-        if let Some(parent) = Path::new(&self.cert_path).parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(&self.cert_path, &pem)?;
+        let pem = resp.bytes().await?.to_vec();
+        let path = self.cert_path.clone();
+        let scheduler = self.scheduler.clone();
+        scheduler
+            .spawn("write_certificates", move || -> anyhow::Result<()> {
+                if let Some(parent) = Path::new(&path).parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&path, &pem)?;
+                Ok(())
+            })
+            .await
+            .map_err(|err| Self::map_scheduler_error("write_certificates", err))??;
         self.reload_certificates().await?;
         Ok(())
     }

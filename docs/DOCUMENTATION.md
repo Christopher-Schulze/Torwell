@@ -27,6 +27,7 @@ The backend is structured into several logical modules:
 
 -   **`main.rs` & `lib.rs`:** The entry points for the Tauri application, responsible for initializing the builder, managing the application state, and registering commands.
 -   **`state.rs`:** Defines the shared `AppState`, which holds the `TorManager` instance and log storage, ensuring a single, consistent state for the Tor client across the application.
+-   **`core/executor.rs`:** Enthält den zentralen Work-Stealing-Scheduler (`TaskScheduler`) samt Histogramm-Telemetrie (p50/p95/p99) und Queue-Backlog-Erfassung für CPU-/I/O-gebundene Aufgaben wie Traceroute oder Zertifikatrotation.
 -   **`tor_manager.rs`:** A dedicated, robust module that encapsulates all interactions with the `arti-client` library. It handles the lifecycle of the Tor client, including connection, disconnection, circuit management (`get_active_circuit`), and requesting a new identity (`new_identity`).
 -   **`commands.rs`:** Implements all Tauri commands that are exposed to the Svelte frontend. These functions act as thin, clean wrappers, delegating all business logic to the `TorManager`. This ensures a clear separation of concerns.
 -   **`error.rs`:** Defines a custom, serializable `Error` enum for the entire backend. In addition to `NotConnected` and `AlreadyConnected`, it exposes variants for bootstrap failures, directory lookups, circuit building issues and identity refresh problems. These descriptive errors are serialized and sent to the frontend for user-friendly reporting.
@@ -76,12 +77,20 @@ The command `build_new_circuit` allows creating additional circuits on demand.
 the oldest one when compiled with the `experimental-api` feature (pass
 `--features experimental-api` or use `task build`).
 
-### 3.6 Mobile Workflow
+### 3.6 Scheduler & Concurrency
+Die neue Scheduler-Schicht bündelt CPU-intensive Tasks auf einem dynamischen Worker-Pool mit Work-Stealing. Ergebnisse:
+
+- Zertifikatsaktualisierung (`SecureHttpClient::update_certificates`) wird über dedizierte Threads ausgeführt und blockiert keine Tokio-Reaktoren.
+- `traceroute_host` nutzt den Scheduler statt `spawn_blocking`, womit Latenzen messbar werden und UI-Threads entlastet werden.
+- Scheduler-Metriken (p50/p95/p99, Queue-Depth, Total-Tasks) landen im `MetricPoint` und stehen dem Frontend über `load_metrics` zur Verfügung.
+- `scripts/tests/run_concurrency.sh` führt einen Loom-Model-Check sowie (optional) einen Miri-Lauf aus, um Datenrennen im Scheduler frühzeitig zu erkennen.
+
+### 3.7 Mobile Workflow
 Running `task mobile:android` or `task mobile:ios` builds a Capacitor-based
 mobile shell. The backend runs a small HTTP bridge on port 1421 when compiled
 with the `mobile` feature so that the web app can control the Tor client.
 
-### 3.7 Metrics Retrieval Limit
+### 3.8 Metrics Retrieval Limit
 The `load_metrics` command now accepts an optional `limit` parameter to
 restrict the number of entries returned. If no limit is provided, the backend
 returns the most recent 100 metric points. Frontend components pass their

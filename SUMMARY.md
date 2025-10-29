@@ -1,17 +1,17 @@
 ## Änderungen
-- Premiumisierte Dashboard-Komponenten (`StatusCard`, `ActionCard`, `IdlePanel`) mit neuen Glasgradients, Mikroanimationen und responsiven Layouts.
-- Erweiterte Resilienz im Frontend (`torStore`, `api`-Wrapper) inkl. Retry-Backoff, listener cleanup und reduzierter Motion-Utilities.
-- Aktualisierte Dokumentation gemäss Organisationsrichtlinie (Spec, Plan, File & Wire Map, TODO-Backlog).
-- Neue Motion-Utilities und angepasste Metrik-Auswertungen (Rolling Latency, Trendberechnung, Tests für TorManager).
+- Zentralen Work-Stealing-Scheduler (`core::executor::TaskScheduler`) eingeführt, lokale Batching-Strategie für Latenz-Histogramme (p50/p95/p99) implementiert und `AppState`/`MetricPoint` um Scheduler-Telemetrie erweitert.
+- CPU-/I/O-intensive Pfade (`traceroute_host`, Zertifikatsrotation im `SecureHttpClient`) an den Scheduler angebunden und Tests/Dokumentation entsprechend aktualisiert.
+- Neues Concurrency-Harness (`scripts/tests/run_concurrency.sh`) mit Loom-Model-Check & optionalem Miri-Lauf ergänzt; Spezifikation/Dokumentation um Scheduler-Ziele erweitert.
 
 ## Kommandos
+- Tests (Rust): `cargo test` *(scheitert ohne systemweite glib-2.0 Bibliothek)*
+- Concurrency-Harness: `scripts/tests/run_concurrency.sh`
 - Tests (Frontend): `bun run check`
-- Tests (Rust): `cargo test` (scheitert ohne systemweite glib-2.0 Bibliotheken)
 
 ## Nächste Schritte
-- Follow-up CR-0001 zur Modernisierung der Diagnostics- und Network-Ansichten umsetzen.
+- Worker-Anzahl und weitere CPU-Pfade (z. B. GeoIP-Analysen) sukzessive an den Scheduler anbinden.
 - glib-2.0 Bereitstellung in CI/Build-Umgebung sicherstellen, damit `cargo test` überall läuft.
 
 ## Annahmen
-- Reduced-Motion Nutzer*innen sollen Animationen deaktivieren; neue Motion-Store respektiert dies.
-- Latency-Metriken können temporär fehlen und werden konservativ mit 0 in Trends berücksichtigt.
+- Scheduler skaliert initial mit `num_cpus::get().max(2)` Threads; Feintuning erfolgt nach Telemetrieauswertung.
+- Historische Metrikdateien werden via `serde(default)` auf neue Scheduler-Felder erweitert; keine Migration nötig.

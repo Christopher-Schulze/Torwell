@@ -14,3 +14,6 @@ npm test -- --runInBand
 
 echo "[run_all] Verifying TLS compliance"
 node scripts/tests/check_tls.js
+
+echo "[run_all] Running concurrency harness"
+scripts/tests/run_concurrency.sh
