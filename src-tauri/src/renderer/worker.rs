@@ -191,12 +191,14 @@ struct Vertex {
 }
 
 impl Vertex {
+    const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2],
+    };
+
     fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2],
-        }
+        Self::LAYOUT
     }
 }
 
@@ -425,7 +427,6 @@ impl RendererWorker {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends,
             dx12_shader_compiler: Default::default(),
-            flags: wgpu::InstanceFlags::empty(),
         });
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
@@ -576,7 +577,7 @@ impl RendererWorker {
         let slot_index = self.next_slot;
         self.next_slot = (self.next_slot + 1) % self.slots.len();
         if let Some(pending) = self.slots[slot_index].pending.take() {
-            self.finalize_pending(pending)?;
+            self.finalize_pending(pending, &self.device, &self.metrics)?;
         }
         let triple_depth = self.in_flight();
         let encode_start = Instant::now();
@@ -593,12 +594,10 @@ impl RendererWorker {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(request.descriptor.clear_color),
-                        store: wgpu::StoreOp::Store,
+                        store: true,
                     },
                 })],
                 depth_stencil_attachment: None,
-                occlusion_query_set: None,
-                timestamp_writes: None,
             });
             pass.set_pipeline(&self.pipeline);
             pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
@@ -687,7 +686,7 @@ impl RendererWorker {
         let mut collected = Vec::new();
         for slot in &mut self.slots {
             if let Some(pending) = slot.pending.take() {
-                match self.finalize_pending(pending) {
+                match self.finalize_pending(pending, &self.device, &self.metrics) {
                     Ok(metrics) => collected.push(metrics),
                     Err(err) => log::error!("finalize failed: {err}"),
                 }
@@ -696,7 +695,7 @@ impl RendererWorker {
         Ok(collected)
     }
 
-    fn finalize_pending(&mut self, mut pending: PendingFrame) -> Result<FrameMetrics> {
+    fn finalize_pending(&self, mut pending: PendingFrame, device: &wgpu::Device, metrics: &RendererMetricsState) -> Result<FrameMetrics> {
         let wait_start = Instant::now();
         self.device.poll(wgpu::MaintainBase::WaitForSubmissionIndex(
             pending.submission_index,
@@ -721,7 +720,7 @@ impl RendererWorker {
         self.last_completed_frame = Some(pending.frame_id);
         if let Some(mut capture) = pending.capture.take() {
             if let Err(e) =
-                pollster::block_on(capture.buffer.slice(..).map_async(wgpu::MapMode::Read))
+                pollster::block_on(capture.buffer.slice(..).map_async(wgpu::MapMode::Read, |_| {}))
             {
                 let err = Error::Gpu(format!("failed to map capture buffer: {e:?}"));
                 let _ = capture.responder.send(Err(err.clone()));

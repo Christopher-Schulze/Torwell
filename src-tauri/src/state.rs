@@ -15,10 +15,10 @@ use serde_json;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-use sysinfo::{PidExt, System, SystemExt};
+use sysinfo::System;
 #[cfg(target_os = "macos")]
 use tauri::NativeImage;
-use tauri::{AppHandle, CustomMenuItem, SystemTrayMenu};
+use tauri::{AppHandle, CustomMenuItem, SystemTrayMenu, Manager};
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::{Mutex, RwLock};
@@ -1073,9 +1073,8 @@ impl<C: TorClientBehavior> AppState<C> {
                 Err(_) => return,
             };
             sys.refresh_process(pid);
-            sys.refresh_networks();
-            let mut prev_net: u64 = sys
-                .networks()
+            let mut networks = sysinfo::Networks::new_with_refreshed_list();
+            let mut prev_net: u64 = networks
                 .iter()
                 .map(|(_, data)| data.total_received() + data.total_transmitted())
                 .sum();
@@ -1110,11 +1109,10 @@ impl<C: TorClientBehavior> AppState<C> {
                 };
 
                 sys.refresh_process(pid);
-                sys.refresh_networks();
+                networks.refresh();
                 let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
                 let cpu = sys.process(pid).map(|p| p.cpu_usage()).unwrap_or(0.0);
-                let net_total: u64 = sys
-                    .networks()
+                let net_total: u64 = networks
                     .iter()
                     .map(|(_, data)| data.total_received() + data.total_transmitted())
                     .sum();
@@ -1278,7 +1276,7 @@ impl<C: TorClientBehavior> AppState<C> {
     }
 
     /// Update the system tray menu with current status and warning if set
-    async fn update_tray_menu(&self) {
+    pub async fn update_tray_menu(&self) {
         if let Some(handle) = self.app_handle.lock().await.as_ref() {
             let menu = self.build_tray_menu().await;
             let tray = handle.tray_handle();

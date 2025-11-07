@@ -1,3 +1,4 @@
+pub mod icmp;
 mod commands;
 mod core;
 mod error;
@@ -18,7 +19,7 @@ use open;
 use secure_http::SecureHttpClient;
 use state::AppState;
 use std::time::Duration;
-use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu};
+use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu, Manager};
 
 pub fn run() {
     let http_client = tauri::async_runtime::block_on(async {

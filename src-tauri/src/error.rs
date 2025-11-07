@@ -134,6 +134,18 @@ impl From<std::io::Error> for Error {
     }
 }
 
+impl From<String> for Error {
+    fn from(err: String) -> Self {
+        Error::Io(err)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Self {
+        Error::Io(err.to_string())
+    }
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl From<tor_netdir::Error> for Error {

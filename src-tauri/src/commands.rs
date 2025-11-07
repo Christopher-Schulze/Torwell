@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::time::Duration;
 use std::time::Instant;
-use sysinfo::{PidExt, System, SystemExt};
+use sysinfo::System;
 use tauri::{Manager, State};
 use tokio::sync::Mutex;
 
@@ -173,9 +173,9 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                         Error::ConnectionFailed { step, source, .. } => {
                             (step.to_string(), source.clone())
                         }
-                        Error::Identity { step, source, .. }
-                        | Error::NetworkFailure { step, source, .. }
-                        | Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
+                        Error::Identity { step, source, .. } => (step.clone(), source.clone()),
+                        Error::NetworkFailure { step, source, .. } => (step.clone(), source.clone()),
+                        Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
                         _ => (String::new(), String::new()),
                     };
                     let _ = app_handle.emit_all(
@@ -260,9 +260,9 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                     Error::ConnectionFailed { step, source, .. } => {
                         (step.to_string(), source.clone())
                     }
-                    Error::Identity { step, source, .. }
-                    | Error::NetworkFailure { step, source, .. }
-                    | Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
+                    Error::Identity { step, source, .. } => (step.clone(), source.clone()),
+                    Error::NetworkFailure { step, source, .. } => (step.clone(), source.clone()),
+                    Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
                     _ => (String::new(), String::new()),
                 };
                 if let Err(e_emit) = app_handle.emit_all(
@@ -633,7 +633,7 @@ pub async fn get_metrics(state: State<'_, AppState>) -> Result<Metrics> {
     let mut sys = sysinfo::System::new();
     let pid = sysinfo::get_current_pid().map_err(|e| Error::Io(e.to_string()))?;
     sys.refresh_process(pid);
-    sys.refresh_networks();
+    let mut networks = sysinfo::Networks::new_with_refreshed_list();
     let mem = sys.process(pid).map(|p| p.memory()).unwrap_or(0);
     let cpu = sys.process(pid).map(|p| p.cpu_usage()).unwrap_or(0.0);
     state
@@ -980,7 +980,7 @@ pub async fn traceroute_host(
         .map_err(|err| match err {
             TaskError::Canceled => Error::Io("traceroute task cancelled".into()),
             TaskError::Panicked { message, .. } => Error::Io(message),
-        })??
+        })?
         .map_err(Error::Io)?;
     Ok(hops)
 }
