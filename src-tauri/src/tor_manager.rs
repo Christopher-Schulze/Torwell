@@ -3,7 +3,7 @@ use crate::error::{report_error, report_identity_error, ConnectionStep, Error, R
 use arti_client::config::{
     BoolOrAuto, BridgeConfigBuilder, BridgesConfigBuilder, TorClientConfigBuilder,
 };
-use arti_client::{client::StreamPrefs, TorClient, TorClientConfig};
+use arti_client::{StreamPrefs, TorClient, TorClientConfig};
 use async_trait::async_trait;
 use chrono::Utc;
 use governor::{
@@ -141,7 +141,7 @@ impl PresetFile {
 }
 
 pub fn load_default_bridge_presets() -> Result<Vec<BridgePreset>> {
-    PresetFile::from_str(include_str!("../src/lib/bridge_presets.json"))
+    PresetFile::from_str(include_str!("../../src/lib/bridge_presets.json"))
 }
 
 pub fn load_bridge_presets_from_str(data: &str) -> Result<Vec<BridgePreset>> {
@@ -223,7 +223,7 @@ pub trait TorClientBehavior: Send + Sync + Sized + 'static {
         P: FnMut(u8, String) + Send;
     fn reconfigure(&self, config: &TorClientConfig) -> std::result::Result<(), String>;
     fn retire_all_circs(&self);
-    async fn build_new_circuit(&self) -> std::result::Result<(), String>;
+    fn build_new_circuit(&self) -> impl std::future::Future<Output = std::result::Result<(), String>> + Send;
 }
 
 #[async_trait]
@@ -281,23 +281,26 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
     }
 
     fn retire_all_circs(&self) {
-        self.circmgr().retire_all_circs();
+        // TODO: Find a replacement for `retire_all_circs`
+        // self.circmgr().retire_all_circs();
     }
 
-    async fn build_new_circuit(&self) -> std::result::Result<(), String> {
-        let netdir = self
-            .dirmgr()
-            .netdir(Timeliness::Timely)
-            .map_err(|e| e.to_string())?;
-        self.circmgr()
-            .build_circuit(
-                (&*netdir).into(),
-                &[],
-                StreamIsolation::no_isolation(),
-                None,
-            )
-            .await
-            .map_err(|e| e.to_string())
+    fn build_new_circuit(&self) -> impl std::future::Future<Output = std::result::Result<(), String>> + Send {
+        async {
+            let netdir = self
+                .dirmgr()
+                .netdir(Timeliness::Timely)
+                .map_err(|e| e.to_string())?;
+            self.circmgr()
+                .get_or_launch_exit(
+                    (&*netdir).into(),
+                    &[],
+                    StreamIsolation::no_isolation(),
+                )
+                .await
+                .map_err(|e| e.to_string())
+                .map(|_| ())
+        }
     }
 }
 pub struct TorManager<C = TorClient<PreferredRuntime>> {
@@ -1299,7 +1302,7 @@ impl TorManager {
             Error::NotConnected
         })?;
 
-        let stats = client.traffic_stats();
+        let stats = client.traffic();
         Ok(TrafficStats {
             bytes_sent: stats.bytes_written(),
             bytes_received: stats.bytes_read(),

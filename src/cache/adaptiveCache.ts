@@ -1,4 +1,4 @@
-import { CacheConfig, CacheEntry, CacheStats, SnapshotEntry, EvictionPolicy } from './types';
+import type { CacheConfig, CacheEntry, CacheStats, SnapshotEntry, EvictionPolicy } from './types';
 
 export interface SetOptions {
   ttlMs?: number;

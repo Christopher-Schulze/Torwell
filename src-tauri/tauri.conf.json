@@ -63,7 +63,7 @@
       "active": true,
       "pubkey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       "endpoints": [
-        "${TAURI_UPDATE_URL}"
+        "https://example.com/update"
       ]
     }
   }}

@@ -53,6 +53,12 @@ crossbeam-channel = "0.5"
 blake3 = "1"
 bytemuck = { version = "1.14", features = ["derive"] }
 png = "0.17"
+crossbeam-deque = "0.8"
+hdrhistogram = "7.5"
+async-trait = "0.1"
+toml = "0.8"
+tor-geoip = "0.31.0"
+num_cpus = "1.0"
 
 [target.'cfg(windows)'.dependencies]
 winrt-notification = "0.5"
