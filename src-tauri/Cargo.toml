@@ -21,16 +21,16 @@ once_cell = "1"
 tauri = { version = "1.6.0", features = ["system-tray", "updater"] }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 regex = "1"
-arti-client = { version = "0.31.0", features = ["tokio", "rpc", "full", "experimental-api", "geoip"] }
-tor-rtcompat = { version = "0.31.0" }
+arti-client = { version = "*", features = ["tokio", "rpc", "full", "experimental-api", "geoip"] }
+tor-rtcompat = { version = "*" }
 tokio = { version = "1", features = ["full"] }
 futures-util = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
-tor-circmgr = "0.31.0"
-tor-dirmgr = "0.31.0"
-tor-netdir = "0.31.0"
-tor-proto = "0.31.0"
-tor-linkspec = "0.31.0"
+tor-circmgr = "*"
+tor-dirmgr = "*"
+tor-netdir = "*"
+tor-proto = "*"
+tor-linkspec = "*"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2", "json"] }
 rustls = "0.23"
 rustls-pemfile = "2"
@@ -57,7 +57,6 @@ crossbeam-deque = "0.8"
 hdrhistogram = "7.5"
 async-trait = "0.1"
 toml = "0.8"
-tor-geoip = "0.31.0"
 num_cpus = "1.0"
 
 [target.'cfg(windows)'.dependencies]

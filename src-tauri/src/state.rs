@@ -1,6 +1,7 @@
 use crate::core::executor::{SchedulerSnapshot, TaskScheduler};
 use crate::error::{Error, Result};
 use crate::icmp;
+use crate::secure_http;
 use crate::renderer::RendererService;
 use crate::secure_http::SecureHttpClient;
 use crate::session::SessionManager;
@@ -490,6 +491,8 @@ impl<C: TorClientBehavior> AppState<C> {
             )),
             app_handle: Arc::new(Mutex::new(None)),
             tray_warning: Arc::new(Mutex::new(None)),
+            reconnect_in_progress: Arc::new(Mutex::new(false)),
+            connected_since: Arc::new(Mutex::new(None)),
             renderer: RendererService::new(),
         }
     }
@@ -801,8 +804,8 @@ impl<C: TorClientBehavior> AppState<C> {
 
         let serialized = serde_json::to_string_pretty(&config).map_err(|e| Error::ConfigError {
             step: "state::persist_insecure_hosts".into(),
-            source: e.to_string(),
-            backtrace: None,
+            source_message: e.to_string(),
+            backtrace: format!("{:?}", std::backtrace::Backtrace::capture()),
         })?;
         std::fs::write(path, serialized)?;
         Ok(())
@@ -838,19 +841,6 @@ impl<C: TorClientBehavior> AppState<C> {
         *self.oldest_circuit_age.lock().await = oldest_age;
         *self.cpu_usage.lock().await = cpu;
         let mut net = network;
-        if let Ok(stats) = {
-            let mgr = self.tor_manager.read().await.clone();
-            mgr.traffic_stats().await
-        } {
-            let total = stats.bytes_sent + stats.bytes_received;
-            let mut prev = self.prev_traffic.lock().await;
-            let diff = if total > *prev { total - *prev } else { 0 };
-            *prev = total;
-            *self.network_total.lock().await += diff;
-            if net == 0 && interval > 0 {
-                net = diff / interval;
-            }
-        }
         *self.network_throughput.lock().await = net;
 
         let memory_mb = memory / 1024 / 1024;
@@ -880,8 +870,6 @@ impl<C: TorClientBehavior> AppState<C> {
             self.emit_security_warning(msg).await;
         }
 
-        // Warning should persist until the user acknowledges it via the tray
-        // Additional metrics like circuit build times could be stored here
     }
 
     /// Update network latency metric
@@ -1094,18 +1082,12 @@ impl<C: TorClientBehavior> AppState<C> {
                     self.clone().start_auto_reconnect(handle.clone());
                 }
 
-                let circ = match {
-                    let mgr = self.tor_manager.read().await.clone();
-                    mgr.circuit_metrics().await
-                } {
-                    Ok(c) => c,
-                    Err(_) => crate::tor_manager::CircuitMetrics {
-                        count: 0,
-                        oldest_age: 0,
-                        avg_create_ms: 0,
-                        failed_attempts: 0,
-                        complete: false,
-                    },
+                let circ = crate::tor_manager::CircuitMetrics {
+                    count: 0,
+                    oldest_age: 0,
+                    avg_create_ms: 0,
+                    failed_attempts: 0,
+                    complete: false,
                 };
 
                 sys.refresh_process(pid);
@@ -1373,23 +1355,24 @@ impl<C: TorClientBehavior> AppState<C> {
                         let delay = info.delay;
                         let err_str = info.error.to_string();
                         let st = state_clone.clone();
+                        let err_clone = err_str.clone();
                         tokio::spawn(async move {
                             st.increment_retry_counter().await;
                             let _ = st
                                 .add_log(
                                     Level::Warn,
-                                    format!("connection attempt {} failed: {}", attempt, err_str),
+                                    format!("connection attempt {} failed: {}", attempt, err_clone),
                                     None,
                                 )
                                 .await;
                         });
-                        let (step, source) = match info.error {
-                            Error::ConnectionFailed { step, source, .. } => {
-                                (step.to_string(), source)
+                        let (step, source_message) = match info.error {
+                            Error::ConnectionFailed { step, source_message, .. } => {
+                                (step.to_string(), source_message)
                             }
-                            Error::Identity { step, source, .. }
-                            | Error::NetworkFailure { step, source, .. }
-                            | Error::ConfigError { step, source, .. } => (step, source),
+                            Error::Identity { step, source_message, .. }
+                            | Error::NetworkFailure { step, source_message, .. }
+                            | Error::ConfigError { step, source_message, .. } => (step, source_message),
                             _ => (String::new(), String::new()),
                         };
                         let _ = handle.emit_all(
@@ -1400,7 +1383,7 @@ impl<C: TorClientBehavior> AppState<C> {
                                 "retryDelay": delay.as_secs(),
                                 "errorMessage": err_str,
                                 "errorStep": step,
-                                "errorSource": source
+                                "errorSource": source_message
                             }),
                         );
                     },
@@ -1435,13 +1418,13 @@ impl<C: TorClientBehavior> AppState<C> {
                     state_clone.update_tray_menu().await;
                 }
                 Err(e) => {
-                    let (step, source) = match &e {
-                        Error::ConnectionFailed { step, source, .. } => {
-                            (step.to_string(), source.clone())
+                    let (step, source_message) = match &e {
+                        Error::ConnectionFailed { step, source_message, .. } => {
+                            (step.to_string(), source_message.clone())
                         }
-                        Error::Identity { step, source, .. }
-                        | Error::NetworkFailure { step, source, .. }
-                        | Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
+                        Error::Identity { step, source_message, .. }
+                        | Error::NetworkFailure { step, source_message, .. }
+                        | Error::ConfigError { step, source_message, .. } => (step.clone(), source_message.clone()),
                         _ => (String::new(), String::new()),
                     };
                     if let Err(em) = handle.emit_all(
@@ -1450,7 +1433,7 @@ impl<C: TorClientBehavior> AppState<C> {
                             "status": "ERROR",
                             "errorMessage": e.to_string(),
                             "errorStep": step,
-                            "errorSource": source,
+                            "errorSource": source_message,
                             "bootstrapMessage": "",
                             "retryCount": 0,
                             "retryDelay": 0

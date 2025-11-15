@@ -2,27 +2,19 @@ use serde::Serialize;
 use std::fmt;
 use thiserror::Error;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Error)]
 pub enum ConnectionStep {
+    #[error("build_config")]
     BuildConfig,
+    #[error("bootstrap")]
     Bootstrap,
+    #[error("timeout")]
     Timeout,
+    #[error("retries_exceeded")]
     RetriesExceeded,
 }
 
-impl fmt::Display for ConnectionStep {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            ConnectionStep::BuildConfig => "build_config",
-            ConnectionStep::Bootstrap => "bootstrap",
-            ConnectionStep::Timeout => "timeout",
-            ConnectionStep::RetriesExceeded => "retries_exceeded",
-        };
-        write!(f, "{}", s)
-    }
-}
-
-#[derive(Debug, Serialize, Error, Clone)]
+#[derive(Debug, Error, Serialize, Clone)]
 pub enum Error {
     #[error("Tor Error: {0}")]
     Tor(String),
@@ -48,48 +40,44 @@ pub enum Error {
     #[error("Failed to bootstrap Tor: {0}")]
     Bootstrap(String),
 
-    #[error("Failed to obtain network directory: {0}")]
-    NetDir(String),
+    #[error("Failed to obtain network directory: {source_message}")]
+    NetDir { source_message: String },
 
-    #[error("Circuit operation failed: {0}")]
-    Circuit(String),
+    #[error("Circuit operation failed: {source_message}")]
+    Circuit { source_message: String },
 
-    #[error("Network error: {0}")]
-    Network(String),
+    #[error("Network error: {source_message}")]
+    Network { source_message: String },
 
-    #[error("connection failed during {step}: {source}")]
+    #[error("connection failed during {step}: {source_message}")]
     ConnectionFailed {
         step: ConnectionStep,
-        source: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        backtrace: Option<String>,
+        source_message: String,
+        backtrace: String,
     },
 
-    #[error("identity change failed during {step}: {source}")]
+    #[error("identity change failed during {step}: {source_message}")]
     Identity {
         step: String,
-        source: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        backtrace: Option<String>,
+        source_message: String,
+        backtrace: String,
     },
 
     #[error("Rate limit exceeded for {0}")]
     RateLimitExceeded(String),
 
-    #[error("configuration error during {step}: {source}")]
+    #[error("configuration error during {step}: {source_message}")]
     ConfigError {
         step: String,
-        source: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        backtrace: Option<String>,
+        source_message: String,
+        backtrace: String,
     },
 
-    #[error("network failure during {step}: {source}")]
+    #[error("network failure during {step}: {source_message}")]
     NetworkFailure {
         step: String,
-        source: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        backtrace: Option<String>,
+        source_message: String,
+        backtrace: String,
     },
 
     #[error("insecure HTTP access to {host}")]
@@ -99,8 +87,7 @@ pub enum Error {
     RetriesExceeded {
         attempts: u32,
         error: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        backtrace: Option<String>,
+        backtrace: String,
     },
 
     #[error("bridge parsing failed: {0}")]
@@ -114,11 +101,51 @@ pub enum Error {
 
     #[error("GPU error: {0}")]
     Gpu(String),
+
+    #[error("Reqwest error: {source_message}")]
+    Reqwest { source_message: String },
+
+    #[error("Arti client error: {source_message}")]
+    ArtiClient { source_message: String },
+}
+
+impl From<tor_netdir::Error> for Error {
+    fn from(err: tor_netdir::Error) -> Self {
+        Error::NetDir {
+            source_message: err.to_string(),
+        }
+    }
+}
+
+impl From<tor_circmgr::Error> for Error {
+    fn from(err: tor_circmgr::Error) -> Self {
+        Error::Circuit {
+            source_message: err.to_string(),
+        }
+    }
+}
+
+impl From<tor_proto::Error> for Error {
+    fn from(err: tor_proto::Error) -> Self {
+        Error::Network {
+            source_message: err.to_string(),
+        }
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Error::Reqwest {
+            source_message: err.to_string(),
+        }
+    }
 }
 
 impl From<arti_client::Error> for Error {
     fn from(err: arti_client::Error) -> Self {
-        Error::Network(err.to_string())
+        Error::ArtiClient {
+            source_message: err.to_string(),
+        }
     }
 }
 
@@ -136,6 +163,7 @@ impl From<std::io::Error> for Error {
 
 impl From<String> for Error {
     fn from(err: String) -> Self {
+        // This is a catch-all. Consider creating a more specific error variant if possible.
         Error::Io(err)
     }
 }
@@ -147,49 +175,3 @@ impl From<serde_json::Error> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-impl From<tor_netdir::Error> for Error {
-    fn from(err: tor_netdir::Error) -> Self {
-        Error::Network(err.to_string())
-    }
-}
-
-impl From<tor_circmgr::Error> for Error {
-    fn from(err: tor_circmgr::Error) -> Self {
-        Error::Circuit(err.to_string())
-    }
-}
-
-impl From<tor_proto::Error> for Error {
-    fn from(err: tor_proto::Error) -> Self {
-        Error::Network(err.to_string())
-    }
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(err: reqwest::Error) -> Self {
-        Error::Network(err.to_string())
-    }
-}
-
-/// Helper for consistent error logging and construction.
-pub fn report_error(step: &str, source: impl ToString) -> Error {
-    let msg = source.to_string();
-    log::error!("{step}: {msg}");
-    Error::NetworkFailure {
-        step: step.to_string(),
-        source: msg,
-        backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
-    }
-}
-
-/// Helper for errors originating from `new_identity` operations.
-pub fn report_identity_error(step: &str, source: impl ToString) -> Error {
-    let msg = source.to_string();
-    log::error!("{step}: {msg}");
-    Error::Identity {
-        step: step.to_string(),
-        source: msg,
-        backtrace: Some(format!("{:?}", std::backtrace::Backtrace::capture())),
-    }
-}
