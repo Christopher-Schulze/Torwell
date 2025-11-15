@@ -289,8 +289,10 @@ fn fetch_task(
         return Some(task);
     }
 
-    if let Some(task) = injector.steal_batch_and_pop(worker) {
-        return Some(task);
+    match injector.steal_batch_and_pop(worker) {
+        Steal::Success(task) => return Some(task),
+        Steal::Retry => return fetch_task(injector, stealers, worker, index), // Retry logic
+        Steal::Empty => {} // Continue to the next stealer
     }
 
     for (i, stealer) in stealers.iter().enumerate() {

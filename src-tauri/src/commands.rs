@@ -34,7 +34,7 @@ pub struct TrafficStats {
 /// Information about a single relay in the active circuit.
 ///
 /// `country` is an ISO 3166-1 alpha-2 code derived from the relay's IP address.
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct RelayInfo {
     pub nickname: String,
     pub ip_address: String,
@@ -159,23 +159,24 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                     let err = &info.error;
                     let err_str = err.to_string();
                     let sc = state_clone.clone();
+                    let err_clone = err_str.clone();
                     tokio::spawn(async move {
                         sc.increment_retry_counter().await;
                         let _ = sc
                             .add_log(
                                 Level::Warn,
-                                format!("connection attempt {} failed: {}", attempt, err_str),
+                                format!("connection attempt {} failed: {}", attempt, err_clone),
                                 None,
                             )
                             .await;
                     });
-                    let (step, source) = match err {
-                        Error::ConnectionFailed { step, source, .. } => {
-                            (step.to_string(), source.clone())
+                    let (step, source_message) = match err {
+                        Error::ConnectionFailed { step, source_message, .. } => {
+                            (step.to_string(), source_message.to_string())
                         }
-                        Error::Identity { step, source, .. } => (step.clone(), source.clone()),
-                        Error::NetworkFailure { step, source, .. } => (step.clone(), source.clone()),
-                        Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
+                        Error::Identity { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                        Error::NetworkFailure { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                        Error::ConfigError { step, source_message, .. } => (step.clone(), source_message.to_string()),
                         _ => (String::new(), String::new()),
                     };
                     let _ = app_handle.emit_all(
@@ -186,15 +187,15 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                             "retryDelay": delay.as_secs(),
                             "errorMessage": err_str,
                             "errorStep": step,
-                            "errorSource": source
+                            "errorSource": source_message
                         }),
                     );
-                    let mut detail_text = if !step.is_empty() && !source.is_empty() {
-                        format!("{step} ({source}) – {err_str}")
+                    let mut detail_text = if !step.is_empty() && !source_message.is_empty() {
+                        format!("{step} ({source_message}) – {err_str}")
                     } else if !step.is_empty() {
                         format!("{step} – {err_str}")
-                    } else if !source.is_empty() {
-                        format!("{source} – {err_str}")
+                    } else if !source_message.is_empty() {
+                        format!("{source_message} – {err_str}")
                     } else {
                         err_str.clone()
                     };
@@ -256,13 +257,13 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 state_clone.update_tray_menu().await;
             }
             Err(e) => {
-                let (step, source) = match &e {
-                    Error::ConnectionFailed { step, source, .. } => {
-                        (step.to_string(), source.clone())
+                let (step, source_message) = match &e {
+                    Error::ConnectionFailed { step, source_message, .. } => {
+                        (step.to_string(), source_message.to_string())
                     }
-                    Error::Identity { step, source, .. } => (step.clone(), source.clone()),
-                    Error::NetworkFailure { step, source, .. } => (step.clone(), source.clone()),
-                    Error::ConfigError { step, source, .. } => (step.clone(), source.clone()),
+                    Error::Identity { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                    Error::NetworkFailure { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                    Error::ConfigError { step, source_message, .. } => (step.clone(), source_message.to_string()),
                     _ => (String::new(), String::new()),
                 };
                 if let Err(e_emit) = app_handle.emit_all(
@@ -271,7 +272,7 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                         "status": "ERROR",
                         "errorMessage": e.to_string(),
                         "errorStep": step,
-                        "errorSource": source,
+                        "errorSource": source_message,
                         "bootstrapMessage": "",
                         "retryCount": 0, "retryDelay": 0
                     }),
@@ -280,12 +281,12 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
                 }
                 state_clone.mark_disconnected().await;
                 state_clone.update_tray_menu().await;
-                let detail_text = if step.is_empty() && source.is_empty() {
+                let detail_text = if step.is_empty() && source_message.is_empty() {
                     e.to_string()
-                } else if source.is_empty() {
+                } else if source_message.is_empty() {
                     format!("{} – {}", step, e)
                 } else {
-                    format!("{} ({}) – {}", step, source, e)
+                    format!("{} ({}) – {}", step, source_message, e)
                 };
                 state_clone
                     .record_connection_event(
@@ -710,11 +711,11 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
             Ok(())
         }
         Err(e) => {
-            let (step, source) = match &e {
-                Error::Identity { step, source, .. }
-                | Error::ConnectionFailed { step, source, .. }
-                | Error::NetworkFailure { step, source, .. }
-                | Error::ConfigError { step, source, .. } => (step.to_string(), source.clone()),
+            let (step, source_message) = match &e {
+                Error::Identity { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                Error::ConnectionFailed { step, source_message, .. } => (step.to_string(), source_message.to_string()),
+                Error::NetworkFailure { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                Error::ConfigError { step, source_message, .. } => (step.clone(), source_message.to_string()),
                 _ => (String::new(), String::new()),
             };
             if let Err(em) = app_handle.emit_all(
@@ -723,7 +724,7 @@ pub async fn new_identity(app_handle: tauri::AppHandle, state: State<'_, AppStat
                     "status": "ERROR",
                     "errorMessage": e.to_string(),
                     "errorStep": step,
-                    "errorSource": source
+                    "errorSource": source_message
                 }),
             ) {
                 log::error!("Failed to emit error status update: {}", em);
@@ -764,11 +765,11 @@ pub async fn build_circuit(app_handle: tauri::AppHandle, state: State<'_, AppSta
             Ok(())
         }
         Err(e) => {
-            let (step, source) = match &e {
-                Error::Identity { step, source, .. }
-                | Error::ConnectionFailed { step, source, .. }
-                | Error::NetworkFailure { step, source, .. }
-                | Error::ConfigError { step, source, .. } => (step.to_string(), source.clone()),
+            let (step, source_message) = match &e {
+                Error::Identity { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                Error::ConnectionFailed { step, source_message, .. } => (step.to_string(), source_message.to_string()),
+                Error::NetworkFailure { step, source_message, .. } => (step.clone(), source_message.to_string()),
+                Error::ConfigError { step, source_message, .. } => (step.clone(), source_message.to_string()),
                 _ => (String::new(), String::new()),
             };
             if let Err(em) = app_handle.emit_all(
@@ -777,7 +778,7 @@ pub async fn build_circuit(app_handle: tauri::AppHandle, state: State<'_, AppSta
                     "status": "ERROR",
                     "errorMessage": e.to_string(),
                     "errorStep": step,
-                    "errorSource": source
+                    "errorSource": source_message
                 }),
             ) {
                 log::error!("Failed to emit error status update: {}", em);

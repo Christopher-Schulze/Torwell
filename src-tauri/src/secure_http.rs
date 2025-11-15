@@ -8,7 +8,7 @@ use reqwest::{Client, ClientBuilder, Url};
 use rustls::crypto::ring::{self, cipher_suite};
 use rustls::crypto::{self, CryptoProvider};
 use rustls::pki_types::CertificateDer;
-use rustls::suites::CipherSuite;
+use rustls::CipherSuite;
 use rustls::version::{TLS12, TLS13};
 use rustls::{ClientConfig, RootCertStore};
 use rustls_pemfile as pemfile;
@@ -141,132 +141,6 @@ pub struct HsmKeyPair {
     pub cert: Vec<u8>,
 }
 
-#[cfg(feature = "hsm")]
-pub(crate) fn init_hsm() -> anyhow::Result<(Ctx, Option<HsmKeyPair>)> {
-    use base64::{engine::general_purpose, Engine as _};
-    use pkcs11::types::*;
-
-    let module = std::env::var("TORWELL_HSM_LIB")
-        .unwrap_or_else(|_| "/usr/lib/softhsm/libsofthsm2.so".into());
-    let slot_var = std::env::var("TORWELL_HSM_SLOT").unwrap_or_else(|_| "0".into());
-    let slot: CK_SLOT_ID = slot_var
-        .parse()
-        .map_err(|_| anyhow!("invalid TORWELL_HSM_SLOT value: {}", slot_var))?;
-    let pin = std::env::var("TORWELL_HSM_PIN").unwrap_or_else(|_| "1234".into());
-    if pin.is_empty() {
-        return Err(anyhow!("invalid HSM PIN"));
-    }
-    let key_label = std::env::var("TORWELL_HSM_KEY_LABEL").unwrap_or_else(|_| "tls-key".into());
-    let cert_label = std::env::var("TORWELL_HSM_CERT_LABEL").unwrap_or_else(|_| "tls-cert".into());
-
-    // Allow tests to bypass actual HSM access
-    if let (Ok(kb64), Ok(cb64)) = (
-        std::env::var("TORWELL_HSM_MOCK_KEY"),
-        std::env::var("TORWELL_HSM_MOCK_CERT"),
-    ) {
-        let mut ctx = Ctx::new(module)?;
-        ctx.initialize(None)?;
-        return Ok((
-            ctx,
-            Some(HsmKeyPair {
-                key: general_purpose::STANDARD.decode(kb64)?,
-                cert: general_purpose::STANDARD.decode(cb64)?,
-            }),
-        ));
-    }
-
-    let mut ctx = Ctx::new(module.clone())?;
-    ctx.initialize(None)?;
-
-    use pkcs11::errors::Error as Pkcs11Error;
-    let session = match ctx.open_session(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION, None, None) {
-        Ok(s) => s,
-        Err(Pkcs11Error::Pkcs11(rv))
-            if rv == CKR_SLOT_ID_INVALID || rv == CKR_TOKEN_NOT_PRESENT =>
-        {
-            return Err(anyhow!("invalid HSM slot: {}", slot));
-        }
-        Err(e) => return Err(anyhow!(e)),
-    };
-    if let Err(e) = ctx.login(session, CKU_USER, Some(&pin)) {
-        let _ = ctx.close_session(session);
-        return match e {
-            Pkcs11Error::Pkcs11(rv)
-                if rv == CKR_PIN_INCORRECT || rv == CKR_PIN_INVALID || rv == CKR_PIN_LEN_RANGE =>
-            {
-                Err(anyhow!("invalid HSM PIN"))
-            }
-            other => Err(anyhow!(other)),
-        };
-    }
-
-    let mut tmpl = vec![
-        CK_ATTRIBUTE::new(CKA_CLASS).with_ck_ulong(&CKO_PRIVATE_KEY),
-        CK_ATTRIBUTE::new(CKA_LABEL).with_string(&key_label),
-    ];
-    ctx.find_objects_init(session, &tmpl)?;
-    let objs = ctx.find_objects(session, 1)?;
-    ctx.find_objects_final(session)?;
-    let key = if let Some(obj) = objs.get(0) {
-        let mut attr = vec![CK_ATTRIBUTE::new(CKA_VALUE)];
-        let (_, attrs) = ctx.get_attribute_value(session, *obj, &mut attr)?;
-        attrs[0].get_bytes().unwrap_or_default()
-    } else {
-        Vec::new()
-    };
-
-    let mut tmpl = vec![
-        CK_ATTRIBUTE::new(CKA_CLASS).with_ck_ulong(&CKO_CERTIFICATE),
-        CK_ATTRIBUTE::new(CKA_LABEL).with_string(&cert_label),
-    ];
-    ctx.find_objects_init(session, &tmpl)?;
-    let objs = ctx.find_objects(session, 1)?;
-    ctx.find_objects_final(session)?;
-    let cert = if let Some(obj) = objs.get(0) {
-        let mut attr = vec![CK_ATTRIBUTE::new(CKA_VALUE)];
-        let (_, attrs) = ctx.get_attribute_value(session, *obj, &mut attr)?;
-        attrs[0].get_bytes().unwrap_or_default()
-    } else {
-        Vec::new()
-    };
-
-    let _ = ctx.logout(session);
-    let _ = ctx.close_session(session);
-
-    Ok((ctx, Some(HsmKeyPair { key, cert })))
-}
-
-#[cfg(feature = "hsm")]
-pub(crate) fn finalize_hsm(mut ctx: Ctx) {
-    let _ = ctx.finalize();
-}
-
-fn strong_provider(min_tls: reqwest::tls::Version) -> CryptoProvider {
-    let mut provider = ring::default_provider();
-    provider.cipher_suites.retain(|suite| {
-        let strong = matches!(
-            suite.common().suite,
-            CipherSuite::TLS13_AES_256_GCM_SHA384
-                | CipherSuite::TLS13_CHACHA20_POLY1305_SHA256
-                | CipherSuite::TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-                | CipherSuite::TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
-                | CipherSuite::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-                | CipherSuite::TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
-        );
-        if !strong {
-            return false;
-        }
-
-        let has_tls13 = suite.common().versions.contains(&TLS13);
-        let has_tls12 = suite.common().versions.contains(&TLS12);
-        match min_tls {
-            reqwest::tls::Version::TLS_1_3 => has_tls13,
-            _ => has_tls12 || has_tls13,
-        }
-    });
-    provider
-}
-
 pub struct SecureHttpClient {
     client: Arc<Mutex<Client>>,
     cert_path: String,
@@ -275,7 +149,7 @@ pub struct SecureHttpClient {
     min_tls: reqwest::tls::Version,
     warning_cb: Arc<Mutex<Option<Box<dyn Fn(String) + Send + Sync>>>>,
     pending_warnings: Arc<Mutex<Vec<String>>>,
-    update_failures: Arc<Mutex<u32>>,
+    pub update_failures: Arc<Mutex<u32>>,
     update_backoff: Arc<Mutex<Option<Duration>>>,
     worker_urls: Arc<Mutex<VecDeque<String>>>,
     worker_token: Arc<Mutex<Option<String>>>,
@@ -313,7 +187,7 @@ impl SecureHttpClient {
 
     fn build_tls_config_with_min_tls<P: AsRef<Path>>(
         path: P,
-        min_tls: reqwest::tls::Version,
+        _min_tls: reqwest::tls::Version,
     ) -> anyhow::Result<ClientConfig> {
         #[cfg(feature = "hsm")]
         let hsm = match init_hsm() {
@@ -328,41 +202,11 @@ impl SecureHttpClient {
             pemfile::certs(&mut reader).collect::<Result<_, _>>()?;
         store.add_parsable_certificates(certs);
 
-        let builder = ClientConfig::builder_with_provider(Arc::new(strong_provider(min_tls)));
-        let builder = if matches!(min_tls, reqwest::tls::Version::TLS_1_3) {
-            builder.with_protocol_versions(&[&TLS13])?
-        } else {
-            builder.with_protocol_versions(&[&TLS12, &TLS13])?
-        };
+        let builder = ClientConfig::builder()
+            .with_root_certificates(store);
+        let config = builder
+            .with_no_client_auth();
 
-        let mut config = if let Some((ctx, pair)) = hsm {
-            let mut cfg = if let Some(keys) = pair {
-                use rustls::pki_types::{CertificateDer, PrivateKeyDer};
-                if !keys.key.is_empty() && !keys.cert.is_empty() {
-                    let certs = vec![CertificateDer::from(keys.cert).into_owned()];
-                    let key = PrivateKeyDer::try_from(keys.key)?;
-                    builder
-                        .with_root_certificates(store.clone())
-                        .with_client_auth_cert(certs, key)?
-                } else {
-                    builder
-                        .with_root_certificates(store.clone())
-                        .with_no_client_auth()
-                }
-            } else {
-                builder
-                    .with_root_certificates(store.clone())
-                    .with_no_client_auth()
-            };
-            finalize_hsm(ctx);
-            cfg
-        } else {
-            builder
-                .with_root_certificates(store.clone())
-                .with_no_client_auth()
-        };
-
-        config.enable_ocsp_stapling = true;
         Ok(config)
     }
 
@@ -591,28 +435,26 @@ impl SecureHttpClient {
     async fn normalize_request_url(&self, url: &str) -> Result<Url, Error> {
         let mut parsed = Url::parse(url).map_err(|e| Error::ConfigError {
             step: "secure_http::get_with_hsts_check".into(),
-            source: format!("invalid url {url}: {e}"),
-            backtrace: None,
+            source_message: format!("invalid url {}: {}", url, e),
+            backtrace: format!("{:?}", std::backtrace::Backtrace::capture()),
         })?;
 
-        self.enforce_transport_policy(url, &mut parsed).await?;
-
-        Ok(parsed)
+        self.enforce_transport_policy(url, &mut parsed).await
     }
 
     async fn enforce_transport_policy(
         &self,
         original: &str,
         parsed: &mut Url,
-    ) -> Result<(), Error> {
+    ) -> Result<Url, Error> {
         if parsed.scheme() != "http" {
-            return Ok(());
+            return Ok(parsed.clone());
         }
 
         let host = parsed.host_str().ok_or_else(|| Error::ConfigError {
             step: "secure_http::get_with_hsts_check".into(),
-            source: format!("missing host for url {original}"),
-            backtrace: None,
+            source_message: format!("missing host for url {}", original),
+            backtrace: format!("{:?}", std::backtrace::Backtrace::capture()),
         })?;
 
         let port = parsed.port();
@@ -636,7 +478,7 @@ impl SecureHttpClient {
             parsed.set_scheme("https").ok();
         }
 
-        Ok(())
+        Ok(parsed.clone())
     }
 
     /// Initialize a client using settings from a configuration file and

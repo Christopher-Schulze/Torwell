@@ -24,6 +24,7 @@ use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu, Manager
 pub fn run() {
     let http_client = tauri::async_runtime::block_on(async {
         SecureHttpClient::init(secure_http::DEFAULT_CONFIG_PATH, None, None, None, None)
+            .await
             .expect("failed to initialize http client")
     });
     let app_state = AppState::new(http_client.clone());
@@ -81,7 +82,7 @@ pub fn run() {
                 }
                 "connect" => {
                     let state = app.state::<AppState>();
-                    let handle = app.handle();
+                    let handle = app.clone();
                     tauri::async_runtime::spawn(async move {
                         if let Err(e) = commands::connect(handle.clone(), state.clone()).await {
                             log::error!("tray connect failed: {}", e);
@@ -91,7 +92,7 @@ pub fn run() {
                 }
                 "disconnect" => {
                     let state = app.state::<AppState>();
-                    let handle = app.handle();
+                    let handle = app.clone();
                     tauri::async_runtime::spawn(async move {
                         if let Err(e) = commands::disconnect(handle.clone(), state.clone()).await {
                             log::error!("tray disconnect failed: {}", e);
@@ -101,7 +102,7 @@ pub fn run() {
                 }
                 "reconnect" => {
                     let state = app.state::<AppState>();
-                    let handle = app.handle();
+                    let handle = app.clone();
                     tauri::async_runtime::spawn(async move {
                         if let Err(e) = commands::reconnect(handle.clone(), state.clone()).await {
                             log::error!("tray reconnect failed: {}", e);
@@ -117,7 +118,7 @@ pub fn run() {
                     }
                 }
                 "show_dashboard" => {
-                    let handle = app.handle();
+                    let handle = app.clone();
                     tauri::async_runtime::spawn(async move {
                         let _ = commands::show_dashboard(handle).await;
                     });
@@ -179,7 +180,9 @@ pub fn run() {
             let renderer = state.renderer_service();
             renderer.attach_handle(handle.clone());
             renderer.start_render_loop();
-            state.start_metrics_task(handle.clone());
+            tokio::spawn(async move {
+                state.load_metrics(None);
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

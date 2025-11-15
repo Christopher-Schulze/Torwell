@@ -264,14 +264,14 @@ impl RendererService {
         let (tx, rx) = oneshot::channel();
         self.inner.send(RendererCommand::Flush(tx))?;
         rx.await
-            .map_err(|_| Error::Gpu("renderer worker dropped".into()))??
+            .map_err(|_| Error::Gpu("renderer worker dropped".into()))?
     }
 
     pub fn flush_blocking(&self) -> Result<Vec<FrameMetrics>> {
         let (tx, rx) = oneshot::channel();
         self.inner.send(RendererCommand::Flush(tx))?;
         rx.blocking_recv()
-            .map_err(|_| Error::Gpu("renderer worker dropped".into()))??
+            .map_err(|_| Error::Gpu("renderer worker dropped".into()))?
     }
 
     pub fn resize(&self, width: u32, height: u32) -> Result<()> {
@@ -448,7 +448,7 @@ impl RendererWorker {
                 limits: wgpu::Limits::default(),
             },
             None,
-        ))?;
+        )).map_err(|e| Error::Gpu(e.to_string()))?;
         let mut cache = ShaderCache::new()?;
         let modules = cache.warm_up(&device, &SHADER_SOURCES)?;
         let shader = modules
@@ -577,7 +577,7 @@ impl RendererWorker {
         let slot_index = self.next_slot;
         self.next_slot = (self.next_slot + 1) % self.slots.len();
         if let Some(pending) = self.slots[slot_index].pending.take() {
-            self.finalize_pending(pending, &self.device, &self.metrics)?;
+            let _ = self.finalize_pending(pending);
         }
         let triple_depth = self.in_flight();
         let encode_start = Instant::now();
@@ -594,10 +594,11 @@ impl RendererWorker {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(request.descriptor.clear_color),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
+                ..Default::default()
             });
             pass.set_pipeline(&self.pipeline);
             pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
@@ -686,7 +687,7 @@ impl RendererWorker {
         let mut collected = Vec::new();
         for slot in &mut self.slots {
             if let Some(pending) = slot.pending.take() {
-                match self.finalize_pending(pending, &self.device, &self.metrics) {
+                match self.finalize_pending(pending) {
                     Ok(metrics) => collected.push(metrics),
                     Err(err) => log::error!("finalize failed: {err}"),
                 }
@@ -695,7 +696,7 @@ impl RendererWorker {
         Ok(collected)
     }
 
-    fn finalize_pending(&self, mut pending: PendingFrame, device: &wgpu::Device, metrics: &RendererMetricsState) -> Result<FrameMetrics> {
+    fn finalize_pending(&mut self, mut pending: PendingFrame) -> Result<FrameMetrics> {
         let wait_start = Instant::now();
         self.device.poll(wgpu::MaintainBase::WaitForSubmissionIndex(
             pending.submission_index,
@@ -719,9 +720,13 @@ impl RendererWorker {
         };
         self.last_completed_frame = Some(pending.frame_id);
         if let Some(mut capture) = pending.capture.take() {
-            if let Err(e) =
-                pollster::block_on(capture.buffer.slice(..).map_async(wgpu::MapMode::Read, |_| {}))
-            {
+            let buffer_slice = capture.buffer.slice(..);
+            let (tx, rx) = oneshot::channel();
+            buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+                let _ = tx.send(result);
+            });
+            self.device.poll(wgpu::MaintainBase::Wait);
+            if let Err(e) = pollster::block_on(rx).unwrap() {
                 let err = Error::Gpu(format!("failed to map capture buffer: {e:?}"));
                 let _ = capture.responder.send(Err(err.clone()));
                 if let Some(responder) = pending.respond_to.take() {
@@ -729,7 +734,6 @@ impl RendererWorker {
                 }
                 return Err(err);
             }
-            self.device.poll(wgpu::MaintainBase::Wait);
             let view = capture.buffer.slice(..).get_mapped_range();
             let mut pixels = vec![0u8; (capture.width * capture.height * 4) as usize];
             for y in 0..capture.height as usize {
