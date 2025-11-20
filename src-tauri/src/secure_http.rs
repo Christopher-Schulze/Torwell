@@ -156,6 +156,7 @@ pub struct SecureHttpClient {
     update_task: Mutex<Option<JoinHandle<()>>>,
     security_warning_limiter: Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>,
     scheduler: TaskScheduler,
+    proxy_url: Arc<Mutex<Option<String>>>,
 }
 
 impl Clone for SecureHttpClient {
@@ -175,6 +176,7 @@ impl Clone for SecureHttpClient {
             update_task: Mutex::new(None),
             security_warning_limiter: self.security_warning_limiter.clone(),
             scheduler: self.scheduler.clone(),
+            proxy_url: self.proxy_url.clone(),
         }
     }
 }
@@ -213,6 +215,7 @@ impl SecureHttpClient {
     fn build_client<P: AsRef<Path>>(
         path: P,
         min_tls: reqwest::tls::Version,
+        proxy_url: Option<String>,
     ) -> anyhow::Result<Client> {
         // Enforce TLS 1.2 as the minimum supported protocol regardless of
         // external configuration. Lower values are bumped to TLS 1.2.
@@ -225,12 +228,17 @@ impl SecureHttpClient {
 
         let config = Self::build_tls_config_with_min_tls(&path, enforced)?;
 
-        let client = ClientBuilder::new()
+        let mut builder = ClientBuilder::new()
             .use_preconfigured_tls(config)
             .https_only(true)
-            .min_tls_version(enforced)
-            .build()?;
-        Ok(client)
+            .min_tls_version(enforced);
+
+        if let Some(url) = proxy_url {
+            let proxy = reqwest::Proxy::all(&url)?;
+            builder = builder.proxy(proxy);
+        }
+
+        Ok(builder.build()?)
     }
 
     pub fn new<P: AsRef<Path>>(cert_path: P) -> anyhow::Result<Self> {
@@ -251,7 +259,7 @@ impl SecureHttpClient {
         min_tls: reqwest::tls::Version,
     ) -> anyhow::Result<Self> {
         let path = cert_path.as_ref().to_owned();
-        let client = Self::build_client(&path, min_tls)?;
+        let client = Self::build_client(&path, min_tls, None)?;
         Ok(Self {
             client: Arc::new(Mutex::new(client)),
             cert_path: path.to_string_lossy().to_string(),
@@ -269,11 +277,17 @@ impl SecureHttpClient {
                 NonZeroU32::new(6).unwrap(),
             ))),
             scheduler: TaskScheduler::global(),
+            proxy_url: Arc::new(Mutex::new(None)),
         })
     }
 
     pub fn new_default() -> anyhow::Result<Self> {
         Self::new(DEFAULT_CERT_PATH)
+    }
+
+    pub async fn set_proxy(&self, url: Option<String>) -> anyhow::Result<()> {
+        *self.proxy_url.lock().await = url;
+        self.reload_certificates().await
     }
 
     /// Provide a callback to emit security warnings
@@ -662,10 +676,11 @@ impl SecureHttpClient {
     pub async fn reload_certificates(&self) -> anyhow::Result<()> {
         let path = self.cert_path.clone();
         let min_tls = self.min_tls;
+        let proxy = self.proxy_url.lock().await.clone();
         let scheduler = self.scheduler.clone();
         let client = scheduler
             .spawn("reload_certificates", move || {
-                Self::build_client(&path, min_tls)
+                Self::build_client(&path, min_tls, proxy)
             })
             .await
             .map_err(|err| Self::map_scheduler_error("reload_certificates", err))??;

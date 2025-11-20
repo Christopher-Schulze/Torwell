@@ -248,6 +248,16 @@ pub async fn perform_connect(app_handle: tauri::AppHandle, state: AppState) -> R
                         None,
                     )
                     .await;
+
+                if let Some(port) = mgr.get_socks_port().await {
+                    let proxy_url = format!("socks5h://127.0.0.1:{}", port);
+                    if let Err(e) = state_clone.http_client.set_proxy(Some(proxy_url)).await {
+                        log::error!("Failed to set proxy: {}", e);
+                    } else {
+                        log::info!("Configured http client with proxy at 127.0.0.1:{}", port);
+                    }
+                }
+
                 state_clone.update_tray_menu().await;
             }
             Err(e) => {
@@ -332,6 +342,10 @@ pub async fn perform_disconnect(app_handle: tauri::AppHandle, state: AppState) -
     {
         let mgr = state.tor_manager.read().await.clone();
         mgr.disconnect().await?;
+    }
+
+    if let Err(e) = state.http_client.set_proxy(None).await {
+        log::error!("Failed to clear proxy: {}", e);
     }
 
     state.mark_disconnected().await;

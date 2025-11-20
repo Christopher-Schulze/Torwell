@@ -4,12 +4,12 @@ Diese Datei dient als zentrale Steuerungseinheit für die Behebung aller identif
 
 ## Status-Legende
 - 🔴 **Offen**: Problem identifiziert, noch nicht bearbeitet.
-- 🟡 **In Arbeit**: Wird gerade behoben.
+- 🟡 **In Arbeit**: Wird gerade behoben/analysiert.
 - 🟢 **Erledigt**: Fix implementiert und verifiziert.
 
 ## Aufgaben-Liste
 
-### 1. Rust Backend & Dependencies
+### 1. Rust Backend & Dependencies (Basics)
 | ID | Titel | Status | Ref-File | Prio |
 |----|-------|--------|----------|------|
 | 001 | **Backend Build Errors** | 🟢 | `todo-001-backend-build.md` | Hoch |
@@ -20,6 +20,13 @@ Diese Datei dient als zentrale Steuerungseinheit für die Behebung aller identif
 | ID | Titel | Status | Ref-File | Prio |
 |----|-------|--------|----------|------|
 | 004 | **System Dependencies (Linux)** | 🟡 | `todo-004-system-deps.md` | Mittel |
+
+### 3. Advanced Analysis (Architecture & Performance)
+| ID | Titel | Status | Ref-File | Prio |
+|----|-------|--------|----------|------|
+| 005 | **WebGPU Architecture & ZeroCopy** | 🟢 | `todo-005-webgpu-analysis.md` | Hoch |
+| 006 | **Arti Integration & Network Stack** | 🟢 | `todo-006-arti-network.md` | Hoch |
+| 007 | **Future Improvements (Persistence, PT)** | 🔴 | `todo-007-improvements.md` | Low |
 
 ---
 *Zuletzt aktualisiert: Heute*
