@@ -3,6 +3,7 @@
   import { get } from "svelte/store";
   import { X, Edit3, Plus } from "lucide-svelte";
   import { uiStore } from "$lib/stores/uiStore";
+  import { torStore } from "$lib/stores/torStore";
   import { invoke } from "$lib/api";
   import TorrcEditorModal from "./TorrcEditorModal.svelte";
   import WorkerSetupModal from "./WorkerSetupModal.svelte";
@@ -465,6 +466,14 @@
     includeBridgesInTorrc = selectedBridges.length > 0;
     void refreshTorrcPreview();
   }
+
+  function toggleSystemProxy(event: Event) {
+    const target = event.target as HTMLInputElement;
+    // Optimistic UI handled by store, but we invoke command
+    invoke("toggle_system_proxy", { enabled: target.checked }).catch(e => {
+      console.error("Failed to toggle system proxy", e);
+    });
+  }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
@@ -501,6 +510,26 @@
         </button>
       </div>
       <div class="overflow-y-auto flex-grow">
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">
+            Connectivity
+          </h3>
+          <label class="flex items-center gap-3 p-3 bg-black/40 rounded-xl border border-white/10 cursor-pointer hover:bg-white/5 transition-colors">
+            <input
+              type="checkbox"
+              checked={$torStore.systemProxyEnabled}
+              on:change={toggleSystemProxy}
+              class="h-5 w-5 rounded border-white/40 bg-black/50 text-emerald-400 focus:ring-emerald-400/50"
+            />
+            <div>
+              <p class="text-sm font-medium text-white">System-wide Routing (VPN Mode)</p>
+              <p class="text-xs text-gray-300 mt-0.5">
+                Route all system traffic through Tor via SOCKS5 proxy (port 9150) when connected.
+              </p>
+            </div>
+          </label>
+        </div>
+
         <!-- Torrc Configuration -->
         <div class="mb-8">
           <h3 class="text-lg font-semibold mb-4 border-b border-white/10 pb-2">

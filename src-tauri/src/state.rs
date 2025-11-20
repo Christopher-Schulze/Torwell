@@ -248,6 +248,8 @@ pub struct AppState<C: TorClientBehavior = TorClient<PreferredRuntime>> {
     pub connected_since: Arc<Mutex<Option<DateTime<Utc>>>>,
     /// GPU renderer service handle
     pub renderer: RendererService,
+    /// Flag indicating if system proxy should be enabled on connect
+    pub system_proxy_enabled: Arc<Mutex<bool>>,
 }
 
 impl<C: TorClientBehavior> Default for AppState<C> {
@@ -371,6 +373,7 @@ impl<C: TorClientBehavior> Default for AppState<C> {
             reconnect_in_progress: Arc::new(Mutex::new(false)),
             connected_since: Arc::new(Mutex::new(None)),
             renderer: RendererService::new(),
+            system_proxy_enabled: Arc::new(Mutex::new(true)), // Default to true as per user preference
         }
     }
 }
@@ -494,7 +497,16 @@ impl<C: TorClientBehavior> AppState<C> {
             reconnect_in_progress: Arc::new(Mutex::new(false)),
             connected_since: Arc::new(Mutex::new(None)),
             renderer: RendererService::new(),
+            system_proxy_enabled: Arc::new(Mutex::new(true)),
         }
+    }
+
+    pub async fn set_system_proxy_enabled(&self, enabled: bool) {
+        *self.system_proxy_enabled.lock().await = enabled;
+    }
+
+    pub async fn is_system_proxy_enabled(&self) -> bool {
+        *self.system_proxy_enabled.lock().await
     }
 
     pub fn renderer_service(&self) -> RendererService {

@@ -25,6 +25,7 @@ export interface TorState {
   pingMs: number | undefined;
   metrics: MetricPoint[];
   lastTransition: string | null;
+  systemProxyEnabled: boolean;
 }
 
 export interface MetricPoint {
@@ -57,6 +58,7 @@ function createTorStore() {
     pingMs: undefined,
     metrics: [],
     lastTransition: null,
+    systemProxyEnabled: true,
   };
 
   const listeners: Promise<UnlistenFn>[] = [];
@@ -166,7 +168,14 @@ function createTorStore() {
       });
     });
 
-    listeners.push(metricsListener, securityListener, statusListener);
+    const proxyListener = listen<Record<string, any>>("system-proxy-update", (event) => {
+        const payload = event.payload ?? {};
+        if (typeof payload.enabled === "boolean") {
+            update((state) => ({ ...state, systemProxyEnabled: payload.enabled }));
+        }
+    });
+
+    listeners.push(metricsListener, securityListener, statusListener, proxyListener);
 
     return () => {
       listeners.splice(0).forEach(async (promise) => {

@@ -448,9 +448,40 @@ impl<C: TorClientBehavior> TorManager<C> {
     }
 
     async fn build_config(&self) -> Result<TorClientConfig> {
-        let torrc = self.torrc_config.lock().await.clone();
+        // Warning check for obfs4proxy
+        if let Ok(path_var) = std::env::var("PATH") {
+            let found = std::env::split_paths(&path_var)
+                .any(|p| p.join("obfs4proxy").exists() || p.join("obfs4proxy.exe").exists());
+            if !found {
+                log::warn!("obfs4proxy binary not found in PATH. Obfuscation may fail.");
+            }
+        }
 
-        let builder = if torrc.trim().is_empty() {
+        let mut torrc = self.torrc_config.lock().await.clone();
+        let bridges = self.get_bridges().await;
+
+        // Inject bridges into torrc string to avoid builder API complexity
+        if !bridges.is_empty() {
+            torrc.push_str("\n[bridges]\n");
+            torrc.push_str("enabled = true\n");
+            torrc.push_str("bridges = [\n");
+            for bridge in &bridges {
+                // Escape quotes if necessary, but assuming bridge lines are somewhat sane
+                torrc.push_str(&format!("  \"{}\",\n", bridge.replace('"', "\\\"")));
+            }
+            torrc.push_str("]\n");
+
+            // Add default obfs4 transport if needed
+            // We check if any bridge line contains "obfs4"
+            if bridges.iter().any(|b| b.contains("obfs4")) {
+                torrc.push_str("\n[[bridges.transports]]\n");
+                torrc.push_str("protocols = [\"obfs4\"]\n");
+                torrc.push_str("path = \"obfs4proxy\"\n");
+                torrc.push_str("run_on_startup = true\n");
+            }
+        }
+
+        let mut builder = if torrc.trim().is_empty() {
             TorClientConfigBuilder::default()
         } else {
             let val: toml::Value = toml::from_str(&torrc).map_err(|e| Error::ConfigError {
@@ -465,6 +496,20 @@ impl<C: TorClientBehavior> TorManager<C> {
             })?;
             cfg
         };
+
+        // Apply optimizations
+        builder.address_filter().allow_local_addrs(true);
+
+        // Aggressive timeouts for faster failure/recovery
+        builder.circuit_timing().request_timeout(std::time::Duration::from_secs(10));
+        builder.circuit_timing().max_dirtiness(std::time::Duration::from_secs(60 * 10));
+
+        // Configure Preemptive Circuits (if supported by builder, otherwise we rely on manual prewarm)
+        // Arti 0.36 might not expose this directly in the stable builder yet, but we can try.
+        // If not, our manual `prewarm_circuits` handles the "warming".
+
+        // Note: Transports are now injected via the torrc string manipulation above
+        // to avoid builder API version mismatches.
 
         builder.build().map_err(|e| Error::ConfigError {
             step: "config_build".into(),
