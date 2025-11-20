@@ -34,7 +34,7 @@ static GEOIP_DB: Lazy<Arc<GeoipDb>> = Lazy::new(|| {
     {
         GEOIP_INIT_COUNT.fetch_add(1, Ordering::SeqCst);
     }
-    Arc::new(GeoipDb::new_embedded().expect("Failed to load embedded GeoIP DB"))
+    GeoipDb::new_embedded()
 });
 
 fn load_geoip_db(dir: &Path) -> Option<Arc<GeoipDb>> {

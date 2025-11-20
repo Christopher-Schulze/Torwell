@@ -60,10 +60,8 @@
       "iconAsTemplate": true
     },
     "updater": {
-      "active": true,
-      "pubkey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-      "endpoints": [
-        "https://example.com/update"
-      ]
+      "active": false,
+      "pubkey": null,
+      "endpoints": []
     }
   }}
