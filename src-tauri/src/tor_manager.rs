@@ -223,6 +223,7 @@ pub trait TorClientBehavior: Send + Sync + Sized + 'static {
         P: FnMut(u8, String) + Send;
     fn retire_all_circs(&self);
     fn build_new_circuit(&self) -> impl std::future::Future<Output = std::result::Result<(), String>> + Send;
+    async fn launch_socks(&self, port: u16) -> std::result::Result<u16, String>;
 }
 
 #[async_trait]
@@ -288,9 +289,16 @@ impl TorClientBehavior for TorClient<PreferredRuntime> {
             Ok(())
         }
     }
+
+    async fn launch_socks(&self, port: u16) -> std::result::Result<u16, String> {
+        crate::socks::start_socks_proxy(self.clone(), port)
+            .await
+            .map_err(|e| e.to_string())
+    }
 }
 pub struct TorManager<C = TorClient<PreferredRuntime>> {
     client: Arc<Mutex<Option<C>>>,
+    socks_port: Arc<Mutex<Option<u16>>>,
     isolation_tokens: Arc<Mutex<HashMap<String, (IsolationToken, std::time::Instant)>>>,
     exit_country: Arc<Mutex<Option<CountryCode>>>,
     entry_country: Arc<Mutex<Option<CountryCode>>>,
@@ -307,6 +315,7 @@ impl<C> Clone for TorManager<C> {
     fn clone(&self) -> Self {
         Self {
             client: Arc::clone(&self.client),
+            socks_port: Arc::clone(&self.socks_port),
             isolation_tokens: Arc::clone(&self.isolation_tokens),
             exit_country: Arc::clone(&self.exit_country),
             entry_country: Arc::clone(&self.entry_country),
@@ -390,6 +399,7 @@ impl<C: TorClientBehavior> TorManager<C> {
 
         let manager = Self {
             client: Arc::new(Mutex::new(None)),
+            socks_port: Arc::new(Mutex::new(None)),
             isolation_tokens: Arc::new(Mutex::new(HashMap::new())),
             exit_country: Arc::new(Mutex::new(None)),
             entry_country: Arc::new(Mutex::new(None)),
@@ -724,7 +734,14 @@ impl<C: TorClientBehavior> TorManager<C> {
         let tor_client = C::create_bootstrapped_with_progress(config, progress)
             .await
             .map_err(|e| log_and_convert_error(ConnectionStep::Bootstrap, e))?;
+        // Start SOCKS listener
+        let port = tor_client
+            .launch_socks(0)
+            .await
+            .map_err(|e| log_and_convert_error(ConnectionStep::Bootstrap, format!("failed to launch socks: {}", e)))?;
+
         *self.client.lock().await = Some(tor_client);
+        *self.socks_port.lock().await = Some(port);
         self.spawn_circuit_prewarm();
         Ok(())
     }
@@ -1185,6 +1202,10 @@ impl TorManager {
         })
     }
 
+    pub async fn get_socks_port(&self) -> Option<u16> {
+        *self.socks_port.lock().await
+    }
+
     /// Return the total number of bytes sent and received through the Tor client.
     pub async fn traffic_stats(&self) -> Result<TrafficStats> {
         let _client_guard = self.client.lock().await;
@@ -1239,6 +1260,10 @@ mod tests {
 
         async fn build_new_circuit(&self) -> std::result::Result<(), String> {
             Ok(())
+        }
+
+        async fn launch_socks(&self, port: u16) -> std::result::Result<u16, String> {
+            Ok(port)
         }
     }
 

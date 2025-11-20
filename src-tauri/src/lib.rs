@@ -8,7 +8,7 @@ pub mod renderer;
 mod secure_http;
 mod session;
 mod state;
-mod system_proxy;
+mod socks;
 mod tor_manager;
 
 pub use tor_manager::load_bridge_presets_from_str;
