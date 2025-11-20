@@ -236,8 +236,19 @@ pub fn run() {
             commands::reconnect,
             commands::show_dashboard,
             commands::request_token,
-            commands::get_frame_metrics
+            commands::get_frame_metrics,
+            commands::toggle_system_proxy,
+            commands::get_system_proxy_status
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| match event {
+             tauri::RunEvent::ExitRequested { .. } => {
+                 // Ensure proxy is disabled on exit
+                 if let Err(e) = system_proxy::disable_global_proxy() {
+                     log::error!("Failed to disable system proxy on exit: {}", e);
+                 }
+             }
+             _ => {}
+        });
 }

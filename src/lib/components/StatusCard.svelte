@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Activity, Cpu, Gauge, Zap } from "lucide-svelte";
+  import { Activity, Cpu, Gauge, Zap, Shield } from "lucide-svelte";
   import { invoke } from "$lib/api";
   import MetricsChart from "./MetricsChart.svelte";
   import CircuitList from "./CircuitList.svelte";
@@ -48,6 +48,7 @@
   $: memoryMB = $torStore.memoryUsageMB;
   $: circuitCount = $torStore.circuitCount;
   $: metrics = $torStore.metrics;
+  $: proxyActive = $torStore.systemProxyEnabled && status === "CONNECTED";
 
   const statusStyles: Record<
     TorStatus,
@@ -309,6 +310,13 @@
           >
             {$torStore.securityWarning}
           </p>
+        {/if}
+
+        {#if proxyActive}
+          <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+            <Shield class="h-3 w-3" />
+            <span>System Routing (VPN Mode) Active</span>
+          </div>
         {/if}
 
         <div class="flex flex-wrap gap-3">

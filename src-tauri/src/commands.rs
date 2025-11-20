@@ -5,6 +5,7 @@ use crate::renderer::FrameMetricsSnapshot;
 use crate::state::{
     AppState, ConnectionEventSnapshot, ConnectionHealthSummary, LogEntry, MetricPoint,
 };
+use crate::system_proxy;
 use crate::tor_manager::{BridgePreset, CircuitPolicyReport, RetryInfo, TorrcProfile};
 use governor::{
     clock::DefaultClock,
@@ -259,6 +260,38 @@ pub async fn perform_connect(app_handle: tauri::AppHandle, state: AppState) -> R
                 }
 
                 state_clone.update_tray_menu().await;
+
+                // Enable System Proxy if enabled
+                if state_clone.is_system_proxy_enabled().await {
+                    let res = tokio::task::spawn_blocking(|| {
+                        system_proxy::enable_global_proxy(9150)
+                    }).await;
+
+                    match res {
+                        Ok(Ok(_)) => {
+                            let _ = state_clone
+                                .add_log(
+                                    Level::Info,
+                                    "System proxy enabled on port 9150".to_string(),
+                                    None,
+                                )
+                                .await;
+                            let _ = app_handle.emit_all("system-proxy-update", serde_json::json!({ "enabled": true }));
+                        }
+                        Ok(Err(e)) => {
+                            let _ = state_clone
+                                .add_log(
+                                    Level::Warn,
+                                    format!("Failed to set system proxy: {}", e),
+                                    None,
+                                )
+                                .await;
+                        }
+                        Err(join_err) => {
+                            log::error!("Failed to spawn proxy task: {}", join_err);
+                        }
+                    }
+                }
             }
             Err(e) => {
                 let (step, source_message) = match &e {
@@ -338,6 +371,14 @@ pub async fn perform_disconnect(app_handle: tauri::AppHandle, state: AppState) -
             None,
         )
         .await;
+
+    // Disable System Proxy
+    let _ = tokio::task::spawn_blocking(|| {
+        if let Err(e) = system_proxy::disable_global_proxy() {
+            log::error!("Failed to disable system proxy: {}", e);
+        }
+    }).await;
+    let _ = app_handle.emit_all("system-proxy-update", serde_json::json!({ "enabled": false }));
 
     {
         let mgr = state.tor_manager.read().await.clone();
@@ -552,6 +593,46 @@ pub async fn set_torrc_config(state: State<'_, AppState>, config: String) -> Res
         mgr.set_torrc_config(config).await?;
     }
     Ok(())
+}
+
+#[tauri::command]
+pub async fn toggle_system_proxy(app_handle: tauri::AppHandle, state: State<'_, AppState>, enabled: bool) -> Result<()> {
+    check_api_rate()?;
+    state.set_system_proxy_enabled(enabled).await;
+    let state_clone = state.inner().clone();
+
+    // If connected, apply immediately
+    let mgr = state.tor_manager.read().await.clone();
+    if mgr.is_connected().await {
+        let _ = tokio::task::spawn_blocking(move || {
+            if enabled {
+                if let Err(e) = system_proxy::enable_global_proxy(9150) {
+                     log::error!("Failed to enable system proxy: {}", e);
+                } else {
+                    let _ = app_handle.emit_all("system-proxy-update", serde_json::json!({ "enabled": true }));
+                    let _ = state_clone.add_log(Level::Info, "System proxy enabled via toggle".into(), None);
+                }
+            } else {
+                if let Err(e) = system_proxy::disable_global_proxy() {
+                     log::error!("Failed to disable system proxy: {}", e);
+                } else {
+                    let _ = app_handle.emit_all("system-proxy-update", serde_json::json!({ "enabled": false }));
+                    let _ = state_clone.add_log(Level::Info, "System proxy disabled via toggle".into(), None);
+                }
+            }
+        }); // Note: spawn_blocking is async, we don't await here to return quickly, but we should probably await if we want to report error?
+            // For toggle, "fire and forget" but log error is acceptable UX usually, but let's stick to pattern.
+    } else {
+         // If not connected, just emit the preference update so UI stays in sync
+         let _ = app_handle.emit_all("system-proxy-update", serde_json::json!({ "enabled": enabled }));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_system_proxy_status(state: State<'_, AppState>) -> Result<bool> {
+    check_api_rate()?;
+    Ok(state.is_system_proxy_enabled().await)
 }
 
 #[tauri::command]
