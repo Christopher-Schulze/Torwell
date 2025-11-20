@@ -594,7 +594,7 @@ impl RendererWorker {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(request.descriptor.clear_color),
-                        store: wgpu::StoreOp::Store,
+                        store: true,
                     },
                 })],
                 depth_stencil_attachment: None,
@@ -685,12 +685,16 @@ impl RendererWorker {
 
     fn flush_all(&mut self) -> Result<Vec<FrameMetrics>> {
         let mut collected = Vec::new();
+        let mut pending_frames = Vec::new();
         for slot in &mut self.slots {
             if let Some(pending) = slot.pending.take() {
-                match self.finalize_pending(pending) {
-                    Ok(metrics) => collected.push(metrics),
-                    Err(err) => log::error!("finalize failed: {err}"),
-                }
+                pending_frames.push(pending);
+            }
+        }
+        for pending in pending_frames {
+            match self.finalize_pending(pending) {
+                Ok(metrics) => collected.push(metrics),
+                Err(err) => log::error!("finalize failed: {err}"),
             }
         }
         Ok(collected)

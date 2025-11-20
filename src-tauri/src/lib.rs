@@ -20,6 +20,8 @@ use secure_http::SecureHttpClient;
 use state::AppState;
 use std::time::Duration;
 use tauri::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu, Manager};
+use arti_client::TorClient;
+use tor_rtcompat::PreferredRuntime;
 
 pub fn run() {
     let http_client = tauri::async_runtime::block_on(async {
@@ -27,7 +29,7 @@ pub fn run() {
             .await
             .expect("failed to initialize http client")
     });
-    let app_state = AppState::new(http_client.clone());
+    let app_state: AppState<TorClient<PreferredRuntime>> = AppState::new(http_client.clone());
 
     #[cfg(feature = "mobile")]
     http_bridge::start(app_state.clone());
@@ -81,30 +83,30 @@ pub fn run() {
                     }
                 }
                 "connect" => {
-                    let state = app.state::<AppState>();
+                    let state = (*app.state::<AppState>()).clone();
                     let handle = app.clone();
                     tauri::async_runtime::spawn(async move {
-                        if let Err(e) = commands::connect(handle.clone(), state.clone()).await {
+                        if let Err(e) = commands::perform_connect(handle.clone(), state.clone()).await {
                             log::error!("tray connect failed: {}", e);
                         }
                         state.update_tray_menu().await;
                     });
                 }
                 "disconnect" => {
-                    let state = app.state::<AppState>();
+                    let state = (*app.state::<AppState>()).clone();
                     let handle = app.clone();
                     tauri::async_runtime::spawn(async move {
-                        if let Err(e) = commands::disconnect(handle.clone(), state.clone()).await {
+                        if let Err(e) = commands::perform_disconnect(handle.clone(), state.clone()).await {
                             log::error!("tray disconnect failed: {}", e);
                         }
                         state.update_tray_menu().await;
                     });
                 }
                 "reconnect" => {
-                    let state = app.state::<AppState>();
+                    let state = (*app.state::<AppState>()).clone();
                     let handle = app.clone();
                     tauri::async_runtime::spawn(async move {
-                        if let Err(e) = commands::reconnect(handle.clone(), state.clone()).await {
+                        if let Err(e) = commands::perform_reconnect(handle.clone(), state.clone()).await {
                             log::error!("tray reconnect failed: {}", e);
                         }
                         state.update_tray_menu().await;
@@ -143,7 +145,7 @@ pub fn run() {
                     }
                 }
                 "warning" => {
-                    let state = app.state::<AppState>();
+                    let state = (*app.state::<AppState>()).clone();
                     tauri::async_runtime::spawn(async move {
                         state.clear_tray_warning().await;
                     });
@@ -161,16 +163,20 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            let state = app.state::<AppState>();
+            let state_ref = app.state::<AppState>();
+            let state = (*state_ref).clone();
             let handle = app.handle();
             let http_client = state.http_client.clone();
-            let state_clone = state.clone();
+            let state_for_setup = state.clone();
+            let handle_for_setup = handle.clone();
+            let state_for_cb = state.clone();
+
             tauri::async_runtime::block_on(async move {
-                state_clone.register_handle(handle.clone()).await;
-                state_clone.update_tray_menu().await;
+                state_for_setup.register_handle(handle_for_setup).await;
+                state_for_setup.update_tray_menu().await;
                 http_client
                     .set_warning_callback(move |msg| {
-                        let st = state.clone();
+                        let st = state_for_cb.clone();
                         tauri::async_runtime::spawn(async move {
                             st.emit_security_warning(msg).await;
                         });
@@ -180,8 +186,9 @@ pub fn run() {
             let renderer = state.renderer_service();
             renderer.attach_handle(handle.clone());
             renderer.start_render_loop();
+            let state_for_metrics = state.clone();
             tokio::spawn(async move {
-                state.load_metrics(None);
+                state_for_metrics.load_metrics(None);
             });
             Ok(())
         })

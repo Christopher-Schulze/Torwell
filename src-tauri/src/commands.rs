@@ -32,8 +32,6 @@ pub struct TrafficStats {
 }
 
 /// Information about a single relay in the active circuit.
-///
-/// `country` is an ISO 3166-1 alpha-2 code derived from the relay's IP address.
 #[derive(Serialize, Clone, Debug)]
 pub struct RelayInfo {
     pub nickname: String,
@@ -111,16 +109,13 @@ pub async fn request_token(state: State<'_, AppState>) -> Result<String> {
     }
 }
 
-#[tauri::command]
-pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
-    track_call("connect").await;
-    check_api_rate()?;
+// Logic extracted for internal use (e.g. tray menu)
+pub async fn perform_connect(app_handle: tauri::AppHandle, state: AppState) -> Result<()> {
     let tor_manager = state.tor_manager.clone();
-    let state_clone = state.inner().clone();
+    let state_clone = state.clone();
 
     // Fire and forget
     tokio::spawn(async move {
-        // Inform the frontend that we are connecting
         if let Err(e) = app_handle.emit_all(
             "tor-status-update",
             serde_json::json!({
@@ -146,13 +141,12 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
             )
             .await;
 
-        // Perform the actual connection
         let _ = state_clone.reset_retry_counter().await;
         let mgr = tor_manager.read().await.clone();
         match mgr
             .connect_with_backoff(
                 5,
-                Duration::from_secs(60), // place to capture circuit build duration metrics
+                Duration::from_secs(60),
                 |info: RetryInfo| {
                     let attempt = info.attempt;
                     let delay = info.delay;
@@ -304,9 +298,13 @@ pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -
 }
 
 #[tauri::command]
-pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
-    track_call("disconnect").await;
+pub async fn connect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("connect").await;
     check_api_rate()?;
+    perform_connect(app_handle, (*state).clone()).await
+}
+
+pub async fn perform_disconnect(app_handle: tauri::AppHandle, state: AppState) -> Result<()> {
     if let Err(e) = app_handle.emit_all(
         "tor-status-update",
         serde_json::json!({
@@ -366,6 +364,13 @@ pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>
     state.update_tray_menu().await;
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn disconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("disconnect").await;
+    check_api_rate()?;
+    perform_disconnect(app_handle, (*state).clone()).await
 }
 
 #[tauri::command]
@@ -1032,11 +1037,7 @@ pub async fn set_secure_key(
         .map_err(|e| Error::Io(e.to_string()))
 }
 
-#[tauri::command]
-pub async fn reconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
-    track_call("reconnect").await;
-    check_api_rate()?;
-
+pub async fn perform_reconnect(app_handle: tauri::AppHandle, state: AppState) -> Result<()> {
     // Attempt graceful disconnect; ignore errors if already disconnected
     {
         let mgr = state.tor_manager.read().await.clone();
@@ -1044,7 +1045,15 @@ pub async fn reconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>)
     }
 
     // Reuse existing connect logic
-    connect(app_handle, state).await
+    perform_connect(app_handle, state).await
+}
+
+#[tauri::command]
+pub async fn reconnect(app_handle: tauri::AppHandle, state: State<'_, AppState>) -> Result<()> {
+    track_call("reconnect").await;
+    check_api_rate()?;
+
+    perform_reconnect(app_handle, (*state).clone()).await
 }
 
 #[tauri::command]
