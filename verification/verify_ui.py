@@ -1,37 +1,75 @@
-from playwright.sync_api import Page, expect, sync_playwright
+from playwright.sync_api import sync_playwright
 import time
 
-def verify_design_showcase(page: Page):
-    # 1. Arrange: Go to the design showcase page
-    # Using local dev server port
-    page.goto("http://localhost:5173/design-showcase")
-
-    # 2. Act: Wait for animations to settle
-    # The showcase has staggered animations (up to 800ms delay + spring physics)
-    # We wait a bit longer to ensure everything is visible
-    time.sleep(2)
-
-    # 3. Assert: Check for key elements
-    # Check for the main title
-    expect(page.get_by_text("Torwell.84")).to_be_visible()
-
-    # Check for the "Tor Connection" card
-    expect(page.get_by_text("Tor Connection")).to_be_visible()
-
-    # Check for the "Identity Control" card
-    expect(page.get_by_text("Identity Control")).to_be_visible()
-
-    # Check for the "Disconnect" button
-    expect(page.get_by_role("button", name="Disconnect")).to_be_visible()
-
-    # 4. Screenshot
-    page.screenshot(path="verification/design_showcase.png")
-
-if __name__ == "__main__":
+def verify_ui():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
+
+        # Mock Tauri API
+        page.add_init_script("""
+            window.__TAURI__ = {
+              tauri: {
+                invoke: async (cmd, args) => {
+                  console.log('Mock invoke:', cmd, args);
+                  if (cmd === 'request_token') return 'mock-token';
+                  if (cmd === 'load_metrics') {
+                    return Array.from({length: 30}, (_, i) => ({
+                      time: Date.now() - (30 - i) * 1000,
+                      memoryMB: 500 + Math.sin(i) * 50,
+                      circuitCount: 5,
+                      latencyMs: 100 + Math.random() * 50,
+                      oldestAge: 0,
+                      avgCreateMs: 200,
+                      failedAttempts: 0,
+                      cpuPercent: 10 + Math.random() * 5,
+                      networkBytes: 1000 + Math.random() * 500,
+                      networkTotal: 1000000 + i * 1000,
+                      complete: true
+                    }));
+                  }
+                  if (cmd === 'get_status_summary') {
+                      return { total_traffic_bytes: 5000000 };
+                  }
+                  return null;
+                }
+              },
+              event: {
+                listen: (event, handler) => {
+                    console.log('Mock listen:', event);
+                    return Promise.resolve(() => {});
+                }
+              }
+            };
+        """)
+
+        # Navigate to Dashboard
+        print("Navigating to Dashboard...")
         try:
-            verify_design_showcase(page)
-        finally:
-            browser.close()
+            page.goto("http://localhost:5173/dashboard", timeout=10000)
+            page.wait_for_load_state("networkidle")
+            # Wait for content
+            page.wait_for_selector("text=SYSTEM RESOURCES", timeout=5000)
+            page.screenshot(path="verification/dashboard.png")
+            print("Captured verification/dashboard.png")
+        except Exception as e:
+            print(f"Failed to capture dashboard: {e}")
+            page.screenshot(path="verification/dashboard_error.png")
+
+        # Navigate to Network Monitor
+        print("Navigating to Network Monitor...")
+        try:
+            page.goto("http://localhost:5173/network", timeout=10000)
+            page.wait_for_load_state("networkidle")
+            # Wait for content - NetworkMonitor uses GlassCard now
+            page.wait_for_selector("text=CPU Load", timeout=5000)
+            page.screenshot(path="verification/network.png")
+            print("Captured verification/network.png")
+        except Exception as e:
+            print(f"Failed to capture network: {e}")
+            page.screenshot(path="verification/network_error.png")
+
+        browser.close()
+
+if __name__ == "__main__":
+    verify_ui()

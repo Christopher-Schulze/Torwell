@@ -19,7 +19,7 @@ Diese Datei dient als zentrale Steuerungseinheit für die Behebung aller identif
 ### 2. System & Environment
 | ID | Titel | Status | Ref-File | Prio |
 |----|-------|--------|----------|------|
-| 004 | **System Dependencies (Linux)** | 🟡 | `todo-004-system-deps.md` | Mittel |
+| 004 | **System Dependencies (Linux)** | 🟢 | `todo-004-system-deps.md` | Mittel |
 
 ### 3. Advanced Analysis (Architecture & Performance)
 | ID | Titel | Status | Ref-File | Prio |
@@ -27,6 +27,7 @@ Diese Datei dient als zentrale Steuerungseinheit für die Behebung aller identif
 | 005 | **WebGPU Architecture & ZeroCopy** | 🟢 | `todo-005-webgpu-analysis.md` | Hoch |
 | 006 | **Arti Integration & Network Stack** | 🟢 | `todo-006-arti-network.md` | Hoch |
 | 007 | **Future Improvements (Persistence, PT)** | 🔴 | `todo-007-improvements.md` | Low |
+| 009 | **System Proxy Routing** | 🟢 | `todo-02-system-proxy.md` | Hoch |
 
 ### 4. User Interface & Experience
 | ID | Titel | Status | Ref-File | Prio |

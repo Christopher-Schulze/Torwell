@@ -464,6 +464,8 @@ impl<C: TorClientBehavior> TorManager<C> {
                 .any(|p| p.join("obfs4proxy").exists() || p.join("obfs4proxy.exe").exists());
             if !found {
                 log::warn!("obfs4proxy binary not found in PATH. Obfuscation may fail.");
+            } else {
+                log::info!("obfs4proxy binary found in PATH.");
             }
         }
 
