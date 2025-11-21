@@ -28,5 +28,10 @@ Diese Datei dient als zentrale Steuerungseinheit für die Behebung aller identif
 | 006 | **Arti Integration & Network Stack** | 🟢 | `todo-006-arti-network.md` | Hoch |
 | 007 | **Future Improvements (Persistence, PT)** | 🔴 | `todo-007-improvements.md` | Low |
 
+### 4. User Interface & Experience
+| ID | Titel | Status | Ref-File | Prio |
+|----|-------|--------|----------|------|
+| 008 | **UI Redesign (Cyber-Stealth)** | 🟡 | `todo-04-ui-redesign.md` | Ultra |
+
 ---
 *Zuletzt aktualisiert: Heute*
