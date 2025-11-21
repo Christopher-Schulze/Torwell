@@ -263,8 +263,9 @@ pub async fn perform_connect(app_handle: tauri::AppHandle, state: AppState) -> R
 
                 // Enable System Proxy if enabled
                 if state_clone.is_system_proxy_enabled().await {
-                    let res = tokio::task::spawn_blocking(|| {
-                        system_proxy::enable_global_proxy(9150)
+                    let port = mgr.get_socks_port().await.unwrap_or(9150);
+                    let res = tokio::task::spawn_blocking(move || {
+                        system_proxy::enable_global_proxy(port)
                     }).await;
 
                     match res {
@@ -272,7 +273,7 @@ pub async fn perform_connect(app_handle: tauri::AppHandle, state: AppState) -> R
                             let _ = state_clone
                                 .add_log(
                                     Level::Info,
-                                    "System proxy enabled on port 9150".to_string(),
+                                    format!("System proxy enabled on port {}", port),
                                     None,
                                 )
                                 .await;
@@ -604,9 +605,10 @@ pub async fn toggle_system_proxy(app_handle: tauri::AppHandle, state: State<'_, 
     // If connected, apply immediately
     let mgr = state.tor_manager.read().await.clone();
     if mgr.is_connected().await {
+        let port = mgr.get_socks_port().await.unwrap_or(9150);
         let _ = tokio::task::spawn_blocking(move || {
             if enabled {
-                if let Err(e) = system_proxy::enable_global_proxy(9150) {
+                if let Err(e) = system_proxy::enable_global_proxy(port) {
                      log::error!("Failed to enable system proxy: {}", e);
                 } else {
                     let _ = app_handle.emit_all("system-proxy-update", serde_json::json!({ "enabled": true }));

@@ -20,84 +20,52 @@
 
   $: memoryPath = buildPath(metrics, "memoryMB");
   $: circuitPath = buildPath(metrics, "circuitCount");
-  $: agePath = buildPath(metrics, "oldestAge");
-  $: avgPath = buildPath(metrics, "avgCreateMs");
   $: failPath = buildPath(metrics, "failedAttempts");
-  $: networkPath = buildPath(metrics, "networkBytes");
 </script>
 
-<svg {width} {height} class="text-green-400" role="img" aria-label="Tor metrics chart">
+<!-- Combined Chart -->
+<svg {width} {height} class="w-full h-full overflow-visible" role="img" aria-label="Tor metrics chart" preserveAspectRatio="none">
+  <!-- Memory (Background Area) -->
   {#if memoryPath}
     <path
       d={memoryPath}
+      class="text-neon-green"
       fill="currentColor"
-      fill-opacity="0.3"
+      fill-opacity="0.1"
+      stroke="none"
+    />
+    <path
+      d={memoryPath}
+      class="text-neon-green"
+      fill="none"
       stroke="currentColor"
       stroke-width="1"
+      vector-effect="non-scaling-stroke"
     />
   {/if}
+
+  <!-- Circuits (Line) -->
   {#if circuitPath}
     <path
       d={circuitPath}
+      class="text-neon-purple"
       fill="none"
-      stroke="blue"
-      stroke-width="1"
+      stroke="currentColor"
+      stroke-width="1.5"
+      vector-effect="non-scaling-stroke"
     />
   {/if}
-  {#if agePath}
+
+  <!-- Failures (Dotted Line) -->
+  {#if failPath}
     <path
-      d={agePath}
+      d={failPath}
+      class="text-red-500"
       fill="none"
-      stroke="orange"
-      stroke-width="1"
+      stroke="currentColor"
+      stroke-width="1.5"
       stroke-dasharray="2,2"
-    />
-  {/if}
-  {#if avgPath}
-    <path
-      d={avgPath}
-      fill="none"
-      stroke="purple"
-      stroke-width="1"
-    />
-  {/if}
-  {#if failPath}
-    <path
-      d={failPath}
-      fill="none"
-      stroke="red"
-      stroke-width="1"
-      stroke-dasharray="4,2"
-    />
-  {/if}
-  {#if networkPath}
-    <path
-      d={networkPath}
-      fill="none"
-      stroke="cyan"
-      stroke-width="1"
-    />
-  {/if}
-</svg>
-<svg {width} {height} class="text-purple-300" role="img" aria-label="Average build time chart">
-  {#if avgPath}
-    <path
-      d={avgPath}
-      fill="currentColor"
-      fill-opacity="0.3"
-      stroke="currentColor"
-      stroke-width="1"
-    />
-  {/if}
-</svg>
-<svg {width} {height} class="text-red-400" role="img" aria-label="Failed attempts chart">
-  {#if failPath}
-    <path
-      d={failPath}
-      fill="currentColor"
-      fill-opacity="0.3"
-      stroke="currentColor"
-      stroke-width="1"
+      vector-effect="non-scaling-stroke"
     />
   {/if}
 </svg>

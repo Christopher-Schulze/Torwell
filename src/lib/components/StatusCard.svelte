@@ -3,6 +3,7 @@
   import { invoke } from "$lib/api";
   import MetricsChart from "./MetricsChart.svelte";
   import CircuitList from "./CircuitList.svelte";
+  import GlassCard from "./GlassCard.svelte";
   import type { CircuitPolicyReport, StatusSummary } from "$lib/types";
   import type { TorStatus } from "$lib/stores/torStore";
   import { reducedMotion } from "$lib/utils/motion";
@@ -276,11 +277,7 @@
 </script>
 
 <!-- Status Card -->
-<div
-  class="relative overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/40 p-6 shadow-[0_45px_120px_rgba(10,15,45,0.6)]"
-  role="region"
-  aria-label="Status information"
->
+<GlassCard className="rounded-[32px] p-6 shadow-[0_45px_120px_rgba(10,15,45,0.6)] border-white/5 bg-void/80" role="region" aria-label="Status information">
   <div
     class={`pointer-events-none absolute -inset-24 bg-gradient-to-br ${statusInfo.gradient} opacity-60 blur-3xl`}
     class:opacity-30={$reducedMotion}
@@ -321,9 +318,7 @@
 
         <div class="flex flex-wrap gap-3">
           {#each highlightMetrics as metric (metric.label)}
-            <div
-              class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_25px_55px_rgba(12,18,46,0.55)]"
-            >
+            <GlassCard className="px-4 py-3 shadow-[0_25px_55px_rgba(12,18,46,0.55)] bg-white/[0.03] border-white/5">
               <div class={`absolute inset-0 bg-gradient-to-r ${metric.accent} opacity-70 blur-xl`}></div>
               <div class="relative z-10 flex items-center gap-3">
                 <svelte:component this={metric.icon} class="h-4 w-4 text-white/90" aria-hidden="true" />
@@ -335,12 +330,12 @@
                   <span class="text-[11px] text-white/60">{metric.detail}</span>
                 </div>
               </div>
-            </div>
+            </GlassCard>
           {/each}
         </div>
       </div>
 
-      <div class="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 shadow-[0_35px_65px_rgba(8,12,32,0.6)]">
+      <GlassCard className="w-full max-w-sm flex-col gap-3 p-4 shadow-[0_35px_65px_rgba(8,12,32,0.6)] bg-slate-900/60">
         <div class="flex items-center justify-between">
           <span class="text-[11px] uppercase tracking-[0.32em] text-white/60">Ping Monitor</span>
           <button
@@ -376,29 +371,29 @@
         <p class="text-xs text-white/70">
           Zuletzt gemessen: {pingMs !== undefined && pingMs >= 0 ? `${pingMs} ms` : "keine Daten"}
         </p>
-      </div>
+      </GlassCard>
     </div>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]">
+      <GlassCard className="px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)] bg-white/5 border-white/10">
         <span class="text-[11px] uppercase tracking-[0.28em] text-white/70">Uptime</span>
         <p class="mt-1 text-sm font-semibold text-white">{uptimeLabel}</p>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]">
+      </GlassCard>
+      <GlassCard className="px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)] bg-white/5 border-white/10">
         <span class="text-[11px] uppercase tracking-[0.28em] text-white/70">Throughput</span>
         <p class="mt-1 text-sm font-semibold text-white">{throughputLabel}</p>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]">
+      </GlassCard>
+      <GlassCard className="px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)] bg-white/5 border-white/10">
         <span class="text-[11px] uppercase tracking-[0.28em] text-white/70">Connected Since</span>
         <p class="mt-1 text-sm font-semibold text-white/90 break-words">{connectedSinceLabel}</p>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]">
+      </GlassCard>
+      <GlassCard className="px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)] bg-white/5 border-white/10">
         <span class="text-[11px] uppercase tracking-[0.28em] text-white/70">Oldest Circuit</span>
         <p class="mt-1 text-sm font-semibold text-white">{oldestCircuitLabel}</p>
-      </div>
+      </GlassCard>
     </div>
 
-    <div class="rounded-3xl border border-white/10 bg-slate-900/40 p-4 shadow-[0_30px_65px_rgba(8,12,32,0.55)]">
+    <GlassCard className="p-4 shadow-[0_30px_65px_rgba(8,12,32,0.55)] bg-slate-900/40">
       <div class="flex items-center justify-between">
         <h4 class="text-[11px] uppercase tracking-[0.28em] text-white/70">Circuit Route</h4>
         {#if routePolicyState}
@@ -407,8 +402,8 @@
       </div>
       <div class="mt-3 grid gap-3 sm:grid-cols-3">
         {#each routeDisplay as detail (detail.role)}
-          <div
-            class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)]"
+          <GlassCard
+            className="px-4 py-3 shadow-[0_22px_55px_rgba(12,18,46,0.45)] bg-white/5 border-white/10"
             title={`Effective ${detail.role.toLowerCase()}: ${detail.label}`}
           >
             <div class="flex items-center justify-between text-[11px] uppercase tracking-[0.24em] text-white/70">
@@ -428,14 +423,14 @@
             {#if detail.isFast}
               <p class="text-[10px] text-sky-200/90">Fast-tier relay</p>
             {/if}
-          </div>
+          </GlassCard>
         {/each}
       </div>
-    </div>
+    </GlassCard>
 
     <div class="space-y-4">
       <MetricsChart {metrics} />
       <CircuitList show={status === 'CONNECTED'} />
     </div>
   </div>
-</div>
+</GlassCard>

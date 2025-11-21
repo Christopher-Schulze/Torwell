@@ -9,6 +9,7 @@ mod secure_http;
 mod session;
 mod state;
 mod socks;
+mod system_proxy;
 mod tor_manager;
 
 pub use tor_manager::load_bridge_presets_from_str;

@@ -30,6 +30,7 @@ describe("ActionCard", () => {
       pingMs: undefined,
       metrics: [],
       lastTransition: null,
+      systemProxyEnabled: false,
     });
 
     const { getByRole } = render(ActionCard);
@@ -63,6 +64,7 @@ describe("ActionCard", () => {
       pingMs: undefined,
       metrics: [],
       lastTransition: null,
+      systemProxyEnabled: false,
     });
 
     const { getByRole } = render(ActionCard);
